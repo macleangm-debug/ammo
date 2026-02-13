@@ -1,170 +1,148 @@
 {
-  "project_name": "AEGIS: National Ballistics Verification Network",
+  "project_name": "AMMO (Accountable Munitions & Mobility Oversight)",
   "design_philosophy": {
-    "identity": "E1: The Anti-AI Designer",
-    "core_concept": "Digital Fortress / Tactical Clarity",
-    "vibe": "Authoritative, Precise, Real-time, Secure",
-    "theme_strategy": "Hybrid",
-    "theme_logic": "Dark Mode (Slate/Navy) for Dealer & Government Portals (Command Center feel). Light Mode for Citizen App (Trust/Wallet feel).",
-    "principles": [
-      "Fusion over Imitation: Mix Swiss Grid precision with Tactical HUD aesthetics.",
-      "Emotion First: Verify = Relief/Safety. Deny = Firmness/Alert.",
-      "Content is King: Data is the hero. Use monospace for critical numbers.",
-      "Negative Space: Use 'breathing room' in Citizen app; Use 'density' in Gov dashboard."
+    "identity": "E1 - The Anti-AI Designer",
+    "core_concept": "Digital Fortress / Tactical Command",
+    "emotional_tone": "Authoritative, Lethal Precision, Absolute Security, High-Tech Oversight",
+    "visual_style": "Military Tactical HUD mixed with Swiss Enterprise Clarity",
+    "key_principles": [
+      "Information Density: High for Dealers/Gov, Low for Citizens",
+      "Tactical Aesthetics: Corner markers, scanlines, monospace data",
+      "Motion: Staggered entrances, micro-interactions, no 'bouncy' physics",
+      "Accessibility: High contrast in both Dark (Night Ops) and Light (Base Command) modes"
     ]
   },
   "typography": {
-    "font_family_heading": "Manrope",
-    "font_family_body": "Inter",
-    "font_family_mono": "JetBrains Mono",
-    "scale": {
-      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
-      "h2": "text-3xl font-semibold tracking-tight",
-      "h3": "text-2xl font-medium",
-      "body": "text-base leading-relaxed",
-      "caption": "text-sm text-muted-foreground",
-      "mono_data": "font-mono text-xs tracking-wider uppercase opacity-80"
+    "font_family": {
+      "heading": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
     },
-    "installation_instructions": "Import fonts via Google Fonts in index.css: Manrope (400,500,700), Inter (400,500,600), JetBrains Mono (400)."
+    "usage_rules": [
+      "Headings (Manrope): Uppercase for top-level headers, bold weights (600/700/800)",
+      "Body (Inter): High legibility, relaxed line-height for long text",
+      "Data/HUD (JetBrains Mono): MANDATORY for all IDs, Prices, coordinates, timestamps, and status badges",
+      "Tracking: Tight (-0.02em) for headings, Wide (0.05em) for uppercase labels"
+    ]
   },
   "colors": {
-    "palette_name": "Digital Fortress",
-    "primary": {
-      "name": "Electric Signal",
-      "hex": "#3b82f6",
-      "tailwind": "bg-blue-500",
-      "description": "Used for active states, primary actions, and 'scanning' effects."
+    "palette_name": "Defcon Command",
+    "base": {
+      "dark": {
+        "background": "#020617",
+        "surface": "#0f172a",
+        "surface_highlight": "#1e293b",
+        "border": "#1e293b"
+      },
+      "light": {
+        "background": "#f8fafc",
+        "surface": "#ffffff",
+        "surface_highlight": "#f1f5f9",
+        "border": "#e2e8f0"
+      }
     },
-    "secondary": {
-      "name": "Slate Armor",
-      "hex": "#0f172a",
-      "tailwind": "bg-slate-900",
-      "description": "Main background for Dashboards."
+    "brand": {
+      "primary": "#3b82f6", 
+      "primary_tactical": "#0ea5e9",
+      "secondary": "#64748b"
     },
-    "accent": {
-      "name": "Tactical Amber",
-      "hex": "#f59e0b",
-      "tailwind": "text-amber-500",
-      "description": "Used for 'Risk Analysis', 'Pending', or 'Warnings'."
-    },
-    "success": {
-      "name": "Emerald Lock",
-      "hex": "#10b981",
-      "tailwind": "text-emerald-500",
-      "description": "Used STRICTLY for 'Verified' and 'Approved' states."
-    },
-    "danger": {
-      "name": "Crimson Deny",
-      "hex": "#ef4444",
-      "tailwind": "text-red-500",
-      "description": "Used for 'Rejected', 'High Risk', or 'Panic'."
-    },
-    "backgrounds": {
-      "citizen_light": "#ffffff",
-      "dashboard_dark": "#020617"
-    },
-    "gradients": {
-      "hero_glow": "bg-gradient-to-b from-blue-500/10 to-transparent",
-      "card_surface": "bg-gradient-to-br from-white/5 to-white/0"
+    "tactical": {
+      "success": "#10b981", 
+      "warning": "#f59e0b",
+      "danger": "#ef4444", 
+      "hud_cyan": "#06b6d4",
+      "night_vision": "#22c55e"
     }
   },
   "visual_enhancers": {
-    "borders": {
-      "tactical": "border border-white/10",
-      "reticle": "relative after:content-[''] after:absolute after:top-0 after:left-0 after:w-2 after:h-2 after:border-t-2 after:border-l-2 after:border-blue-500"
-    },
-    "shadows": {
-      "glow": "shadow-[0_0_15px_rgba(59,130,246,0.3)]",
-      "depth": "shadow-xl"
-    },
-    "glassmorphism": {
-      "heavy": "backdrop-blur-xl bg-slate-950/80 border-b border-white/5",
-      "light": "backdrop-blur-md bg-white/80 border-b border-black/5"
-    },
-    "textures": {
-      "grid": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20",
-      "scanline": "background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 50%); background-size: 100% 4px;"
-    }
-  },
-  "layout_strategies": {
-    "citizen_app": {
-      "type": "Mobile-First Stack",
-      "grid": "grid-cols-1 gap-4",
-      "container": "max-w-md mx-auto min-h-screen bg-gray-50",
-      "padding": "p-6"
-    },
-    "dealer_portal": {
-      "type": "Bento Grid / High Density",
-      "grid": "grid grid-cols-12 gap-4",
-      "sidebar": "fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-white/10 hidden md:block",
-      "main_content": "md:ml-64 p-8 min-h-screen bg-slate-950 text-white"
-    },
-    "gov_dashboard": {
-      "type": "Command Center",
-      "grid": "grid grid-cols-4 gap-6",
-      "hero_map": "col-span-4 row-span-2 h-[400px] rounded-xl overflow-hidden border border-white/10"
-    }
+    "borders": "1px solid var(--border). Active elements get 'Tactical Glow' (box-shadow with primary color)",
+    "corners": "Sharp edges (rounded-sm or rounded-md). Key containers get 'Corner Brackets' using pseudo-elements",
+    "glassmorphism": "Heavy blur (backdrop-blur-xl) with slight noise texture. Dark mode: bg-slate-950/70. Light mode: bg-white/70",
+    "scanlines": "Overlay linear-gradient repeating pattern on Hero sections and sensitive data panels (opacity 0.05)",
+    "shadows": "crisp, directional shadows. No soft diffuse 'material' shadows"
   },
   "components": {
     "buttons": {
-      "primary": "h-11 px-8 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-sm transition-all shadow-[0_0_10px_rgba(37,99,235,0.2)] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)]",
-      "destructive": "h-11 px-8 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-500/50 rounded-sm",
-      "ghost": "hover:bg-white/5 text-slate-300 hover:text-white"
+      "style": "Flat or Outline with 'Cut Corners' or 'Tech Borders'",
+      "hover": "Instant color swap or 'Glitch' effect. No slow fades",
+      "text": "Uppercase, tracking-wide, often Mono font"
     },
     "cards": {
-      "base": "bg-slate-900 border border-white/10 rounded-lg p-6",
-      "interactive": "group hover:border-blue-500/50 transition-colors cursor-pointer relative overflow-hidden",
-      "glass": "bg-white/10 backdrop-blur-lg border border-white/20 text-white"
+      "style": "Border-heavy, minimal shadow. Background: Surface color",
+      "header": "Distinct header area with bottom border",
+      "highlight": "Optional left-border accent color based on status (Red/Green/Amber)"
     },
     "inputs": {
-      "style": "bg-slate-950 border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-11 text-white placeholder:text-slate-500"
+      "style": "Rectangular, bg-background, border-input. Focus: Ring-2 ring-primary ring-offset-2 ring-offset-background",
+      "typography": "Input text should be Mono for data entry"
     },
-    "status_badges": {
-      "verified": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
-      "pending": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20",
-      "high_risk": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse"
+    "badges": {
+      "style": "Outline only or low-opacity background. Sharp corners. Mono font"
+    }
+  },
+  "layout_strategies": {
+    "landing_page": {
+      "grid": "Tetris Grid (Mode A). Asymmetric. Hero uses full width or 8-col span",
+      "vibe": "Public facing authority. Trust-building. High-end imagery"
+    },
+    "citizen_dashboard": {
+      "grid": "Mobile-first stack. Card-based 'Wallet' interface",
+      "focus": "Simplicity, Status, Licenses"
+    },
+    "dealer_portal": {
+      "grid": "High Density (Mode B). 100% width utilization. Split view (List | Detail)",
+      "focus": "Efficiency, Keyboard shortcuts, Data scanning"
+    },
+    "government_dashboard": {
+      "grid": "Bento Grid (Dense). Map centric. Real-time feeds",
+      "focus": "Oversight, Analytics, Alerts"
     }
   },
   "motion": {
-    "transitions": "transition-all duration-300 ease-out",
-    "animations": {
-      "scan": "animate-[scan_2s_ease-in-out_infinite]",
-      "pulse_slow": "animate-[pulse_3s_infinite]",
-      "slide_up": "animate-in slide-in-from-bottom-4 fade-in duration-500"
-    },
-    "micro_interactions": {
-      "hover_lift": "hover:-translate-y-1",
-      "active_press": "active:scale-95"
+    "transitions": "Fast (150ms-200ms). Ease-out-quad",
+    "entrance": "Staggered slide-up + fade-in for lists",
+    "hover": "Scale 1.01 or Border Color change",
+    "loading": "Scanning radar line or blinking cursor"
+  },
+  "media": {
+    "icons": "Lucide React (Stroke width: 1.5 or 2). Sharp, technical icons preferred",
+    "image_urls": {
+      "hero_backgrounds": [
+         "https://images.unsplash.com/photo-1729184648234-7650c1484905?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHw0fHxmdXR1cmlzdGljJTIwZ292ZXJubWVudCUyMGNvbW1hbmQlMjBjZW50ZXIlMjBkYXNoYm9hcmQlMjBpbnRlcmZhY2V8ZW58MHx8fHwxNzcxMDE1MTI2fDA&ixlib=rb-4.1.0&q=85",
+         "https://images.unsplash.com/photo-1737502483541-92e91801cfaf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHxmdXR1cmlzdGljJTIwZ292ZXJubWVudCUyMGNvbW1hbmQlMjBjZW50ZXIlMjBkYXNoYm9hcmQlMjBpbnRlcmZhY2V8ZW58MHx8fHwxNzcxMDE1MTI2fDA&ixlib=rb-4.1.0&q=85"
+      ],
+      "tactical_context": [
+        "https://images.unsplash.com/photo-1687384475487-40672cee0bef?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxyZXNwb25zaWJsZSUyMGNpdGl6ZW4lMjBmaXJlYXJtJTIwc2FmZXR5JTIwdHJhaW5pbmclMjByYW5nZXxlbnwwfHx8fDE3NzEwMTUxMjd8MA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1644144557346-5775e758b7f7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwxfHxmaXJlYXJtJTIwZGVhbGVyJTIwc2hvcCUyMGludGVyaW9yJTIwbW9kZXJuJTIwc2VjdXJlfGVufDB8fHx8MTc3MTAxNTEzMHww&ixlib=rb-4.1.0&q=85"
+      ],
+      "avatars": [
+         "https://images.unsplash.com/photo-1675285547778-4e2f4bdd3251?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxyZXNwb25zaWJsZSUyMGNpdGl6ZW4lMjBmaXJlYXJtJTIwc2FmZXR5JTIwdHJhaW5pbmclMjByYW5nZXxlbnwwfHx8fDE3NzEwMTUxMjd8MA&ixlib=rb-4.1.0&q=85"
+      ]
     }
   },
-  "image_assets": {
-    "strategy": "Use abstract tech/security visuals. Avoid generic 'handshaking' stock photos. Use authentic biometric/data imagery.",
-    "urls": {
-      "hero_bg": "https://images.unsplash.com/photo-1631016042018-448c284aa279?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHw0fHxiaW9tZXRyaWMlMjBkaWdpdGFsJTIwc2VjdXJpdHklMjBzY2FubmluZyUyMGZpbmdlciUyMHByaW50JTIwZnV0dXJpc3RpY3xlbnwwfHx8fDE3NzEwMDM0ODd8MA&ixlib=rb-4.1.0&q=85",
-      "biometric_scan": "https://images.unsplash.com/photo-1689103722266-1f2f837145e7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwyfHxiaW9tZXRyaWMlMjBkaWdpdGFsJTIwc2VjdXJpdHklMjBzY2FubmluZyUyMGZpbmdlciUyMHByaW50JTIwZnV0dXJpc3RpY3xlbnwwfHx8fDE3NzEwMDM0ODd8MA&ixlib=rb-4.1.0&q=85",
-      "map_texture": "https://images.unsplash.com/photo-1639060015191-9d83063eab2a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjB0YWN0aWNhbCUyMG1hcCUyMGdyaWQlMjBncHMlMjBpbnRlcmZhY2UlMjBkYXJrfGVufDB8fHx8MTc3MTAwMzQ5MHww&ixlib=rb-4.1.0&q=85",
-      "avatar_1": "https://images.unsplash.com/photo-1706827515530-ade374fa8178?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIwcHJvZmVzc2lvbmFsJTIwcGVvcGxlJTIwcG9ydHJhaXQlMjBmb3IlMjBwcm9maWxlJTIwYXZhdGFyc3xlbnwwfHx8fDE3NzEwMDM0ODl8MA&ixlib=rb-4.1.0&q=85",
-      "avatar_2": "https://images.unsplash.com/photo-1659100947220-48b5d5738148?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHw0fHxkaXZlcnNlJTIwcHJvZmVzc2lvbmFsJTIwcGVvcGxlJTIwcG9ydHJhaXQlMjBmb3IlMjBwcm9maWxlJTIwYXZhdGFyc3xlbnwwfHx8fDE3NzEwMDM0ODl8MA&ixlib=rb-4.1.0&q=85"
-    }
-  },
-  "universal_guidelines": [
-    "You tend to converge toward generic outputs. Avoid this. Create distinctive frontends.",
-    "Dark colors look good when used independently. DO NOT use dark gradients.",
-    "Don't make generic centered layouts. Use grids.",
-    "Create depth through layered elements with z-index.",
-    "Use glass-morphism effects (backdrop-blur).",
-    "MUST NOT apply transition: all. Use specific transitions.",
-    "MUST NOT center align the App container.",
-    "NEVER use AI emoji characters.",
-    "Use 2-3x more spacing than feels comfortable.",
-    "Micro-animations are mandatory.",
-    "All interactive elements MUST include data-testid attributes."
-  ],
   "instructions_to_main_agent": [
-    "1. Setup Fonts: Add Manrope, Inter, and JetBrains Mono to index.css immediately.",
-    "2. Configure Tailwind: Update tailwind.config.js with the 'colors' palette defined above.",
-    "3. Build Layouts: Create separate layout wrappers for 'CitizenApp' (Light/Mobile) and 'Dashboard' (Dark/Desktop).",
-    "4. Components: Override default Shadcn styles. Remove 'rounded-xl' and use 'rounded-lg' or 'rounded-sm' for a sharper look.",
-    "5. Motion: Add a global 'scan' keyframe animation in tailwind config for use in loading states."
+    "1. THEME SETUP: Ensure dark mode is default but light mode is perfectly readable (Government requirement). Use the provided tactical color palette.",
+    "2. TYPOGRAPHY: Import Manrope and JetBrains Mono immediately. Apply JetBrains Mono to ALL numeric data, IDs, and tabular data.",
+    "3. PWA: Register the service worker. Add manifest.json with 'standalone' display mode.",
+    "4. COMPONENTS: Use shadcn/ui but STRIP the default rounding. Set rounded-lg to rounded-sm or rounded-none for that military sharpness.",
+    "5. DASHBOARDS: Implement the 3 separate dashboards (Citizen, Dealer, Gov) with distinct layouts as defined in 'layout_strategies'.",
+    "6. LANDING PAGE: Use the 'Tetris Grid' with the tactical hero images. Implement a 'Role Select' login modal (Citizen/Dealer/Gov).",
+    "7. DETAILS: Add 'corner markers' (CSS pseudo-elements) to main containers to give that HUD look.",
+    "8. MAPS: Use a dark-mode styled map placeholder (or Leaflet if capable) for the Government dashboard."
+  ],
+  "universal_guidelines": [
+    "You tend to converge toward generic outputs. Avoid this.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Use grids.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters.",
+    "You MUST NOT apply universal transition (transition: all).",
+    "You MUST NOT center align the app container.",
+    "Always use modern button styles.",
+    "NEVER use AI assistant Emoji characters.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Subtle grain textures/noise overlays recommended.",
+    "Use 'sonner' for toasts."
   ]
 }
