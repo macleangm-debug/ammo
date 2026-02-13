@@ -2848,6 +2848,615 @@ async def check_and_trigger_alerts():
                     )
                     await db.member_alerts.insert_one(alert.model_dump())
 
+# ============== PREDICTIVE ANALYTICS & AUTOMATED THRESHOLD ALERTS ==============
+
+async def calculate_risk_prediction(user_id: str) -> dict:
+    """Calculate predictive risk score for a citizen"""
+    citizen = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if not citizen:
+        return None
+    
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    transactions = await db.transactions.find({"citizen_id": user_id}, {"_id": 0}).to_list(100)
+    enrollments = await db.course_enrollments.find({"user_id": user_id}, {"_id": 0}).to_list(50)
+    
+    # Current metrics
+    current_compliance = citizen.get("compliance_score", 50)
+    current_ari = resp_profile.get("ari_score", 40) if resp_profile else 40
+    training_hours = resp_profile.get("training_hours", 0) if resp_profile else 0
+    violations = resp_profile.get("violations", 0) if resp_profile else 0
+    
+    # Calculate historical trends (last 90 days)
+    risk_factors = []
+    recommendations = []
+    trajectory_score = 0  # Positive = improving, negative = declining
+    
+    # Factor 1: Transaction frequency trend
+    now = datetime.now(timezone.utc)
+    recent_txns = [t for t in transactions if t.get("created_at", "") >= (now - timedelta(days=30)).isoformat()]
+    older_txns = [t for t in transactions if (now - timedelta(days=60)).isoformat() <= t.get("created_at", "") < (now - timedelta(days=30)).isoformat()]
+    
+    if len(recent_txns) > len(older_txns) * 1.5:
+        risk_factors.append({
+            "factor": "purchase_frequency_increase",
+            "description": "Purchase frequency increased by 50%+ in last 30 days",
+            "impact": -10,
+            "severity": "medium"
+        })
+        trajectory_score -= 10
+        recommendations.append("Monitor purchase patterns closely")
+    elif len(recent_txns) < len(older_txns) * 0.7:
+        trajectory_score += 5  # Stable/decreasing is positive
+    
+    # Factor 2: Training completion
+    completed_trainings = len([e for e in enrollments if e.get("status") == "completed"])
+    overdue_trainings = len([e for e in enrollments if e.get("status") == "expired"])
+    
+    if overdue_trainings > 0:
+        risk_factors.append({
+            "factor": "training_overdue",
+            "description": f"{overdue_trainings} training course(s) overdue",
+            "impact": -15 * overdue_trainings,
+            "severity": "high" if overdue_trainings > 1 else "medium"
+        })
+        trajectory_score -= 15 * overdue_trainings
+        recommendations.append(f"Complete {overdue_trainings} overdue training course(s)")
+    
+    if training_hours < 10:
+        risk_factors.append({
+            "factor": "low_training_hours",
+            "description": f"Only {training_hours} training hours logged",
+            "impact": -5,
+            "severity": "low"
+        })
+        trajectory_score -= 5
+        recommendations.append("Enroll in additional safety training courses")
+    
+    # Factor 3: Compliance score trend
+    if current_compliance < 50:
+        risk_factors.append({
+            "factor": "low_compliance",
+            "description": f"Compliance score ({current_compliance}) below acceptable threshold",
+            "impact": -20,
+            "severity": "high"
+        })
+        trajectory_score -= 20
+        recommendations.append("Take immediate steps to improve compliance score")
+    elif current_compliance < 70:
+        risk_factors.append({
+            "factor": "moderate_compliance",
+            "description": f"Compliance score ({current_compliance}) needs improvement",
+            "impact": -5,
+            "severity": "medium"
+        })
+        trajectory_score -= 5
+        recommendations.append("Focus on improving compliance through training and safe practices")
+    
+    # Factor 4: Violations
+    if violations > 0:
+        risk_factors.append({
+            "factor": "past_violations",
+            "description": f"{violations} violation(s) on record",
+            "impact": -10 * violations,
+            "severity": "high" if violations > 2 else "medium"
+        })
+        trajectory_score -= 10 * violations
+    
+    # Factor 5: License expiry
+    license_expiry = citizen.get("license_expiry")
+    if license_expiry:
+        if isinstance(license_expiry, str):
+            try:
+                license_expiry = datetime.fromisoformat(license_expiry.replace('Z', '+00:00'))
+            except:
+                license_expiry = None
+        
+        if license_expiry:
+            if license_expiry.tzinfo is None:
+                license_expiry = license_expiry.replace(tzinfo=timezone.utc)
+            days_to_expiry = (license_expiry - now).days
+            
+            if days_to_expiry < 0:
+                risk_factors.append({
+                    "factor": "license_expired",
+                    "description": "License has expired",
+                    "impact": -30,
+                    "severity": "critical"
+                })
+                trajectory_score -= 30
+                recommendations.append("Renew license immediately")
+            elif days_to_expiry < 30:
+                risk_factors.append({
+                    "factor": "license_expiring_soon",
+                    "description": f"License expires in {days_to_expiry} days",
+                    "impact": -10,
+                    "severity": "medium"
+                })
+                trajectory_score -= 10
+                recommendations.append(f"Renew license within {days_to_expiry} days")
+    
+    # Factor 6: Safe storage verification
+    safe_storage = resp_profile.get("safe_storage_verified", False) if resp_profile else False
+    if not safe_storage:
+        risk_factors.append({
+            "factor": "safe_storage_unverified",
+            "description": "Safe storage not verified",
+            "impact": -5,
+            "severity": "low"
+        })
+        trajectory_score -= 5
+        recommendations.append("Complete safe storage verification")
+    
+    # Calculate predicted risk score (30 days from now)
+    base_risk = 100 - current_ari  # Lower ARI = higher risk
+    predicted_risk = base_risk + trajectory_score
+    predicted_risk = max(0, min(100, predicted_risk))  # Clamp to 0-100
+    
+    # Determine trajectory
+    if trajectory_score >= 10:
+        trajectory = "improving"
+    elif trajectory_score >= 0:
+        trajectory = "stable"
+    elif trajectory_score >= -15:
+        trajectory = "declining"
+    else:
+        trajectory = "critical_decline"
+    
+    # Calculate confidence based on data availability
+    data_points = len(transactions) + len(enrollments) + (1 if resp_profile else 0)
+    confidence = min(95, 50 + data_points * 2)
+    
+    return {
+        "user_id": user_id,
+        "current_risk_score": round(base_risk, 1),
+        "predicted_risk_score": round(predicted_risk, 1),
+        "risk_trajectory": trajectory,
+        "trajectory_score": trajectory_score,
+        "confidence": confidence,
+        "risk_factors": risk_factors,
+        "recommendations": recommendations,
+        "current_metrics": {
+            "compliance_score": current_compliance,
+            "ari_score": current_ari,
+            "training_hours": training_hours,
+            "violations": violations,
+            "recent_transactions": len(recent_txns)
+        }
+    }
+
+@api_router.get("/government/predictive/citizen/{user_id}")
+async def get_citizen_risk_prediction(user_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Get predictive risk analysis for a specific citizen"""
+    prediction = await calculate_risk_prediction(user_id)
+    if not prediction:
+        raise HTTPException(status_code=404, detail="Citizen not found")
+    
+    # Store prediction
+    pred_record = RiskPrediction(
+        user_id=user_id,
+        current_risk_score=prediction["current_risk_score"],
+        predicted_risk_score=prediction["predicted_risk_score"],
+        risk_trajectory=prediction["risk_trajectory"],
+        confidence=prediction["confidence"],
+        risk_factors=prediction["risk_factors"],
+        recommendations=prediction["recommendations"]
+    )
+    await db.risk_predictions.insert_one(pred_record.model_dump())
+    
+    return prediction
+
+@api_router.get("/government/predictive/dashboard")
+async def get_predictive_analytics_dashboard(user: dict = Depends(require_auth(["admin"]))):
+    """Get comprehensive predictive analytics dashboard"""
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    # Analyze all citizens
+    predictions = []
+    trajectory_counts = {"improving": 0, "stable": 0, "declining": 0, "critical_decline": 0}
+    high_risk_citizens = []
+    approaching_threshold = []
+    risk_distribution = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        pred = await calculate_risk_prediction(user_id)
+        if pred:
+            predictions.append(pred)
+            trajectory_counts[pred["risk_trajectory"]] = trajectory_counts.get(pred["risk_trajectory"], 0) + 1
+            
+            # Categorize by risk level
+            risk_score = pred["predicted_risk_score"]
+            if risk_score >= 70:
+                risk_distribution["critical"] += 1
+                high_risk_citizens.append({
+                    "user_id": user_id,
+                    "name": citizen.get("name", "Unknown"),
+                    "risk_score": risk_score,
+                    "trajectory": pred["risk_trajectory"],
+                    "top_factors": pred["risk_factors"][:3]
+                })
+            elif risk_score >= 50:
+                risk_distribution["high"] += 1
+                if pred["risk_trajectory"] in ["declining", "critical_decline"]:
+                    approaching_threshold.append({
+                        "user_id": user_id,
+                        "name": citizen.get("name", "Unknown"),
+                        "current_score": pred["current_risk_score"],
+                        "predicted_score": risk_score,
+                        "trajectory": pred["risk_trajectory"],
+                        "days_to_critical": int((70 - risk_score) / abs(pred["trajectory_score"] / 30)) if pred["trajectory_score"] < 0 else None
+                    })
+            elif risk_score >= 30:
+                risk_distribution["medium"] += 1
+            else:
+                risk_distribution["low"] += 1
+    
+    # Common risk factors
+    all_factors = []
+    for pred in predictions:
+        all_factors.extend([f["factor"] for f in pred.get("risk_factors", [])])
+    
+    factor_counts = {}
+    for factor in all_factors:
+        factor_counts[factor] = factor_counts.get(factor, 0) + 1
+    
+    common_factors = sorted(factor_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # Regional risk analysis
+    regional_risk = {}
+    for pred in predictions:
+        citizen = next((c for c in citizens if c.get("user_id") == pred["user_id"]), None)
+        if citizen:
+            region = citizen.get("region", "unknown").lower()
+            if region not in regional_risk:
+                regional_risk[region] = {"total": 0, "high_risk": 0, "declining": 0, "avg_score": 0}
+            regional_risk[region]["total"] += 1
+            regional_risk[region]["avg_score"] += pred["predicted_risk_score"]
+            if pred["predicted_risk_score"] >= 50:
+                regional_risk[region]["high_risk"] += 1
+            if pred["risk_trajectory"] in ["declining", "critical_decline"]:
+                regional_risk[region]["declining"] += 1
+    
+    for region in regional_risk:
+        if regional_risk[region]["total"] > 0:
+            regional_risk[region]["avg_score"] = round(regional_risk[region]["avg_score"] / regional_risk[region]["total"], 1)
+    
+    return {
+        "summary": {
+            "total_analyzed": len(predictions),
+            "high_risk_count": risk_distribution["critical"] + risk_distribution["high"],
+            "declining_count": trajectory_counts["declining"] + trajectory_counts["critical_decline"],
+            "needs_intervention": len(high_risk_citizens)
+        },
+        "trajectory_distribution": trajectory_counts,
+        "risk_distribution": risk_distribution,
+        "high_risk_citizens": sorted(high_risk_citizens, key=lambda x: x["risk_score"], reverse=True)[:20],
+        "approaching_threshold": sorted(approaching_threshold, key=lambda x: x.get("days_to_critical") or 999)[:15],
+        "common_risk_factors": [{"factor": f[0].replace("_", " ").title(), "count": f[1], "percentage": round(f[1] / len(predictions) * 100, 1)} for f in common_factors],
+        "regional_analysis": regional_risk
+    }
+
+@api_router.post("/government/predictive/run-analysis")
+async def run_predictive_analysis(user: dict = Depends(require_auth(["admin"]))):
+    """Run predictive analysis for all citizens and generate warnings"""
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    warnings_generated = 0
+    alerts_generated = 0
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        pred = await calculate_risk_prediction(user_id)
+        
+        if not pred:
+            continue
+        
+        # Check if warning needed based on trajectory
+        if pred["risk_trajectory"] in ["declining", "critical_decline"]:
+            # Check for existing active warning
+            existing_warning = await db.preventive_warnings.find_one({
+                "user_id": user_id,
+                "status": "pending",
+                "warning_type": "compliance_declining"
+            })
+            
+            if not existing_warning:
+                # Create preventive warning
+                warning_message = f"Your compliance score is trending downward. "
+                if pred["risk_trajectory"] == "critical_decline":
+                    warning_message += "Immediate action is recommended to avoid license restrictions."
+                else:
+                    warning_message += "Consider completing additional training to improve your score."
+                
+                warning = PreventiveWarning(
+                    user_id=user_id,
+                    warning_type="compliance_declining",
+                    current_value=pred["current_risk_score"],
+                    threshold_value=70,  # Critical threshold
+                    days_to_threshold=pred.get("days_to_critical"),
+                    message=warning_message,
+                    action_required="improve_compliance"
+                )
+                await db.preventive_warnings.insert_one(warning.model_dump())
+                
+                # Create notification for user
+                await db.notifications.insert_one({
+                    "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                    "user_id": user_id,
+                    "title": "Compliance Score Alert",
+                    "message": warning_message,
+                    "type": "warning",
+                    "read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                warnings_generated += 1
+        
+        # Generate alerts for critical predictions
+        if pred["predicted_risk_score"] >= 70 and pred["risk_trajectory"] == "critical_decline":
+            existing_alert = await db.member_alerts.find_one({
+                "user_id": user_id,
+                "status": {"$in": ["active", "acknowledged"]},
+                "trigger_reason": "predictive_high_risk"
+            })
+            
+            if not existing_alert:
+                alert = MemberAlert(
+                    user_id=user_id,
+                    alert_type="red_flag",
+                    severity="high",
+                    title="Predictive Risk Alert",
+                    description=f"Citizen predicted to reach critical risk level. Current: {pred['current_risk_score']}, Predicted: {pred['predicted_risk_score']}. Trajectory: {pred['risk_trajectory']}",
+                    trigger_reason="predictive_high_risk",
+                    threshold_type="predicted_risk_score",
+                    threshold_value=70,
+                    actual_value=pred["predicted_risk_score"]
+                )
+                await db.member_alerts.insert_one(alert.model_dump())
+                alerts_generated += 1
+    
+    await create_audit_log("predictive_analysis_run", user["user_id"], "admin", None, {
+        "citizens_analyzed": len(citizens),
+        "warnings_generated": warnings_generated,
+        "alerts_generated": alerts_generated
+    })
+    
+    return {
+        "message": "Predictive analysis completed",
+        "citizens_analyzed": len(citizens),
+        "warnings_generated": warnings_generated,
+        "alerts_generated": alerts_generated
+    }
+
+# ============== AUTOMATED THRESHOLD MONITORING ==============
+
+@api_router.get("/government/thresholds")
+async def get_all_thresholds(user: dict = Depends(require_auth(["admin"]))):
+    """Get all configured thresholds"""
+    thresholds = await db.alert_thresholds.find({}, {"_id": 0}).to_list(100)
+    return {"thresholds": [serialize_doc(t) for t in thresholds]}
+
+@api_router.post("/government/thresholds")
+async def create_threshold(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new alert threshold"""
+    body = await request.json()
+    threshold = AlertThreshold(**body)
+    await db.alert_thresholds.insert_one(threshold.model_dump())
+    
+    await create_audit_log("threshold_created", user["user_id"], "admin", threshold.threshold_id, body)
+    return {"message": "Threshold created", "threshold_id": threshold.threshold_id}
+
+@api_router.put("/government/thresholds/{threshold_id}")
+async def update_threshold(threshold_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update an existing threshold"""
+    body = await request.json()
+    body.pop("threshold_id", None)
+    body.pop("created_at", None)
+    
+    result = await db.alert_thresholds.update_one(
+        {"threshold_id": threshold_id},
+        {"$set": body}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Threshold not found")
+    
+    await create_audit_log("threshold_updated", user["user_id"], "admin", threshold_id, body)
+    return {"message": "Threshold updated"}
+
+@api_router.delete("/government/thresholds/{threshold_id}")
+async def delete_threshold(threshold_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a threshold"""
+    result = await db.alert_thresholds.delete_one({"threshold_id": threshold_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Threshold not found")
+    
+    await create_audit_log("threshold_deleted", user["user_id"], "admin", threshold_id)
+    return {"message": "Threshold deleted"}
+
+@api_router.post("/government/thresholds/run-check")
+async def run_threshold_check(user: dict = Depends(require_auth(["admin"]))):
+    """Run threshold check for all citizens"""
+    thresholds = await db.alert_thresholds.find({"is_active": True}, {"_id": 0}).to_list(100)
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    warnings_sent = 0
+    alerts_created = 0
+    actions_taken = 0
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+        
+        for threshold in thresholds:
+            metric = threshold.get("metric")
+            operator = threshold.get("operator")
+            critical_value = threshold.get("value")
+            warning_value = threshold.get("warning_value")
+            auto_action = threshold.get("auto_action")
+            
+            # Get actual metric value
+            actual_value = 0
+            if metric == "compliance_score":
+                actual_value = citizen.get("compliance_score", 100)
+            elif metric == "ari_score":
+                actual_value = resp_profile.get("ari_score", 50) if resp_profile else 50
+            elif metric == "training_hours":
+                actual_value = resp_profile.get("training_hours", 0) if resp_profile else 0
+            elif metric == "violations":
+                actual_value = resp_profile.get("violations", 0) if resp_profile else 0
+            elif metric == "purchase_count_30d":
+                thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+                txn_count = await db.transactions.count_documents({
+                    "citizen_id": user_id,
+                    "created_at": {"$gte": thirty_days_ago}
+                })
+                actual_value = txn_count
+            
+            # Check if approaching warning threshold (preventive)
+            warning_breached = False
+            critical_breached = False
+            
+            if warning_value is not None:
+                if operator in ["lt", "lte"]:
+                    warning_breached = actual_value <= warning_value and actual_value > critical_value
+                    critical_breached = actual_value <= critical_value
+                elif operator in ["gt", "gte"]:
+                    warning_breached = actual_value >= warning_value and actual_value < critical_value
+                    critical_breached = actual_value >= critical_value
+            else:
+                if operator == "gt":
+                    critical_breached = actual_value > critical_value
+                elif operator == "lt":
+                    critical_breached = actual_value < critical_value
+                elif operator == "gte":
+                    critical_breached = actual_value >= critical_value
+                elif operator == "lte":
+                    critical_breached = actual_value <= critical_value
+            
+            # Send preventive warning
+            if warning_breached and auto_action == "send_preventive_warning":
+                existing_warning = await db.preventive_warnings.find_one({
+                    "user_id": user_id,
+                    "warning_type": f"threshold_{metric}",
+                    "status": "pending"
+                })
+                
+                if not existing_warning:
+                    custom_message = threshold.get("notification_message") or f"Your {metric.replace('_', ' ')} is approaching a critical threshold. Current: {actual_value}, Warning level: {warning_value}"
+                    
+                    warning = PreventiveWarning(
+                        user_id=user_id,
+                        warning_type=f"threshold_{metric}",
+                        current_value=actual_value,
+                        threshold_value=critical_value,
+                        message=custom_message,
+                        action_required="improve_metric"
+                    )
+                    await db.preventive_warnings.insert_one(warning.model_dump())
+                    
+                    # Notify user
+                    await db.notifications.insert_one({
+                        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                        "user_id": user_id,
+                        "title": f"Warning: {threshold.get('name', 'Threshold Alert')}",
+                        "message": custom_message,
+                        "type": "warning",
+                        "read": False,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+                    warnings_sent += 1
+            
+            # Take action on critical breach
+            if critical_breached:
+                existing_alert = await db.member_alerts.find_one({
+                    "user_id": user_id,
+                    "threshold_type": metric,
+                    "status": {"$in": ["active", "acknowledged"]}
+                })
+                
+                if not existing_alert:
+                    alert = MemberAlert(
+                        user_id=user_id,
+                        alert_type="red_flag",
+                        severity=threshold.get("severity", "medium"),
+                        title=f"Threshold Breach: {threshold.get('name')}",
+                        description=f"User breached {metric} threshold. Actual: {actual_value}, Threshold: {critical_value}",
+                        trigger_reason="threshold_breach",
+                        threshold_type=metric,
+                        threshold_value=critical_value,
+                        actual_value=actual_value
+                    )
+                    await db.member_alerts.insert_one(alert.model_dump())
+                    alerts_created += 1
+                    
+                    # Execute auto action
+                    if auto_action == "block_license":
+                        await db.citizen_profiles.update_one(
+                            {"user_id": user_id},
+                            {"$set": {"license_status": "blocked", "blocked_reason": f"Automatic block: {metric} threshold breach"}}
+                        )
+                        actions_taken += 1
+                    elif auto_action == "warn":
+                        await db.notifications.insert_one({
+                            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                            "user_id": user_id,
+                            "title": "Critical Alert",
+                            "message": f"Your {metric.replace('_', ' ')} has reached a critical level. Please take immediate action to avoid license restrictions.",
+                            "type": "alert",
+                            "read": False,
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+                        actions_taken += 1
+    
+    await create_audit_log("threshold_check_run", user["user_id"], "admin", None, {
+        "thresholds_checked": len(thresholds),
+        "citizens_checked": len(citizens),
+        "warnings_sent": warnings_sent,
+        "alerts_created": alerts_created,
+        "actions_taken": actions_taken
+    })
+    
+    return {
+        "message": "Threshold check completed",
+        "thresholds_checked": len(thresholds),
+        "citizens_checked": len(citizens),
+        "warnings_sent": warnings_sent,
+        "alerts_created": alerts_created,
+        "auto_actions_taken": actions_taken
+    }
+
+@api_router.get("/government/preventive-warnings")
+async def get_preventive_warnings(status: str = None, user: dict = Depends(require_auth(["admin"]))):
+    """Get all preventive warnings"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    warnings = await db.preventive_warnings.find(query, {"_id": 0}).sort("sent_at", -1).to_list(500)
+    return {"warnings": [serialize_doc(w) for w in warnings]}
+
+@api_router.get("/citizen/my-warnings")
+async def get_my_warnings(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get current user's preventive warnings"""
+    warnings = await db.preventive_warnings.find(
+        {"user_id": user["user_id"], "status": "pending"},
+        {"_id": 0}
+    ).sort("sent_at", -1).to_list(50)
+    
+    return {"warnings": [serialize_doc(w) for w in warnings]}
+
+@api_router.post("/citizen/acknowledge-warning/{warning_id}")
+async def acknowledge_warning(warning_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Acknowledge a preventive warning"""
+    result = await db.preventive_warnings.update_one(
+        {"warning_id": warning_id, "user_id": user["user_id"]},
+        {"$set": {"status": "acknowledged", "acknowledged_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Warning not found or not authorized")
+    
+    return {"message": "Warning acknowledged"}
+
 # ============== COURSE MANAGEMENT ==============
 
 @api_router.get("/government/courses")
