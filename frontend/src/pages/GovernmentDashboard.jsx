@@ -4,13 +4,14 @@ import {
   Shield, Activity, Users, Building, AlertTriangle, 
   CheckCircle, XCircle, Clock, LogOut, TrendingUp,
   Eye, AlertCircle, RefreshCw, Search, Filter,
-  ChevronDown, BarChart3
+  ChevronDown, BarChart3, Map, Calendar
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Input } from "../components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ import {
 } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
+import RiskHeatmaps from "../components/RiskHeatmaps";
 
 const GovernmentDashboard = ({ user, api }) => {
   const navigate = useNavigate();
