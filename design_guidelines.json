@@ -1,0 +1,170 @@
+{
+  "project_name": "AEGIS: National Ballistics Verification Network",
+  "design_philosophy": {
+    "identity": "E1: The Anti-AI Designer",
+    "core_concept": "Digital Fortress / Tactical Clarity",
+    "vibe": "Authoritative, Precise, Real-time, Secure",
+    "theme_strategy": "Hybrid",
+    "theme_logic": "Dark Mode (Slate/Navy) for Dealer & Government Portals (Command Center feel). Light Mode for Citizen App (Trust/Wallet feel).",
+    "principles": [
+      "Fusion over Imitation: Mix Swiss Grid precision with Tactical HUD aesthetics.",
+      "Emotion First: Verify = Relief/Safety. Deny = Firmness/Alert.",
+      "Content is King: Data is the hero. Use monospace for critical numbers.",
+      "Negative Space: Use 'breathing room' in Citizen app; Use 'density' in Gov dashboard."
+    ]
+  },
+  "typography": {
+    "font_family_heading": "Manrope",
+    "font_family_body": "Inter",
+    "font_family_mono": "JetBrains Mono",
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-medium",
+      "body": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground",
+      "mono_data": "font-mono text-xs tracking-wider uppercase opacity-80"
+    },
+    "installation_instructions": "Import fonts via Google Fonts in index.css: Manrope (400,500,700), Inter (400,500,600), JetBrains Mono (400)."
+  },
+  "colors": {
+    "palette_name": "Digital Fortress",
+    "primary": {
+      "name": "Electric Signal",
+      "hex": "#3b82f6",
+      "tailwind": "bg-blue-500",
+      "description": "Used for active states, primary actions, and 'scanning' effects."
+    },
+    "secondary": {
+      "name": "Slate Armor",
+      "hex": "#0f172a",
+      "tailwind": "bg-slate-900",
+      "description": "Main background for Dashboards."
+    },
+    "accent": {
+      "name": "Tactical Amber",
+      "hex": "#f59e0b",
+      "tailwind": "text-amber-500",
+      "description": "Used for 'Risk Analysis', 'Pending', or 'Warnings'."
+    },
+    "success": {
+      "name": "Emerald Lock",
+      "hex": "#10b981",
+      "tailwind": "text-emerald-500",
+      "description": "Used STRICTLY for 'Verified' and 'Approved' states."
+    },
+    "danger": {
+      "name": "Crimson Deny",
+      "hex": "#ef4444",
+      "tailwind": "text-red-500",
+      "description": "Used for 'Rejected', 'High Risk', or 'Panic'."
+    },
+    "backgrounds": {
+      "citizen_light": "#ffffff",
+      "dashboard_dark": "#020617"
+    },
+    "gradients": {
+      "hero_glow": "bg-gradient-to-b from-blue-500/10 to-transparent",
+      "card_surface": "bg-gradient-to-br from-white/5 to-white/0"
+    }
+  },
+  "visual_enhancers": {
+    "borders": {
+      "tactical": "border border-white/10",
+      "reticle": "relative after:content-[''] after:absolute after:top-0 after:left-0 after:w-2 after:h-2 after:border-t-2 after:border-l-2 after:border-blue-500"
+    },
+    "shadows": {
+      "glow": "shadow-[0_0_15px_rgba(59,130,246,0.3)]",
+      "depth": "shadow-xl"
+    },
+    "glassmorphism": {
+      "heavy": "backdrop-blur-xl bg-slate-950/80 border-b border-white/5",
+      "light": "backdrop-blur-md bg-white/80 border-b border-black/5"
+    },
+    "textures": {
+      "grid": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20",
+      "scanline": "background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 50%); background-size: 100% 4px;"
+    }
+  },
+  "layout_strategies": {
+    "citizen_app": {
+      "type": "Mobile-First Stack",
+      "grid": "grid-cols-1 gap-4",
+      "container": "max-w-md mx-auto min-h-screen bg-gray-50",
+      "padding": "p-6"
+    },
+    "dealer_portal": {
+      "type": "Bento Grid / High Density",
+      "grid": "grid grid-cols-12 gap-4",
+      "sidebar": "fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-white/10 hidden md:block",
+      "main_content": "md:ml-64 p-8 min-h-screen bg-slate-950 text-white"
+    },
+    "gov_dashboard": {
+      "type": "Command Center",
+      "grid": "grid grid-cols-4 gap-6",
+      "hero_map": "col-span-4 row-span-2 h-[400px] rounded-xl overflow-hidden border border-white/10"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "h-11 px-8 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-sm transition-all shadow-[0_0_10px_rgba(37,99,235,0.2)] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)]",
+      "destructive": "h-11 px-8 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-500/50 rounded-sm",
+      "ghost": "hover:bg-white/5 text-slate-300 hover:text-white"
+    },
+    "cards": {
+      "base": "bg-slate-900 border border-white/10 rounded-lg p-6",
+      "interactive": "group hover:border-blue-500/50 transition-colors cursor-pointer relative overflow-hidden",
+      "glass": "bg-white/10 backdrop-blur-lg border border-white/20 text-white"
+    },
+    "inputs": {
+      "style": "bg-slate-950 border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-11 text-white placeholder:text-slate-500"
+    },
+    "status_badges": {
+      "verified": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
+      "pending": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20",
+      "high_risk": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse"
+    }
+  },
+  "motion": {
+    "transitions": "transition-all duration-300 ease-out",
+    "animations": {
+      "scan": "animate-[scan_2s_ease-in-out_infinite]",
+      "pulse_slow": "animate-[pulse_3s_infinite]",
+      "slide_up": "animate-in slide-in-from-bottom-4 fade-in duration-500"
+    },
+    "micro_interactions": {
+      "hover_lift": "hover:-translate-y-1",
+      "active_press": "active:scale-95"
+    }
+  },
+  "image_assets": {
+    "strategy": "Use abstract tech/security visuals. Avoid generic 'handshaking' stock photos. Use authentic biometric/data imagery.",
+    "urls": {
+      "hero_bg": "https://images.unsplash.com/photo-1631016042018-448c284aa279?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHw0fHxiaW9tZXRyaWMlMjBkaWdpdGFsJTIwc2VjdXJpdHklMjBzY2FubmluZyUyMGZpbmdlciUyMHByaW50JTIwZnV0dXJpc3RpY3xlbnwwfHx8fDE3NzEwMDM0ODd8MA&ixlib=rb-4.1.0&q=85",
+      "biometric_scan": "https://images.unsplash.com/photo-1689103722266-1f2f837145e7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwyfHxiaW9tZXRyaWMlMjBkaWdpdGFsJTIwc2VjdXJpdHklMjBzY2FubmluZyUyMGZpbmdlciUyMHByaW50JTIwZnV0dXJpc3RpY3xlbnwwfHx8fDE3NzEwMDM0ODd8MA&ixlib=rb-4.1.0&q=85",
+      "map_texture": "https://images.unsplash.com/photo-1639060015191-9d83063eab2a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjB0YWN0aWNhbCUyMG1hcCUyMGdyaWQlMjBncHMlMjBpbnRlcmZhY2UlMjBkYXJrfGVufDB8fHx8MTc3MTAwMzQ5MHww&ixlib=rb-4.1.0&q=85",
+      "avatar_1": "https://images.unsplash.com/photo-1706827515530-ade374fa8178?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwzfHxkaXZlcnNlJTIwcHJvZmVzc2lvbmFsJTIwcGVvcGxlJTIwcG9ydHJhaXQlMjBmb3IlMjBwcm9maWxlJTIwYXZhdGFyc3xlbnwwfHx8fDE3NzEwMDM0ODl8MA&ixlib=rb-4.1.0&q=85",
+      "avatar_2": "https://images.unsplash.com/photo-1659100947220-48b5d5738148?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHw0fHxkaXZlcnNlJTIwcHJvZmVzc2lvbmFsJTIwcGVvcGxlJTIwcG9ydHJhaXQlMjBmb3IlMjBwcm9maWxlJTIwYXZhdGFyc3xlbnwwfHx8fDE3NzEwMDM0ODl8MA&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "universal_guidelines": [
+    "You tend to converge toward generic outputs. Avoid this. Create distinctive frontends.",
+    "Dark colors look good when used independently. DO NOT use dark gradients.",
+    "Don't make generic centered layouts. Use grids.",
+    "Create depth through layered elements with z-index.",
+    "Use glass-morphism effects (backdrop-blur).",
+    "MUST NOT apply transition: all. Use specific transitions.",
+    "MUST NOT center align the App container.",
+    "NEVER use AI emoji characters.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Micro-animations are mandatory.",
+    "All interactive elements MUST include data-testid attributes."
+  ],
+  "instructions_to_main_agent": [
+    "1. Setup Fonts: Add Manrope, Inter, and JetBrains Mono to index.css immediately.",
+    "2. Configure Tailwind: Update tailwind.config.js with the 'colors' palette defined above.",
+    "3. Build Layouts: Create separate layout wrappers for 'CitizenApp' (Light/Mobile) and 'Dashboard' (Dark/Desktop).",
+    "4. Components: Override default Shadcn styles. Remove 'rounded-xl' and use 'rounded-lg' or 'rounded-sm' for a sharper look.",
+    "5. Motion: Add a global 'scan' keyframe animation in tailwind config for use in loading states."
+  ]
+}
