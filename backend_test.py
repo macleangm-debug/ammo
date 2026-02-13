@@ -437,6 +437,16 @@ class AegisAPITester:
         self.test_dealer_profile_endpoint()
         self.test_admin_dashboard_stats()
         
+        # Phase 2 Features Tests
+        print("\n🚀 PHASE 2 FEATURES TESTING:")
+        print("-" * 40)
+        self.test_gamification_api()
+        self.test_daily_checkin_api() 
+        self.test_license_alerts_api()
+        self.test_geographic_heatmap_api()
+        self.test_temporal_heatmap_api()
+        self.test_push_notification_subscribe_api()
+        
         # Infrastructure tests
         self.test_cors_headers()
         
