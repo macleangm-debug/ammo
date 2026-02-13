@@ -78,6 +78,7 @@ const GovernmentDashboard = ({ user, api }) => {
     { id: 'training', path: '/government/training', label: 'Training', icon: GraduationCap },
     { id: 'dealers', path: '/government/dealers', label: 'Dealers', icon: Building },
     { id: 'compliance', path: '/government/compliance', label: 'Compliance', icon: Scale },
+    { id: 'predictive', path: '/government/predictive', label: 'Predictive AI', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts Center', icon: AlertTriangle },
     { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
   ];
