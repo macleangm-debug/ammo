@@ -235,6 +235,165 @@ class AegisAPITester:
             self.log_test("Admin Dashboard Stats", False, str(e))
             return False
 
+    def test_gamification_api(self):
+        """Test gamification API endpoints"""
+        if not self.citizen_token:
+            success, token = self.test_auth_me_with_token("citizen")
+            if not success:
+                self.log_test("Gamification API", False, "No valid citizen token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.citizen_token}"}
+            response = self.session.get(f"{self.api_url}/citizen/gamification", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                details += f", Points: {data.get('points', 0)}, Level: {data.get('level', {}).get('level', 1)}, Badges: {len(data.get('badges_earned', []))}"
+            self.log_test("Gamification API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Gamification API", False, str(e))
+            return False
+    
+    def test_daily_checkin_api(self):
+        """Test daily check-in API endpoint"""
+        if not self.citizen_token:
+            success, token = self.test_auth_me_with_token("citizen")
+            if not success:
+                self.log_test("Daily Check-in API", False, "No valid citizen token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.citizen_token}"}
+            response = self.session.post(f"{self.api_url}/citizen/check-in", headers=headers)
+            # Can return 200 (successful check-in) or info message (already checked in)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                details += f", Message: {data.get('message', '')}, Streak: {data.get('streak', 0)}"
+            self.log_test("Daily Check-in API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Daily Check-in API", False, str(e))
+            return False
+    
+    def test_license_alerts_api(self):
+        """Test license alerts API endpoint"""
+        if not self.citizen_token:
+            success, token = self.test_auth_me_with_token("citizen")
+            if not success:
+                self.log_test("License Alerts API", False, "No valid citizen token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.citizen_token}"}
+            response = self.session.get(f"{self.api_url}/citizen/license-alerts", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                alerts_count = len(data.get('alerts', []))
+                details += f", Alerts: {alerts_count}, Days until expiry: {data.get('days_until_expiry', 'N/A')}"
+            self.log_test("License Alerts API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("License Alerts API", False, str(e))
+            return False
+    
+    def test_geographic_heatmap_api(self):
+        """Test geographic heatmap API endpoint"""
+        if not self.admin_token:
+            success, token = self.test_auth_me_with_token("admin")
+            if not success:
+                self.log_test("Geographic Heatmap API", False, "No valid admin token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.api_url}/admin/heatmap/geographic", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                if isinstance(data, list):
+                    details += f", Location points: {len(data)}"
+                    if data:
+                        details += f", Sample point: lat={data[0].get('lat', 'N/A')}, lng={data[0].get('lng', 'N/A')}"
+                else:
+                    details += ", Data: Invalid format"
+            self.log_test("Geographic Heatmap API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Geographic Heatmap API", False, str(e))
+            return False
+    
+    def test_temporal_heatmap_api(self):
+        """Test temporal heatmap API endpoint"""
+        if not self.admin_token:
+            success, token = self.test_auth_me_with_token("admin")
+            if not success:
+                self.log_test("Temporal Heatmap API", False, "No valid admin token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.admin_token}"}
+            response = self.session.get(f"{self.api_url}/admin/heatmap/temporal", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                if isinstance(data, list):
+                    details += f", Data cells: {len(data)} (Expected: 168 for 7 days x 24 hours)"
+                    # Check if we have the expected 168 cells (7 days × 24 hours)
+                    if len(data) == 168:
+                        details += " ✓"
+                    else:
+                        details += f" (Expected 168, got {len(data)})"
+                else:
+                    details += ", Data: Invalid format"
+                    success = False
+            self.log_test("Temporal Heatmap API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Temporal Heatmap API", False, str(e))
+            return False
+    
+    def test_push_notification_subscribe_api(self):
+        """Test push notification subscription API"""
+        if not self.citizen_token:
+            success, token = self.test_auth_me_with_token("citizen")
+            if not success:
+                self.log_test("Push Notification Subscribe API", False, "No valid citizen token")
+                return False
+                
+        try:
+            headers = {"Authorization": f"Bearer {self.citizen_token}"}
+            # Mock subscription data
+            subscription_data = {
+                "subscription": {
+                    "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint",
+                    "keys": {
+                        "p256dh": "test-p256dh-key",
+                        "auth": "test-auth-key"
+                    }
+                }
+            }
+            response = self.session.post(f"{self.api_url}/notifications/subscribe", 
+                                       headers=headers, json=subscription_data)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                details += f", Message: {data.get('message', '')}"
+            self.log_test("Push Notification Subscribe API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Push Notification Subscribe API", False, str(e))
+            return False
+    
     def test_cors_headers(self):
         """Test CORS configuration"""
         try:
