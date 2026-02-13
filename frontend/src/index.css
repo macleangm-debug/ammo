@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ============================================
-   AMMO - TACTICAL DESIGN SYSTEM
-   Night Ops (Dark) & Base Command (Light)
+   AMMO - MODERN ANALYTICS DASHBOARD DESIGN
+   Light & Dark Theme Support
 ============================================ */
 
 body {
@@ -17,77 +17,82 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Manrope', sans-serif;
-}
-
-code, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 
 /* ============================================
-   CSS VARIABLES - DEFCON COMMAND PALETTE
+   CSS VARIABLES
 ============================================ */
 @layer base {
     :root {
-        /* Light Mode - Base Command */
-        --background: 210 40% 98%;
-        --foreground: 222 47% 11%;
+        /* Light Mode */
+        --background: 0 0% 98%;
+        --foreground: 224 71% 4%;
         --card: 0 0% 100%;
-        --card-foreground: 222 47% 11%;
+        --card-foreground: 224 71% 4%;
         --popover: 0 0% 100%;
-        --popover-foreground: 222 47% 11%;
-        --primary: 217 91% 60%;
+        --popover-foreground: 224 71% 4%;
+        --primary: 262 83% 58%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 215 20% 65%;
-        --secondary-foreground: 222 47% 11%;
-        --muted: 210 40% 96%;
-        --muted-foreground: 215 16% 47%;
-        --accent: 210 40% 96%;
-        --accent-foreground: 222 47% 11%;
+        --secondary: 220 14% 96%;
+        --secondary-foreground: 220 9% 46%;
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 262 83% 58%;
+        --accent-foreground: 0 0% 100%;
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 214 32% 91%;
-        --input: 214 32% 91%;
-        --ring: 217 91% 60%;
-        --radius: 0.375rem;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 262 83% 58%;
+        --radius: 0.75rem;
         
-        /* Tactical Colors */
-        --tactical-success: 160 84% 39%;
-        --tactical-warning: 43 96% 56%;
-        --tactical-danger: 0 84% 60%;
-        --tactical-cyan: 188 94% 43%;
-        --tactical-night-vision: 142 71% 45%;
+        /* Dashboard specific */
+        --sidebar-bg: 0 0% 100%;
+        --sidebar-border: 220 13% 91%;
+        --stat-card-bg: 0 0% 100%;
+        --chart-primary: 217 91% 60%;
+        --chart-secondary: 43 96% 56%;
+        --chart-tertiary: 160 84% 39%;
+        --chart-quaternary: 262 83% 58%;
         
-        /* Surface */
-        --surface: 0 0% 100%;
-        --surface-highlight: 210 40% 96%;
+        /* Status colors */
+        --status-success: 160 84% 39%;
+        --status-warning: 43 96% 56%;
+        --status-danger: 0 84% 60%;
+        --status-info: 217 91% 60%;
     }
 
     .dark {
-        /* Dark Mode - Night Ops */
-        --background: 222 47% 2%;
-        --foreground: 210 40% 98%;
-        --card: 222 47% 6%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222 47% 6%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 217 91% 60%;
+        /* Dark Mode */
+        --background: 224 71% 4%;
+        --foreground: 213 31% 91%;
+        --card: 224 47% 8%;
+        --card-foreground: 213 31% 91%;
+        --popover: 224 47% 8%;
+        --popover-foreground: 213 31% 91%;
+        --primary: 262 83% 58%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 217 33% 17%;
-        --secondary-foreground: 210 40% 98%;
-        --muted: 217 33% 17%;
+        --secondary: 215 28% 17%;
+        --secondary-foreground: 213 31% 91%;
+        --muted: 215 28% 17%;
         --muted-foreground: 215 20% 65%;
-        --accent: 217 33% 17%;
-        --accent-foreground: 210 40% 98%;
+        --accent: 262 83% 58%;
+        --accent-foreground: 0 0% 100%;
         --destructive: 0 63% 31%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 217 33% 17%;
-        --input: 217 33% 17%;
-        --ring: 217 91% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 215 28% 17%;
+        --input: 215 28% 17%;
+        --ring: 262 83% 58%;
         
-        /* Surface */
-        --surface: 222 47% 6%;
-        --surface-highlight: 217 33% 12%;
+        /* Dashboard specific */
+        --sidebar-bg: 224 47% 6%;
+        --sidebar-border: 215 28% 17%;
+        --stat-card-bg: 224 47% 8%;
+        --chart-primary: 217 91% 60%;
+        --chart-secondary: 43 96% 56%;
+        --chart-tertiary: 160 84% 39%;
+        --chart-quaternary: 262 83% 58%;
     }
 }
 
@@ -101,7 +106,7 @@ code, .font-mono {
 }
 
 /* ============================================
-   TACTICAL SCROLLBARS
+   SCROLLBARS
 ============================================ */
 ::-webkit-scrollbar {
     width: 6px;
@@ -113,617 +118,379 @@ code, .font-mono {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: hsl(217, 33%, 25%);
+    background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: hsl(217, 33%, 35%);
-}
-
-.dark ::-webkit-scrollbar-track {
-    background: hsl(222, 47%, 4%);
-}
-
-/* Light mode scrollbars */
-.light ::-webkit-scrollbar-thumb,
-:root:not(.dark) ::-webkit-scrollbar-thumb {
-    background: hsl(214, 32%, 80%);
-}
-
-.light ::-webkit-scrollbar-thumb:hover,
-:root:not(.dark) ::-webkit-scrollbar-thumb:hover {
-    background: hsl(214, 32%, 70%);
+    background: hsl(var(--muted-foreground) / 0.5);
 }
 
 /* ============================================
-   TACTICAL ANIMATIONS
+   DASHBOARD LAYOUT
 ============================================ */
-@keyframes scan {
-    0%, 100% {
-        opacity: 0.3;
-        transform: translateY(-100%);
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.dashboard-sidebar {
+    width: 260px;
+    background: hsl(var(--sidebar-bg));
+    border-right: 1px solid hsl(var(--sidebar-border));
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transition: transform 0.3s ease;
+}
+
+.dashboard-main {
+    flex: 1;
+    margin-left: 260px;
+    background: hsl(var(--background));
+    min-height: 100vh;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-sidebar {
+        transform: translateX(-100%);
     }
-    50% {
-        opacity: 0.8;
-        transform: translateY(100%);
+    .dashboard-sidebar.open {
+        transform: translateX(0);
+    }
+    .dashboard-main {
+        margin-left: 0;
     }
 }
 
-@keyframes radar-sweep {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+/* ============================================
+   SIDEBAR STYLES
+============================================ */
+.sidebar-logo {
+    padding: 1.5rem;
+    border-bottom: 1px solid hsl(var(--border));
 }
 
-@keyframes pulse-tactical {
-    0%, 100% {
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    50% {
-        opacity: 0.8;
-        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-    }
+.sidebar-nav {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
 }
 
-@keyframes blink-cursor {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    margin-bottom: 0.25rem;
 }
 
-@keyframes slide-up {
-    from {
+.sidebar-nav-item:hover {
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+}
+
+.sidebar-nav-item.active {
+    background: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+}
+
+.sidebar-nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 24px;
+    background: hsl(var(--primary));
+    border-radius: 0 2px 2px 0;
+}
+
+.sidebar-support {
+    padding: 1rem;
+    margin: 1rem;
+    background: hsl(var(--muted));
+    border-radius: var(--radius);
+    text-align: center;
+}
+
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid hsl(var(--border));
+}
+
+/* ============================================
+   STAT CARDS
+============================================ */
+.stat-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px hsl(var(--foreground) / 0.05);
+}
+
+.stat-card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card-label {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-card-trend {
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    margin-top: 0.5rem;
+}
+
+.stat-card-trend.positive {
+    background: hsl(var(--status-success) / 0.1);
+    color: hsl(var(--status-success));
+}
+
+.stat-card-trend.negative {
+    background: hsl(var(--status-danger) / 0.1);
+    color: hsl(var(--status-danger));
+}
+
+/* ============================================
+   CHART CARDS
+============================================ */
+.chart-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+
+.chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.chart-card-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* ============================================
+   DATA TABLES
+============================================ */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.data-table td {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: hsl(var(--muted) / 0.5);
+}
+
+/* ============================================
+   STATUS BADGES
+============================================ */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.success {
+    background: hsl(var(--status-success) / 0.1);
+    color: hsl(var(--status-success));
+}
+
+.status-badge.warning {
+    background: hsl(var(--status-warning) / 0.1);
+    color: hsl(var(--status-warning));
+}
+
+.status-badge.danger {
+    background: hsl(var(--status-danger) / 0.1);
+    color: hsl(var(--status-danger));
+}
+
+.status-badge.info {
+    background: hsl(var(--status-info) / 0.1);
+    color: hsl(var(--status-info));
+}
+
+/* ============================================
+   DONUT CHART (CSS)
+============================================ */
+.donut-chart {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.donut-chart-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================================
+   BAR CHART (CSS)
+============================================ */
+.bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    height: 150px;
+    padding-top: 1rem;
+}
+
+.bar-chart-bar {
+    flex: 1;
+    background: hsl(var(--chart-primary));
+    border-radius: 4px 4px 0 0;
+    min-width: 20px;
+    transition: opacity 0.2s ease;
+}
+
+.bar-chart-bar:hover {
+    opacity: 0.8;
+}
+
+/* ============================================
+   ANIMATIONS
+============================================ */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
     }
-    to {
+    to { 
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-@keyframes slide-in-right {
-    from {
+@keyframes slideInLeft {
+    from { 
         opacity: 0;
-        transform: translateX(20px);
+        transform: translateX(-10px);
     }
-    to {
+    to { 
         opacity: 1;
         transform: translateX(0);
     }
 }
 
-@keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes glow-pulse {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.1);
-    }
-    50% {
-        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.2);
-    }
-}
-
-@keyframes border-glow {
-    0%, 100% {
-        border-color: rgba(59, 130, 246, 0.3);
-    }
-    50% {
-        border-color: rgba(59, 130, 246, 0.8);
-    }
-}
-
-@keyframes typing {
-    from { width: 0; }
-    to { width: 100%; }
-}
-
-.animate-scan {
-    animation: scan 3s ease-in-out infinite;
-}
-
-.animate-radar {
-    animation: radar-sweep 4s linear infinite;
-}
-
-.animate-pulse-tactical {
-    animation: pulse-tactical 2s ease-in-out infinite;
-}
-
-.animate-blink {
-    animation: blink-cursor 1s step-end infinite;
+.animate-fade-in {
+    animation: fadeIn 0.3s ease forwards;
 }
 
 .animate-slide-up {
-    animation: slide-up 0.4s ease-out forwards;
+    animation: slideUp 0.4s ease forwards;
 }
 
-.animate-slide-right {
-    animation: slide-in-right 0.4s ease-out forwards;
+.animate-slide-left {
+    animation: slideInLeft 0.4s ease forwards;
 }
 
-.animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
-}
-
-.animate-glow {
-    animation: glow-pulse 2s ease-in-out infinite;
-}
-
-.animate-border-glow {
-    animation: border-glow 2s ease-in-out infinite;
-}
-
-/* Staggered animation delays */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
-.stagger-7 { animation-delay: 0.35s; }
-.stagger-8 { animation-delay: 0.4s; }
+/* Staggered animations */
+.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.stagger-2 { animation-delay: 0.1s; opacity: 0; }
+.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.stagger-4 { animation-delay: 0.2s; opacity: 0; }
+.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+.stagger-6 { animation-delay: 0.3s; opacity: 0; }
 
 /* ============================================
-   TACTICAL GLASS EFFECTS
+   RESPONSIVE UTILITIES
 ============================================ */
-.glass-heavy {
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+.mobile-menu-btn {
+    display: none;
 }
 
-.dark .glass-heavy {
-    background: rgba(2, 6, 23, 0.85);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.light .glass-heavy,
-:root:not(.dark) .glass-heavy {
-    background: rgba(255, 255, 255, 0.85);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.glass-card {
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-}
-
-.dark .glass-card {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.light .glass-card,
-:root:not(.dark) .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+@media (max-width: 1024px) {
+    .mobile-menu-btn {
+        display: flex;
+    }
 }
 
 /* ============================================
-   TACTICAL CORNER BRACKETS (HUD Style)
+   SELECTION & FOCUS
 ============================================ */
-.tactical-corners {
-    position: relative;
+::selection {
+    background: hsl(var(--primary) / 0.2);
 }
 
-.tactical-corners::before,
-.tactical-corners::after,
-.tactical-corners > .corner-bl,
-.tactical-corners > .corner-br {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    pointer-events: none;
-}
-
-.tactical-corners::before {
-    top: 0;
-    left: 0;
-    border-top: 2px solid hsl(217, 91%, 60%);
-    border-left: 2px solid hsl(217, 91%, 60%);
-}
-
-.tactical-corners::after {
-    top: 0;
-    right: 0;
-    border-top: 2px solid hsl(217, 91%, 60%);
-    border-right: 2px solid hsl(217, 91%, 60%);
-}
-
-.corner-bl {
-    bottom: 0;
-    left: 0;
-    border-bottom: 2px solid hsl(217, 91%, 60%);
-    border-left: 2px solid hsl(217, 91%, 60%);
-}
-
-.corner-br {
-    bottom: 0;
-    right: 0;
-    border-bottom: 2px solid hsl(217, 91%, 60%);
-    border-right: 2px solid hsl(217, 91%, 60%);
-}
-
-/* Smaller variant */
-.tactical-corners-sm::before,
-.tactical-corners-sm::after {
-    width: 10px;
-    height: 10px;
-}
-
-/* Success variant */
-.tactical-corners-success::before,
-.tactical-corners-success::after {
-    border-color: hsl(160, 84%, 39%);
-}
-
-/* Warning variant */
-.tactical-corners-warning::before,
-.tactical-corners-warning::after {
-    border-color: hsl(43, 96%, 56%);
-}
-
-/* Danger variant */
-.tactical-corners-danger::before,
-.tactical-corners-danger::after {
-    border-color: hsl(0, 84%, 60%);
-}
-
-/* ============================================
-   SCANLINES OVERLAY
-============================================ */
-.scanlines {
-    position: relative;
-    overflow: hidden;
-}
-
-.scanlines::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-    );
-    pointer-events: none;
-    z-index: 10;
-}
-
-.dark .scanlines::after {
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 255, 255, 0.02) 2px,
-        rgba(255, 255, 255, 0.02) 4px
-    );
-}
-
-/* ============================================
-   NOISE TEXTURE OVERLAY
-============================================ */
-.noise-overlay {
-    position: relative;
-}
-
-.noise-overlay::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0.03;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-}
-
-/* ============================================
-   TACTICAL STATUS INDICATORS
-============================================ */
-.status-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    position: relative;
-}
-
-.status-indicator::after {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    opacity: 0.3;
-}
-
-.status-active {
-    background-color: hsl(160, 84%, 39%);
-    box-shadow: 0 0 10px hsl(160, 84%, 39%);
-}
-
-.status-active::after {
-    background-color: hsl(160, 84%, 39%);
-    animation: pulse-tactical 2s ease-in-out infinite;
-}
-
-.status-pending {
-    background-color: hsl(43, 96%, 56%);
-    box-shadow: 0 0 10px hsl(43, 96%, 56%);
-}
-
-.status-inactive {
-    background-color: hsl(0, 84%, 60%);
-    box-shadow: 0 0 10px hsl(0, 84%, 60%);
-}
-
-/* ============================================
-   RISK LEVEL STYLING
-============================================ */
-.risk-green { color: hsl(160, 84%, 39%); }
-.risk-amber { color: hsl(43, 96%, 56%); }
-.risk-red { color: hsl(0, 84%, 60%); }
-
-.bg-risk-green { 
-    background-color: hsla(160, 84%, 39%, 0.1); 
-    border-color: hsla(160, 84%, 39%, 0.3); 
-}
-.bg-risk-amber { 
-    background-color: hsla(43, 96%, 56%, 0.1); 
-    border-color: hsla(43, 96%, 56%, 0.3); 
-}
-.bg-risk-red { 
-    background-color: hsla(0, 84%, 60%, 0.1); 
-    border-color: hsla(0, 84%, 60%, 0.3); 
-}
-
-/* ============================================
-   TACTICAL DATA DISPLAY
-============================================ */
-.mono-data {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.data-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.625rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    opacity: 0.5;
-}
-
-/* ============================================
-   TACTICAL BUTTONS
-============================================ */
-.btn-tactical {
-    position: relative;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition: all 0.15s ease-out;
-}
-
-.btn-tactical::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 100%;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity 0.15s ease-out;
-}
-
-.btn-tactical:hover::before {
-    opacity: 0.3;
-}
-
-/* ============================================
-   TACTICAL CARD HOVER
-============================================ */
-.card-tactical {
-    transition: transform 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out;
-}
-
-.card-tactical:hover {
-    transform: translateY(-2px);
-}
-
-.dark .card-tactical:hover {
-    border-color: rgba(59, 130, 246, 0.3);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-}
-
-.light .card-tactical:hover,
-:root:not(.dark) .card-tactical:hover {
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* ============================================
-   TIER GRADIENTS
-============================================ */
-.tier-sentinel {
-    background: linear-gradient(135deg, hsla(160, 84%, 39%, 0.1) 0%, transparent 100%);
-    border-color: hsla(160, 84%, 39%, 0.3);
-}
-
-.tier-guardian {
-    background: linear-gradient(135deg, hsla(217, 91%, 60%, 0.1) 0%, transparent 100%);
-    border-color: hsla(217, 91%, 60%, 0.3);
-}
-
-.tier-elite {
-    background: linear-gradient(135deg, hsla(270, 80%, 60%, 0.1) 0%, transparent 100%);
-    border-color: hsla(270, 80%, 60%, 0.3);
-}
-
-/* ============================================
-   HERO SECTION GLOW
-============================================ */
-.hero-glow {
-    position: relative;
-}
-
-.hero-glow::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 400px;
-    background: radial-gradient(ellipse at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-/* ============================================
-   GRID PATTERN BACKGROUND
-============================================ */
-.grid-pattern {
-    background-image: 
-        linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
-/* ============================================
-   LOADING STATES
-============================================ */
-.loading-radar {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 2px solid rgba(59, 130, 246, 0.2);
-}
-
-.loading-radar::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 50%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, hsl(217, 91%, 60%));
-    transform-origin: left center;
-    animation: radar-sweep 2s linear infinite;
-}
-
-.loading-radar::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 6px;
-    height: 6px;
-    background: hsl(217, 91%, 60%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 10px hsl(217, 91%, 60%);
-}
-
-/* ============================================
-   SIDEBAR NAVIGATION
-============================================ */
-.nav-item {
-    position: relative;
-    transition: all 0.15s ease-out;
-}
-
-.nav-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: hsl(217, 91%, 60%);
-    opacity: 0;
-    transition: opacity 0.15s ease-out;
-}
-
-.nav-item:hover::before,
-.nav-item.active::before {
-    opacity: 1;
+*:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
 }
 
 /* ============================================
    PRINT STYLES
 ============================================ */
 @media print {
+    .dashboard-sidebar,
     .no-print {
         display: none !important;
     }
-    
-    body {
-        background: white !important;
-        color: black !important;
-    }
-}
-
-/* ============================================
-   RESPONSIVE UTILITIES
-============================================ */
-@media (max-width: 640px) {
-    .tactical-corners::before,
-    .tactical-corners::after {
-        width: 10px;
-        height: 10px;
-    }
-}
-
-/* ============================================
-   PWA INSTALL PROMPT
-============================================ */
-.pwa-install-prompt {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-}
-
-/* ============================================
-   SELECTION STYLING
-============================================ */
-::selection {
-    background: hsla(217, 91%, 60%, 0.3);
-    color: inherit;
-}
-
-/* ============================================
-   FOCUS STYLES
-============================================ */
-*:focus-visible {
-    outline: 2px solid hsl(217, 91%, 60%);
-    outline-offset: 2px;
-}
-
-/* ============================================
-   DEBUG WRAPPER (Emergent Platform)
-============================================ */
-@layer base {
-    [data-debug-wrapper="true"] {
-        display: contents !important;
+    .dashboard-main {
+        margin-left: 0;
     }
 }
