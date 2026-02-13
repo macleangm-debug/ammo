@@ -2329,6 +2329,293 @@ async def get_compliance_analytics(user: dict = Depends(require_auth(["admin"]))
 
 # ============== ALERT & INTERVENTION SYSTEM ==============
 
+@api_router.get("/government/alerts/dashboard")
+async def get_alerts_dashboard(
+    severity: str = None,
+    category: str = None,
+    region: str = None,
+    status: str = None,
+    time_period: str = "30d",
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Comprehensive alerts dashboard with analytics and filters"""
+    
+    # Get total citizen count for percentage calculations
+    total_citizens = await db.citizen_profiles.count_documents({})
+    total_citizens = max(total_citizens, 1)  # Prevent division by zero
+    
+    # Time period calculations
+    now = datetime.now(timezone.utc)
+    time_filters = {
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30),
+        "90d": timedelta(days=90),
+        "all": timedelta(days=3650)
+    }
+    time_delta = time_filters.get(time_period, timedelta(days=30))
+    period_start = (now - time_delta).isoformat()
+    
+    # Previous period for trend comparison
+    prev_period_start = (now - time_delta * 2).isoformat()
+    prev_period_end = period_start
+    
+    # Build query filters
+    query = {}
+    if severity:
+        query["severity"] = severity
+    if category:
+        query["trigger_reason"] = category
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = {"$in": ["active", "acknowledged"]}
+    
+    # Get all alerts for current period
+    all_alerts = await db.member_alerts.find(
+        {"created_at": {"$gte": period_start}, **{k: v for k, v in query.items() if k != "status"}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    # Get resolved alerts for resolution metrics
+    resolved_alerts = await db.member_alerts.find(
+        {"status": "resolved", "resolved_at": {"$gte": period_start}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    # Get previous period alerts for trend comparison
+    prev_alerts = await db.member_alerts.find(
+        {"created_at": {"$gte": prev_period_start, "$lt": prev_period_end}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    # Get active alerts with filters
+    active_query = {**query}
+    if "status" not in query or query["status"] == {"$in": ["active", "acknowledged"]}:
+        active_query["status"] = {"$in": ["active", "acknowledged"]}
+    
+    active_alerts = await db.member_alerts.find(
+        active_query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    # Filter by region if specified (need to join with citizen profiles)
+    if region:
+        region_users = await db.citizen_profiles.find(
+            {"region": {"$regex": region, "$options": "i"}},
+            {"_id": 0, "user_id": 1}
+        ).to_list(10000)
+        region_user_ids = {u["user_id"] for u in region_users}
+        active_alerts = [a for a in active_alerts if a.get("user_id") in region_user_ids]
+        all_alerts = [a for a in all_alerts if a.get("user_id") in region_user_ids]
+    
+    # === PERCENTAGE-BASED METRICS ===
+    unique_flagged_users = len(set(a.get("user_id") for a in active_alerts))
+    alert_rate_percentage = round((unique_flagged_users / total_citizens) * 100, 4)
+    alert_rate_per_10k = round((unique_flagged_users / total_citizens) * 10000, 2)
+    
+    # === TREND ANALYSIS ===
+    current_period_count = len(all_alerts)
+    prev_period_count = len(prev_alerts)
+    
+    if prev_period_count > 0:
+        trend_percentage = round(((current_period_count - prev_period_count) / prev_period_count) * 100, 1)
+    else:
+        trend_percentage = 100 if current_period_count > 0 else 0
+    
+    # Resolution velocity
+    new_this_period = len(all_alerts)
+    resolved_this_period = len(resolved_alerts)
+    resolution_velocity = resolved_this_period - new_this_period  # Positive = resolving faster
+    
+    # Average resolution time (in hours)
+    resolution_times = []
+    for alert in resolved_alerts:
+        created = alert.get("created_at")
+        resolved = alert.get("resolved_at")
+        if created and resolved:
+            try:
+                created_dt = datetime.fromisoformat(created.replace('Z', '+00:00')) if isinstance(created, str) else created
+                resolved_dt = datetime.fromisoformat(resolved.replace('Z', '+00:00')) if isinstance(resolved, str) else resolved
+                hours = (resolved_dt - created_dt).total_seconds() / 3600
+                resolution_times.append(hours)
+            except:
+                pass
+    avg_resolution_hours = round(sum(resolution_times) / len(resolution_times), 1) if resolution_times else 0
+    
+    # === CATEGORY BREAKDOWN ===
+    category_counts = {}
+    for alert in active_alerts:
+        cat = alert.get("trigger_reason", "other")
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+    
+    total_active = len(active_alerts)
+    category_breakdown = []
+    category_colors = {
+        "compliance_drop": "#EF4444",
+        "compulsory_training_missed": "#F59E0B", 
+        "suspicious_activity": "#DC2626",
+        "threshold_breach": "#8B5CF6",
+        "license_issue": "#3B82F6",
+        "other": "#6B7280"
+    }
+    for cat, count in sorted(category_counts.items(), key=lambda x: x[1], reverse=True):
+        category_breakdown.append({
+            "category": cat.replace("_", " ").title(),
+            "category_id": cat,
+            "count": count,
+            "percentage": round((count / total_active) * 100, 1) if total_active > 0 else 0,
+            "color": category_colors.get(cat, "#6B7280")
+        })
+    
+    # === REGIONAL HEAT MAP ===
+    # Get citizens by region
+    citizens_by_region = {}
+    for region_name in REGIONS:
+        count = await db.citizen_profiles.count_documents({"region": {"$regex": region_name, "$options": "i"}})
+        citizens_by_region[region_name] = count
+    
+    # Get alerts by region
+    alerts_by_region = {}
+    for alert in active_alerts:
+        user_id = alert.get("user_id")
+        citizen = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0, "region": 1})
+        if citizen:
+            region_name = citizen.get("region", "unknown").lower()
+            alerts_by_region[region_name] = alerts_by_region.get(region_name, 0) + 1
+    
+    regional_heat_map = []
+    for region_name in REGIONS:
+        region_citizens = citizens_by_region.get(region_name, 1) or 1
+        region_alerts = alerts_by_region.get(region_name, 0)
+        alert_rate = round((region_alerts / region_citizens) * 10000, 2)  # per 10k
+        
+        # Determine health status
+        if alert_rate > 50:
+            health = "critical"
+        elif alert_rate > 20:
+            health = "warning"
+        elif alert_rate > 5:
+            health = "elevated"
+        else:
+            health = "healthy"
+        
+        regional_heat_map.append({
+            "region": region_name.title(),
+            "region_id": region_name,
+            "total_citizens": region_citizens,
+            "active_alerts": region_alerts,
+            "alert_rate_per_10k": alert_rate,
+            "health_status": health
+        })
+    
+    # === ALERT AGING & PRIORITY QUEUE ===
+    priority_queue = {
+        "critical_over_24h": [],
+        "high_over_48h": [],
+        "unacknowledged_critical": [],
+        "oldest_unresolved": []
+    }
+    
+    for alert in active_alerts:
+        created = alert.get("created_at")
+        if created:
+            try:
+                created_dt = datetime.fromisoformat(created.replace('Z', '+00:00')) if isinstance(created, str) else created
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                age_hours = (now - created_dt).total_seconds() / 3600
+                alert["age_hours"] = round(age_hours, 1)
+                
+                severity = alert.get("severity")
+                status = alert.get("status")
+                
+                if severity == "critical" and age_hours > 24:
+                    priority_queue["critical_over_24h"].append(serialize_doc(alert))
+                if severity == "high" and age_hours > 48:
+                    priority_queue["high_over_48h"].append(serialize_doc(alert))
+                if severity == "critical" and status == "active":
+                    priority_queue["unacknowledged_critical"].append(serialize_doc(alert))
+            except:
+                alert["age_hours"] = 0
+    
+    # Oldest unresolved (top 5)
+    sorted_by_age = sorted(active_alerts, key=lambda x: x.get("age_hours", 0), reverse=True)
+    priority_queue["oldest_unresolved"] = [serialize_doc(a) for a in sorted_by_age[:5]]
+    
+    # === RISK SCORING SUMMARY ===
+    # Citizens in watch status (low ARI or high risk)
+    watch_citizens = await db.citizen_profiles.find(
+        {"$or": [{"compliance_score": {"$lt": 50}}, {"license_status": "suspended"}]},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Citizens approaching threshold (50-60 compliance)
+    approaching_threshold = await db.citizen_profiles.count_documents(
+        {"compliance_score": {"$gte": 40, "$lt": 60}}
+    )
+    
+    # === SEVERITY BREAKDOWN ===
+    by_severity = {
+        "critical": len([a for a in active_alerts if a.get("severity") == "critical"]),
+        "high": len([a for a in active_alerts if a.get("severity") == "high"]),
+        "medium": len([a for a in active_alerts if a.get("severity") == "medium"]),
+        "low": len([a for a in active_alerts if a.get("severity") == "low"])
+    }
+    
+    # === RESOLUTION METRICS ===
+    total_resolved_all_time = await db.member_alerts.count_documents({"status": "resolved"})
+    total_alerts_all_time = await db.member_alerts.count_documents({})
+    resolution_rate = round((total_resolved_all_time / total_alerts_all_time) * 100, 1) if total_alerts_all_time > 0 else 0
+    
+    return {
+        "summary": {
+            "total_active": total_active,
+            "unique_flagged_users": unique_flagged_users,
+            "total_citizens": total_citizens,
+            "alert_rate_percentage": alert_rate_percentage,
+            "alert_rate_per_10k": alert_rate_per_10k,
+            "time_period": time_period
+        },
+        "trends": {
+            "current_period": current_period_count,
+            "previous_period": prev_period_count,
+            "trend_percentage": trend_percentage,
+            "trend_direction": "up" if trend_percentage > 0 else "down" if trend_percentage < 0 else "stable",
+            "new_this_period": new_this_period,
+            "resolved_this_period": resolved_this_period,
+            "resolution_velocity": resolution_velocity,
+            "avg_resolution_hours": avg_resolution_hours
+        },
+        "by_severity": by_severity,
+        "by_category": category_breakdown,
+        "regional_heat_map": sorted(regional_heat_map, key=lambda x: x["alert_rate_per_10k"], reverse=True),
+        "priority_queue": {
+            "critical_over_24h": len(priority_queue["critical_over_24h"]),
+            "high_over_48h": len(priority_queue["high_over_48h"]),
+            "unacknowledged_critical": len(priority_queue["unacknowledged_critical"]),
+            "items": priority_queue
+        },
+        "risk_summary": {
+            "citizens_in_watch": len(watch_citizens),
+            "approaching_threshold": approaching_threshold,
+            "watch_percentage": round((len(watch_citizens) / total_citizens) * 100, 2)
+        },
+        "resolution_metrics": {
+            "total_resolved": total_resolved_all_time,
+            "resolution_rate": resolution_rate,
+            "avg_resolution_hours": avg_resolution_hours
+        },
+        "alerts": [serialize_doc(a) for a in active_alerts[:100]],
+        "filters_applied": {
+            "severity": severity,
+            "category": category,
+            "region": region,
+            "status": status,
+            "time_period": time_period
+        }
+    }
+
 @api_router.get("/government/alerts/active")
 async def get_active_alerts(user: dict = Depends(require_auth(["admin"]))):
     """Get all active alerts and red flags"""
