@@ -195,6 +195,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/predictive"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <PredictiveAnalytics user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/setup"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
