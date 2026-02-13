@@ -135,7 +135,56 @@ AMMO Responsibility Index based on:
 - License statistics (active, expired, suspended, expiring soon)
 - Average ARI by region chart
 
-**Alerts & Intervention Tab:**
+### Phase 6 - Dedicated Alerts & Red Flags Dashboard ✅ (February 2026)
+**Comprehensive Alert Monitoring Center at `/government/alerts-dashboard`:**
+
+**Percentage-Based Metrics:**
+- Flagged Citizens percentage (X% of total population)
+- Alert rate per 10,000 members
+- Unique flagged users count
+
+**Trend Analysis:**
+- Current vs Previous period comparison with trend percentage
+- Resolution velocity (resolved vs new alerts)
+- Average resolution time in hours
+- Resolution rate percentage
+
+**Alert Categories Breakdown:**
+- Visual progress bars by category (Compliance Drop, Training Overdue, Suspicious Activity, Threshold Breach)
+- Percentage distribution per category
+
+**Regional Alert Heat Map:**
+- Alert rate per 10,000 citizens by region
+- Health status badges (Critical, Warning, Elevated, Healthy)
+- Active alerts and total citizens per region
+
+**Priority Queue:**
+- Critical alerts open > 24 hours
+- High priority alerts open > 48 hours
+- Unacknowledged critical alerts
+- Oldest unresolved alerts list
+
+**Risk Monitoring:**
+- Citizens in Watch status (compliance < 50 or suspended)
+- Citizens approaching threshold (compliance 40-60)
+- Overall resolution rate
+
+**Advanced Filters:**
+- Time period: 24h, 7d, 30d, 90d, All time
+- Severity: Critical, High, Medium, Low
+- Category: Compliance Drop, Training Overdue, Suspicious Activity, Threshold Breach
+- Region: Northeast, Southeast, Midwest, Southwest, West
+- Status: Active, Acknowledged, Resolved
+
+**Intervention Actions:**
+- Acknowledge alerts
+- Send Warning (notifies user)
+- Suspend License
+- Block License (with notification to user)
+- All actions require intervention notes
+- Full audit logging
+
+**Alerts Tab (In main Government Dashboard):
 - Active alerts by severity (Critical, High, Medium, Low)
 - Red flag visualization
 - Alert actions: Acknowledge, Intervene
