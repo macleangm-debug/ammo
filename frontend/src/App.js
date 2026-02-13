@@ -9,6 +9,7 @@ import LandingPage from "./pages/LandingPage";
 import CitizenDashboard from "./pages/CitizenDashboard";
 import DealerPortal from "./pages/DealerPortal";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
+import AlertsDashboard from "./pages/AlertsDashboard";
 import ProfileSetup from "./pages/ProfileSetup";
 
 // Register Service Worker for PWA
