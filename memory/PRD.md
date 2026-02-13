@@ -285,6 +285,8 @@ AMMO Responsibility Index based on:
 - `revenue_records` - Revenue tracking by type, region
 - `member_alerts` - Active alerts with severity and intervention history
 - `alert_thresholds` - Configurable thresholds for automated alerts
+- `risk_predictions` - Stored risk predictions per citizen
+- `preventive_warnings` - Warnings sent to citizens approaching thresholds
 
 ## Prioritized Backlog
 
