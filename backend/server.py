@@ -1509,55 +1509,24 @@ async def get_gamification_stats(user: dict = Depends(require_auth(["citizen", "
         "training_hours": resp_data["training"]["hours"],
         "note": "AMMO rewards responsible behavior, not purchase volume"
     }
-        )
-        gamification["badges"] = earned_badges
-        gamification["points"] = gamification.get("points", 0) + points_earned
-    
-    # Build response
-    badges_data = [
-        {**BADGE_DEFINITIONS[b], "badge_id": b, "earned": True}
-        for b in earned_badges if b in BADGE_DEFINITIONS
-    ]
-    
-    available_badges = [
-        {**BADGE_DEFINITIONS[b], "badge_id": b, "earned": False}
-        for b in BADGE_DEFINITIONS if b not in earned_badges
-    ]
-    
-    current_level = get_level_from_points(gamification.get("points", 0))
-    
-    return {
-        "points": gamification.get("points", 0),
-        "level": current_level,
-        "badges_earned": badges_data,
-        "badges_available": available_badges,
-        "current_streak": gamification.get("current_streak", 0),
-        "longest_streak": gamification.get("longest_streak", 0),
-        "total_transactions": len(transactions),
-        "new_badges": [BADGE_DEFINITIONS[b] for b in new_badges] if new_badges else []
-    }
 
 @api_router.post("/citizen/check-in")
 async def daily_check_in(user: dict = Depends(require_auth(["citizen"]))):
-    """Daily check-in to maintain streak"""
+    """Daily compliance check-in to maintain streak"""
     user_id = user["user_id"]
     today = datetime.now(timezone.utc).date().isoformat()
     
-    gamification = await db.gamification.find_one({"user_id": user_id}, {"_id": 0})
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
     
-    if not gamification:
-        gamification = {
+    if not resp_profile:
+        resp_profile = {
             "user_id": user_id,
-            "points": 0,
-            "badges": [],
-            "current_streak": 0,
-            "longest_streak": 0,
-            "last_activity_date": None
+            "compliance_streak_days": 0,
+            "last_checkin_date": None
         }
     
-    last_date = gamification.get("last_activity_date")
-    current_streak = gamification.get("current_streak", 0)
-    longest_streak = gamification.get("longest_streak", 0)
+    last_date = resp_profile.get("last_checkin_date")
+    current_streak = resp_profile.get("compliance_streak_days", 0)
     
     if last_date == today:
         return {"message": "Already checked in today", "streak": current_streak}
@@ -1569,40 +1538,23 @@ async def daily_check_in(user: dict = Depends(require_auth(["citizen"]))):
     else:
         current_streak = 1
     
-    longest_streak = max(longest_streak, current_streak)
-    points_earned = 10  # Daily check-in bonus
-    
-    # Streak milestones
-    badges_earned = gamification.get("badges", [])
-    new_badges = []
-    
-    if current_streak >= 7 and "streak_7" not in badges_earned:
-        new_badges.append("streak_7")
-        points_earned += BADGE_DEFINITIONS["streak_7"]["points"]
-    
-    if current_streak >= 30 and "streak_30" not in badges_earned:
-        new_badges.append("streak_30")
-        points_earned += BADGE_DEFINITIONS["streak_30"]["points"]
-    
-    await db.gamification.update_one(
+    await db.responsibility_profile.update_one(
         {"user_id": user_id},
         {
             "$set": {
-                "last_activity_date": today,
-                "current_streak": current_streak,
-                "longest_streak": longest_streak,
-                "badges": badges_earned + new_badges
-            },
-            "$inc": {"points": points_earned}
+                "last_checkin_date": today,
+                "compliance_streak_days": current_streak
+            }
         },
         upsert=True
     )
     
+    await create_audit_log("daily_checkin", user_id, "citizen", details={"streak": current_streak})
+    
     return {
-        "message": "Check-in successful!",
+        "message": "Compliance check-in successful!",
         "streak": current_streak,
-        "points_earned": points_earned,
-        "new_badges": [BADGE_DEFINITIONS[b] for b in new_badges]
+        "note": "Maintain your streak to boost your ARI score"
     }
 
 # ============== HEATMAP DATA ENDPOINTS ==============
