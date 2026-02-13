@@ -35,18 +35,25 @@ class AmmoAPITester:
         print()
 
     def test_api_root(self):
-        """Test API root endpoint"""
+        """Test API root endpoint - should show AMMO branding"""
         try:
             response = self.session.get(f"{self.api_url}/")
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
             if success:
                 data = response.json()
-                details += f", Message: {data.get('message', '')}"
-            self.log_test("API Root Endpoint", success, details)
+                message = data.get('message', '')
+                details += f", Message: {message}"
+                # Check for AMMO branding
+                if 'AMMO' in message:
+                    details += " [✓ AMMO Branding]"
+                elif 'AEGIS' in message:
+                    details += " [⚠ Still shows AEGIS branding]"
+                    success = False
+            self.log_test("API Root Endpoint (AMMO Branding)", success, details)
             return success
         except Exception as e:
-            self.log_test("API Root Endpoint", False, str(e))
+            self.log_test("API Root Endpoint (AMMO Branding)", False, str(e))
             return False
 
     def test_health_endpoint(self):
