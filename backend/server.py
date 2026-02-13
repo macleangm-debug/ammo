@@ -1002,102 +1002,513 @@ async def setup_demo_data():
     
     return {"message": "Demo data created", "citizen_license": "LIC-DEMO-001"}
 
-# ============== GAMIFICATION SYSTEM ==============
+# ============== AMMO RESPONSIBILITY ENGINE ==============
+# Focus: Compliance, Training, Safety - NEVER purchase volume
 
-BADGE_DEFINITIONS = {
-    "first_transaction": {"name": "First Steps", "description": "Complete your first verified transaction", "icon": "award", "points": 50},
-    "perfect_compliance": {"name": "Perfect Record", "description": "Maintain 100% compliance score", "icon": "shield-check", "points": 100},
-    "streak_7": {"name": "Weekly Warrior", "description": "7-day compliance streak", "icon": "flame", "points": 75},
-    "streak_30": {"name": "Monthly Master", "description": "30-day compliance streak", "icon": "crown", "points": 200},
-    "early_renewal": {"name": "Proactive", "description": "Renew license before expiry warning", "icon": "clock", "points": 50},
-    "verified_biometric": {"name": "Identity Verified", "description": "Complete biometric verification", "icon": "fingerprint", "points": 100},
-    "safe_storage": {"name": "Safe Keeper", "description": "Register safe storage compliance", "icon": "lock", "points": 75},
-    "training_complete": {"name": "Trained & Ready", "description": "Complete safety training module", "icon": "graduation-cap", "points": 150},
-    "community_helper": {"name": "Community Guardian", "description": "Help 5 new users onboard", "icon": "users", "points": 100},
-    "zero_flags": {"name": "Clean Slate", "description": "10 transactions with zero risk flags", "icon": "check-circle", "points": 125},
+# AMMO Responsibility Index (ARI) Factors
+ARI_FACTORS = {
+    "license_renewal": {"weight": 0.20, "description": "On-time license renewal"},
+    "training_hours": {"weight": 0.25, "description": "Safety training participation"},
+    "safe_storage": {"weight": 0.20, "description": "Safe storage verification"},
+    "violation_free": {"weight": 0.20, "description": "No violation record"},
+    "community_participation": {"weight": 0.15, "description": "Community engagement"}
 }
 
+# Tier System (Responsibility-Based)
+TIER_DEFINITIONS = {
+    "sentinel": {
+        "name": "Sentinel",
+        "min_ari": 0,
+        "max_ari": 59,
+        "color": "green",
+        "icon": "shield",
+        "benefits": ["Licensed & Compliant", "Standard Verification"],
+        "description": "Entry tier - Licensed and compliant owner"
+    },
+    "guardian": {
+        "name": "Guardian",
+        "min_ari": 60,
+        "max_ari": 84,
+        "color": "blue",
+        "icon": "shield-check",
+        "benefits": ["Faster Verification", "Training Discounts", "Recognition Badge"],
+        "description": "Advanced training completed, perfect renewal record"
+    },
+    "elite_custodian": {
+        "name": "Elite Custodian",
+        "min_ari": 85,
+        "max_ari": 100,
+        "color": "purple",
+        "icon": "crown",
+        "benefits": ["Priority Service", "Insurance Discounts", "Community Mentor Status", "Renewal Fee Reduction"],
+        "description": "Long-term compliance excellence, community leader"
+    }
+}
+
+# Responsibility Badges (Non-Aggressive, Safety-Focused)
+RESPONSIBILITY_BADGES = {
+    "clean_record_1yr": {
+        "name": "1-Year Clean Record",
+        "description": "Maintained violation-free status for 1 year",
+        "icon": "award",
+        "ari_boost": 5,
+        "category": "compliance"
+    },
+    "clean_record_5yr": {
+        "name": "5-Year Clean Record",
+        "description": "Maintained violation-free status for 5 years",
+        "icon": "trophy",
+        "ari_boost": 15,
+        "category": "compliance"
+    },
+    "safety_certified": {
+        "name": "Safety Certified",
+        "description": "Completed basic safety training course",
+        "icon": "graduation-cap",
+        "ari_boost": 10,
+        "category": "training"
+    },
+    "advanced_safety": {
+        "name": "Advanced Safety Certified",
+        "description": "Completed advanced safety training program",
+        "icon": "medal",
+        "ari_boost": 15,
+        "category": "training"
+    },
+    "range_certified": {
+        "name": "Range Safety Certified",
+        "description": "Certified in range safety protocols",
+        "icon": "target",
+        "ari_boost": 10,
+        "category": "training"
+    },
+    "secure_storage": {
+        "name": "Secure Storage Verified",
+        "description": "Safe storage compliance verified",
+        "icon": "lock",
+        "ari_boost": 10,
+        "category": "safety"
+    },
+    "zero_incident": {
+        "name": "Zero Incident Milestone",
+        "description": "No safety incidents on record",
+        "icon": "check-circle",
+        "ari_boost": 10,
+        "category": "safety"
+    },
+    "community_protector": {
+        "name": "Community Protector",
+        "description": "Active community safety participant",
+        "icon": "users",
+        "ari_boost": 10,
+        "category": "community"
+    },
+    "mentor_certified": {
+        "name": "Certified Mentor",
+        "description": "Approved to mentor new members",
+        "icon": "heart-handshake",
+        "ari_boost": 15,
+        "category": "community"
+    },
+    "renewal_punctual": {
+        "name": "Punctual Renewal",
+        "description": "Renewed license on time for 3 consecutive years",
+        "icon": "clock",
+        "ari_boost": 10,
+        "category": "compliance"
+    },
+    "emergency_ready": {
+        "name": "Emergency Ready",
+        "description": "Emergency contact and protocols updated",
+        "icon": "alert-circle",
+        "ari_boost": 5,
+        "category": "safety"
+    },
+    "education_champion": {
+        "name": "Education Champion",
+        "description": "Completed all educational modules",
+        "icon": "book-open",
+        "ari_boost": 10,
+        "category": "training"
+    }
+}
+
+# Monthly Responsibility Challenges
+MONTHLY_CHALLENGES = [
+    {"id": "refresher_course", "name": "Complete Refresher Course", "description": "Take a safety refresher course", "ari_boost": 3, "category": "training"},
+    {"id": "update_contacts", "name": "Update Emergency Contact", "description": "Verify emergency contact information", "ari_boost": 2, "category": "safety"},
+    {"id": "storage_audit", "name": "Confirm Safe Storage", "description": "Complete safe storage self-audit", "ari_boost": 3, "category": "safety"},
+    {"id": "community_workshop", "name": "Attend Safety Workshop", "description": "Participate in community safety event", "ari_boost": 5, "category": "community"},
+    {"id": "mentor_session", "name": "Mentor a New Member", "description": "Guide a new member through onboarding", "ari_boost": 5, "category": "community"},
+    {"id": "education_module", "name": "Complete Education Module", "description": "Finish a safety education module", "ari_boost": 3, "category": "training"},
+]
+
+def get_tier_from_ari(ari_score: int) -> dict:
+    """Get tier based on ARI score"""
+    for tier_id, tier in TIER_DEFINITIONS.items():
+        if tier["min_ari"] <= ari_score <= tier["max_ari"]:
+            return {"tier_id": tier_id, **tier}
+    return {"tier_id": "sentinel", **TIER_DEFINITIONS["sentinel"]}
+
+async def calculate_ari_score(user_id: str) -> dict:
+    """Calculate AMMO Responsibility Index (ARI) score"""
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    responsibility_data = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not profile:
+        return {"ari_score": 0, "factors": {}, "tier": get_tier_from_ari(0)}
+    
+    factors = {}
+    total_score = 0
+    
+    # 1. License Renewal (20%) - Based on renewal history
+    renewal_score = 100 if profile.get("license_status") == "active" else 0
+    if responsibility_data:
+        on_time_renewals = responsibility_data.get("on_time_renewals", 0)
+        total_renewals = responsibility_data.get("total_renewals", 1)
+        if total_renewals > 0:
+            renewal_score = min(100, (on_time_renewals / total_renewals) * 100)
+    factors["license_renewal"] = {"score": renewal_score, "weighted": renewal_score * ARI_FACTORS["license_renewal"]["weight"]}
+    total_score += factors["license_renewal"]["weighted"]
+    
+    # 2. Training Hours (25%) - Based on completed training
+    training_hours = responsibility_data.get("training_hours", 0) if responsibility_data else 0
+    training_score = min(100, (training_hours / 20) * 100)  # 20 hours = 100%
+    factors["training_hours"] = {"score": training_score, "hours": training_hours, "weighted": training_score * ARI_FACTORS["training_hours"]["weight"]}
+    total_score += factors["training_hours"]["weighted"]
+    
+    # 3. Safe Storage (20%) - Based on verification status
+    storage_verified = responsibility_data.get("safe_storage_verified", False) if responsibility_data else False
+    storage_score = 100 if storage_verified else 0
+    factors["safe_storage"] = {"score": storage_score, "verified": storage_verified, "weighted": storage_score * ARI_FACTORS["safe_storage"]["weight"]}
+    total_score += factors["safe_storage"]["weighted"]
+    
+    # 4. Violation-Free (20%) - Based on violation history
+    violations = responsibility_data.get("violations", 0) if responsibility_data else 0
+    violation_score = 100 if violations == 0 else max(0, 100 - (violations * 25))
+    factors["violation_free"] = {"score": violation_score, "violations": violations, "weighted": violation_score * ARI_FACTORS["violation_free"]["weight"]}
+    total_score += factors["violation_free"]["weighted"]
+    
+    # 5. Community Participation (15%) - Based on community engagement
+    community_points = responsibility_data.get("community_points", 0) if responsibility_data else 0
+    community_score = min(100, (community_points / 50) * 100)  # 50 points = 100%
+    factors["community_participation"] = {"score": community_score, "points": community_points, "weighted": community_score * ARI_FACTORS["community_participation"]["weight"]}
+    total_score += factors["community_participation"]["weighted"]
+    
+    ari_score = round(total_score)
+    tier = get_tier_from_ari(ari_score)
+    
+    return {
+        "ari_score": ari_score,
+        "factors": factors,
+        "tier": tier
+    }
+
+@api_router.get("/citizen/responsibility")
+async def get_responsibility_profile(user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get citizen's AMMO Responsibility Profile including ARI score, tier, badges, and progress"""
+    user_id = user["user_id"]
+    
+    # Calculate ARI score
+    ari_data = await calculate_ari_score(user_id)
+    
+    # Get responsibility profile
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not resp_profile:
+        # Initialize responsibility profile
+        resp_profile = {
+            "user_id": user_id,
+            "badges": [],
+            "training_hours": 0,
+            "training_modules_completed": [],
+            "safe_storage_verified": False,
+            "safe_storage_last_audit": None,
+            "violations": 0,
+            "community_points": 0,
+            "mentees_helped": 0,
+            "challenges_completed": [],
+            "compliance_streak_days": 0,
+            "on_time_renewals": 0,
+            "total_renewals": 0,
+            "emergency_contact_updated": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.responsibility_profile.insert_one(resp_profile)
+    
+    # Get earned badges with details
+    earned_badges = []
+    for badge_id in resp_profile.get("badges", []):
+        if badge_id in RESPONSIBILITY_BADGES:
+            earned_badges.append({
+                "badge_id": badge_id,
+                **RESPONSIBILITY_BADGES[badge_id],
+                "earned": True
+            })
+    
+    # Get available badges
+    available_badges = []
+    for badge_id, badge in RESPONSIBILITY_BADGES.items():
+        if badge_id not in resp_profile.get("badges", []):
+            available_badges.append({
+                "badge_id": badge_id,
+                **badge,
+                "earned": False
+            })
+    
+    # Get current month's challenges
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    completed_challenges = [c for c in resp_profile.get("challenges_completed", []) if c.get("month") == current_month]
+    
+    active_challenges = []
+    for challenge in MONTHLY_CHALLENGES:
+        is_completed = any(c.get("id") == challenge["id"] for c in completed_challenges)
+        active_challenges.append({
+            **challenge,
+            "completed": is_completed
+        })
+    
+    return {
+        "ari_score": ari_data["ari_score"],
+        "ari_factors": ari_data["factors"],
+        "tier": ari_data["tier"],
+        "badges_earned": earned_badges,
+        "badges_available": available_badges,
+        "training": {
+            "hours": resp_profile.get("training_hours", 0),
+            "modules_completed": resp_profile.get("training_modules_completed", []),
+            "target_hours": 20
+        },
+        "safe_storage": {
+            "verified": resp_profile.get("safe_storage_verified", False),
+            "last_audit": resp_profile.get("safe_storage_last_audit")
+        },
+        "community": {
+            "points": resp_profile.get("community_points", 0),
+            "mentees_helped": resp_profile.get("mentees_helped", 0)
+        },
+        "compliance_streak": resp_profile.get("compliance_streak_days", 0),
+        "monthly_challenges": active_challenges,
+        "challenges_completed_this_month": len(completed_challenges)
+    }
+
+@api_router.post("/citizen/complete-challenge")
+async def complete_challenge(request: Request, user: dict = Depends(require_auth(["citizen"]))):
+    """Complete a monthly responsibility challenge"""
+    body = await request.json()
+    challenge_id = body.get("challenge_id")
+    
+    # Find challenge
+    challenge = next((c for c in MONTHLY_CHALLENGES if c["id"] == challenge_id), None)
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    user_id = user["user_id"]
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Check if already completed this month
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    if resp_profile:
+        completed = resp_profile.get("challenges_completed", [])
+        if any(c.get("id") == challenge_id and c.get("month") == current_month for c in completed):
+            return {"message": "Challenge already completed this month", "already_completed": True}
+    
+    # Complete challenge
+    completion_record = {
+        "id": challenge_id,
+        "month": current_month,
+        "completed_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update profile based on challenge type
+    update_ops = {
+        "$push": {"challenges_completed": completion_record}
+    }
+    
+    if challenge["category"] == "training":
+        update_ops["$inc"] = {"training_hours": 1}
+    elif challenge["category"] == "community":
+        update_ops["$inc"] = {"community_points": challenge["ari_boost"]}
+    elif challenge["category"] == "safety" and challenge_id == "storage_audit":
+        update_ops["$set"] = {"safe_storage_last_audit": datetime.now(timezone.utc).isoformat()}
+    
+    await db.responsibility_profile.update_one(
+        {"user_id": user_id},
+        update_ops,
+        upsert=True
+    )
+    
+    await create_audit_log("challenge_completed", user_id, "citizen", details={"challenge": challenge_id})
+    
+    return {
+        "message": f"Challenge '{challenge['name']}' completed!",
+        "ari_boost": challenge["ari_boost"],
+        "challenge": challenge
+    }
+
+@api_router.post("/citizen/verify-safe-storage")
+async def verify_safe_storage(user: dict = Depends(require_auth(["citizen"]))):
+    """Verify safe storage compliance"""
+    user_id = user["user_id"]
+    
+    await db.responsibility_profile.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "safe_storage_verified": True,
+                "safe_storage_last_audit": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Check if badge should be awarded
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    badges = resp_profile.get("badges", []) if resp_profile else []
+    
+    new_badge = None
+    if "secure_storage" not in badges:
+        await db.responsibility_profile.update_one(
+            {"user_id": user_id},
+            {"$push": {"badges": "secure_storage"}}
+        )
+        new_badge = RESPONSIBILITY_BADGES["secure_storage"]
+    
+    await create_audit_log("safe_storage_verified", user_id, "citizen")
+    
+    return {
+        "message": "Safe storage verified successfully",
+        "new_badge": new_badge
+    }
+
+@api_router.post("/citizen/log-training")
+async def log_training_hours(request: Request, user: dict = Depends(require_auth(["citizen"]))):
+    """Log completed training hours"""
+    body = await request.json()
+    hours = body.get("hours", 0)
+    module_id = body.get("module_id")
+    module_name = body.get("module_name", "General Training")
+    
+    if hours <= 0 or hours > 8:
+        raise HTTPException(status_code=400, detail="Hours must be between 1 and 8")
+    
+    user_id = user["user_id"]
+    
+    update_ops = {
+        "$inc": {"training_hours": hours}
+    }
+    
+    if module_id:
+        module_record = {
+            "id": module_id,
+            "name": module_name,
+            "hours": hours,
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }
+        update_ops["$push"] = {"training_modules_completed": module_record}
+    
+    await db.responsibility_profile.update_one(
+        {"user_id": user_id},
+        update_ops,
+        upsert=True
+    )
+    
+    # Check for training badges
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    total_hours = resp_profile.get("training_hours", 0) if resp_profile else hours
+    badges = resp_profile.get("badges", []) if resp_profile else []
+    
+    new_badges = []
+    if total_hours >= 5 and "safety_certified" not in badges:
+        new_badges.append("safety_certified")
+    if total_hours >= 15 and "advanced_safety" not in badges:
+        new_badges.append("advanced_safety")
+    if total_hours >= 20 and "education_champion" not in badges:
+        new_badges.append("education_champion")
+    
+    if new_badges:
+        await db.responsibility_profile.update_one(
+            {"user_id": user_id},
+            {"$push": {"badges": {"$each": new_badges}}}
+        )
+    
+    await create_audit_log("training_logged", user_id, "citizen", details={"hours": hours, "module": module_name})
+    
+    return {
+        "message": f"Logged {hours} training hours",
+        "total_hours": total_hours,
+        "new_badges": [RESPONSIBILITY_BADGES[b] for b in new_badges] if new_badges else []
+    }
+
+@api_router.get("/admin/training-leaderboard")
+async def get_training_leaderboard(limit: int = 20, user: dict = Depends(require_auth(["admin"]))):
+    """Get training leaderboard - ranked by training hours and safety metrics, NOT purchases"""
+    profiles = await db.responsibility_profile.find(
+        {},
+        {"_id": 0, "user_id": 1, "training_hours": 1, "badges": 1, "community_points": 1, "safe_storage_verified": 1}
+    ).sort("training_hours", -1).limit(limit).to_list(limit)
+    
+    leaderboard = []
+    for idx, profile in enumerate(profiles):
+        user_data = await db.users.find_one({"user_id": profile["user_id"]}, {"_id": 0, "name": 1})
+        ari_data = await calculate_ari_score(profile["user_id"])
+        
+        leaderboard.append({
+            "rank": idx + 1,
+            "user_id": profile["user_id"],
+            "name": user_data.get("name", "Anonymous") if user_data else "Anonymous",
+            "training_hours": profile.get("training_hours", 0),
+            "badges_count": len(profile.get("badges", [])),
+            "ari_score": ari_data["ari_score"],
+            "tier": ari_data["tier"]["name"],
+            "safe_storage_verified": profile.get("safe_storage_verified", False)
+        })
+    
+    return {
+        "leaderboard": leaderboard,
+        "ranked_by": "Training hours and safety compliance",
+        "note": "This leaderboard rewards responsible behavior, not purchase volume"
+    }
+
+# Keep old gamification endpoint for backwards compatibility but redirect to new system
+BADGE_DEFINITIONS = RESPONSIBILITY_BADGES  # Alias for compatibility
+
 LEVEL_THRESHOLDS = [
-    {"level": 1, "name": "Novice", "min_points": 0, "max_points": 99},
-    {"level": 2, "name": "Apprentice", "min_points": 100, "max_points": 249},
-    {"level": 3, "name": "Guardian", "min_points": 250, "max_points": 499},
-    {"level": 4, "name": "Sentinel", "min_points": 500, "max_points": 999},
-    {"level": 5, "name": "Protector", "min_points": 1000, "max_points": 1999},
-    {"level": 6, "name": "Champion", "min_points": 2000, "max_points": 4999},
-    {"level": 7, "name": "Legend", "min_points": 5000, "max_points": float('inf')},
+    {"level": 1, "name": "Sentinel", "min_points": 0, "max_points": 59},
+    {"level": 2, "name": "Guardian", "min_points": 60, "max_points": 84},
+    {"level": 3, "name": "Elite Custodian", "min_points": 85, "max_points": 100},
 ]
 
 def get_level_from_points(points: int) -> dict:
-    for level in LEVEL_THRESHOLDS:
-        if level["min_points"] <= points <= level["max_points"]:
-            return level
-    return LEVEL_THRESHOLDS[-1]
+    # Map ARI score to tier
+    tier = get_tier_from_ari(points)
+    return {"level": list(TIER_DEFINITIONS.keys()).index(tier["tier_id"]) + 1, "name": tier["name"], "min_points": tier["min_ari"], "max_points": tier["max_ari"]}
 
 @api_router.get("/citizen/gamification")
 async def get_gamification_stats(user: dict = Depends(require_auth(["citizen", "admin"]))):
-    """Get citizen's gamification stats including badges, points, level, and streaks"""
-    user_id = user["user_id"]
+    """Get citizen's responsibility stats - redirects to new ARI system"""
+    # Use new responsibility system
+    resp_data = await get_responsibility_profile.__wrapped__(user)
     
-    # Get or create gamification profile
-    gamification = await db.gamification.find_one({"user_id": user_id}, {"_id": 0})
-    
-    if not gamification:
-        # Initialize gamification profile
-        gamification = {
-            "user_id": user_id,
-            "points": 0,
-            "badges": [],
-            "current_streak": 0,
-            "longest_streak": 0,
-            "last_activity_date": None,
-            "challenges_completed": 0,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.gamification.insert_one(gamification)
-    
-    # Calculate level
-    current_level = get_level_from_points(gamification.get("points", 0))
-    next_level = LEVEL_THRESHOLDS[min(current_level["level"], len(LEVEL_THRESHOLDS) - 1)]
-    
-    # Get transaction stats for achievements
-    transactions = await db.transactions.find(
-        {"citizen_id": user_id, "status": "approved"},
-        {"_id": 0}
-    ).to_list(100)
-    
-    # Check for new badges
-    earned_badges = gamification.get("badges", [])
-    new_badges = []
-    
-    # First transaction badge
-    if len(transactions) >= 1 and "first_transaction" not in earned_badges:
-        new_badges.append("first_transaction")
-    
-    # Zero flags badge (10 transactions with no risk flags)
-    clean_txns = [t for t in transactions if not t.get("risk_factors") or len(t.get("risk_factors", [])) == 0]
-    if len(clean_txns) >= 10 and "zero_flags" not in earned_badges:
-        new_badges.append("zero_flags")
-    
-    # Get citizen profile for compliance check
-    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
-    if profile and profile.get("compliance_score", 0) == 100 and "perfect_compliance" not in earned_badges:
-        new_badges.append("perfect_compliance")
-    
-    if profile and profile.get("biometric_verified") and "verified_biometric" not in earned_badges:
-        new_badges.append("verified_biometric")
-    
-    # Award new badges
-    points_earned = 0
-    for badge_id in new_badges:
-        badge = BADGE_DEFINITIONS.get(badge_id)
-        if badge:
-            points_earned += badge["points"]
-            earned_badges.append(badge_id)
-    
-    if new_badges:
-        await db.gamification.update_one(
-            {"user_id": user_id},
-            {"$set": {"badges": earned_badges}, "$inc": {"points": points_earned}}
+    return {
+        "points": resp_data["ari_score"],
+        "level": {
+            "level": list(TIER_DEFINITIONS.keys()).index(resp_data["tier"]["tier_id"]) + 1,
+            "name": resp_data["tier"]["name"],
+            "min_points": resp_data["tier"]["min_ari"],
+            "max_points": resp_data["tier"]["max_ari"]
+        },
+        "badges_earned": resp_data["badges_earned"],
+        "badges_available": resp_data["badges_available"],
+        "current_streak": resp_data["compliance_streak"],
+        "longest_streak": resp_data["compliance_streak"],
+        "total_transactions": 0,  # Deprecated - not tracking purchases for gamification
+        "new_badges": [],
+        "ari_score": resp_data["ari_score"],
+        "tier": resp_data["tier"],
+        "training_hours": resp_data["training"]["hours"],
+        "note": "AMMO rewards responsible behavior, not purchase volume"
+    }
         )
         gamification["badges"] = earned_badges
         gamification["points"] = gamification.get("points", 0) + points_earned
