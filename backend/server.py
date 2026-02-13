@@ -1128,6 +1128,162 @@ async def setup_demo_data():
                 "created_at": (datetime.now(timezone.utc) - timedelta(days=i)).isoformat()
             })
     
+    # Create demo training courses
+    demo_courses = [
+        {"name": "Basic Firearm Safety", "description": "Fundamental safety principles for firearm handling", "region": "national", "cost": 150.00, "duration_hours": 8, "is_compulsory": True, "category": "safety", "ari_boost": 10, "ari_penalty_for_skip": 15, "deadline_days": 30},
+        {"name": "Legal Compliance Training", "description": "Understanding federal and state firearm laws", "region": "national", "cost": 200.00, "duration_hours": 12, "is_compulsory": True, "category": "legal", "ari_boost": 15, "ari_penalty_for_skip": 20, "deadline_days": 45},
+        {"name": "Advanced Tactical Training", "description": "Advanced handling and situational awareness", "region": "northeast", "cost": 350.00, "duration_hours": 16, "is_compulsory": False, "category": "tactical", "ari_boost": 20},
+        {"name": "Safe Storage Best Practices", "description": "Proper storage and securing of firearms", "region": "southeast", "cost": 100.00, "duration_hours": 4, "is_compulsory": True, "category": "safety", "ari_boost": 8, "ari_penalty_for_skip": 10, "deadline_days": 30},
+        {"name": "Annual Refresher Course", "description": "Yearly refresher on safety and legal updates", "region": "national", "cost": 75.00, "duration_hours": 4, "is_compulsory": True, "category": "refresher", "ari_boost": 5, "ari_penalty_for_skip": 8, "deadline_days": 365},
+        {"name": "Concealed Carry Certification", "description": "State-certified concealed carry training", "region": "midwest", "cost": 250.00, "duration_hours": 10, "is_compulsory": False, "category": "specialized", "ari_boost": 12},
+        {"name": "Home Defense Training", "description": "Home security and defense techniques", "region": "southwest", "cost": 175.00, "duration_hours": 6, "is_compulsory": False, "category": "tactical", "ari_boost": 8},
+        {"name": "First Aid for Firearm Owners", "description": "Emergency medical training for accidents", "region": "west", "cost": 125.00, "duration_hours": 8, "is_compulsory": False, "category": "safety", "ari_boost": 10},
+    ]
+    
+    for course_data in demo_courses:
+        course_id = f"course_{course_data['name'].lower().replace(' ', '_')[:20]}"
+        existing_course = await db.training_courses.find_one({"course_id": course_id})
+        if not existing_course:
+            await db.training_courses.insert_one({
+                "course_id": course_id,
+                **course_data,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Create demo revenue records
+    revenue_types = ["course_fee", "license_fee", "membership_fee", "renewal_fee", "certification_fee"]
+    for i in range(50):
+        rev_id = f"rev_demo_{i+1:03d}"
+        existing_rev = await db.revenue_records.find_one({"revenue_id": rev_id})
+        if not existing_rev:
+            rev_type = random.choice(revenue_types)
+            region = random.choice(REGIONS)
+            amount = random.uniform(50, 500) if rev_type != "penalty_fee" else random.uniform(100, 1000)
+            await db.revenue_records.insert_one({
+                "revenue_id": rev_id,
+                "type": rev_type,
+                "amount": round(amount, 2),
+                "region": region,
+                "description": f"Demo {rev_type.replace('_', ' ')} for {region}",
+                "status": "completed",
+                "created_at": (datetime.now(timezone.utc) - timedelta(days=random.randint(0, 90))).isoformat()
+            })
+    
+    # Create additional demo citizens for analytics
+    demo_citizens = [
+        {"id": "citizen_002", "name": "Jane Smith", "region": "northeast", "ari": 78, "license_status": "active"},
+        {"id": "citizen_003", "name": "Robert Johnson", "region": "southeast", "ari": 45, "license_status": "active"},
+        {"id": "citizen_004", "name": "Emily Davis", "region": "midwest", "ari": 92, "license_status": "active"},
+        {"id": "citizen_005", "name": "Michael Brown", "region": "southwest", "ari": 35, "license_status": "suspended"},
+        {"id": "citizen_006", "name": "Sarah Wilson", "region": "west", "ari": 88, "license_status": "active"},
+        {"id": "citizen_007", "name": "David Lee", "region": "northeast", "ari": 62, "license_status": "active"},
+        {"id": "citizen_008", "name": "Jennifer Taylor", "region": "southeast", "ari": 71, "license_status": "active"},
+        {"id": "citizen_009", "name": "Chris Anderson", "region": "midwest", "ari": 25, "license_status": "blocked"},
+        {"id": "citizen_010", "name": "Amanda Martinez", "region": "southwest", "ari": 85, "license_status": "active"},
+    ]
+    
+    for citizen in demo_citizens:
+        existing = await db.users.find_one({"user_id": citizen["id"]})
+        if not existing:
+            await db.users.insert_one({
+                "user_id": citizen["id"],
+                "email": f"{citizen['name'].lower().replace(' ', '.')}@demo.gov",
+                "name": citizen["name"],
+                "role": "citizen",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            await db.citizen_profiles.insert_one({
+                "profile_id": f"profile_{citizen['id']}",
+                "user_id": citizen["id"],
+                "license_number": f"LIC-{citizen['id'].upper()}",
+                "license_type": "firearm",
+                "license_status": citizen["license_status"],
+                "license_expiry": (datetime.now(timezone.utc) + timedelta(days=random.randint(30, 365))).isoformat(),
+                "compliance_score": citizen["ari"],
+                "region": citizen["region"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            await db.responsibility_profile.insert_one({
+                "user_id": citizen["id"],
+                "ari_score": citizen["ari"],
+                "training_hours": random.randint(0, 30),
+                "safe_storage_verified": random.choice([True, False]),
+                "violations": 0 if citizen["ari"] > 50 else random.randint(1, 3),
+                "community_points": random.randint(0, 60)
+            })
+    
+    # Create additional demo dealers
+    demo_dealers = [
+        {"id": "dealer_002", "name": "Northeast Arms", "region": "northeast", "transactions": 230},
+        {"id": "dealer_003", "name": "Southern Defense Supply", "region": "southeast", "transactions": 450},
+        {"id": "dealer_004", "name": "Midwest Firearms", "region": "midwest", "transactions": 180},
+        {"id": "dealer_005", "name": "Southwest Arms Depot", "region": "southwest", "transactions": 320},
+    ]
+    
+    for dealer in demo_dealers:
+        existing = await db.users.find_one({"user_id": dealer["id"]})
+        if not existing:
+            await db.users.insert_one({
+                "user_id": dealer["id"],
+                "email": f"{dealer['name'].lower().replace(' ', '.')}@dealer.gov",
+                "name": dealer["name"],
+                "role": "dealer",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            await db.dealer_profiles.insert_one({
+                "dealer_id": dealer["id"],
+                "user_id": dealer["id"],
+                "business_name": dealer["name"],
+                "license_number": f"DLR-{dealer['id'].upper()}",
+                "license_status": "active",
+                "region": dealer["region"],
+                "compliance_score": random.randint(75, 100),
+                "total_transactions": dealer["transactions"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Create demo alerts
+    demo_alerts = [
+        {"user_id": "citizen_005", "type": "red_flag", "severity": "high", "title": "Compliance Score Drop", "reason": "compliance_drop"},
+        {"user_id": "citizen_009", "type": "intervention", "severity": "critical", "title": "License Blocked - Multiple Violations", "reason": "suspicious_activity"},
+        {"user_id": "citizen_003", "type": "warning", "severity": "medium", "title": "Compulsory Training Overdue", "reason": "compulsory_training_missed"},
+    ]
+    
+    for i, alert_data in enumerate(demo_alerts):
+        alert_id = f"alert_demo_{i+1:03d}"
+        existing_alert = await db.member_alerts.find_one({"alert_id": alert_id})
+        if not existing_alert:
+            await db.member_alerts.insert_one({
+                "alert_id": alert_id,
+                "user_id": alert_data["user_id"],
+                "alert_type": alert_data["type"],
+                "severity": alert_data["severity"],
+                "title": alert_data["title"],
+                "description": f"Automated alert triggered for user {alert_data['user_id']}",
+                "trigger_reason": alert_data["reason"],
+                "status": "active",
+                "created_at": (datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 72))).isoformat()
+            })
+    
+    # Create demo alert thresholds
+    demo_thresholds = [
+        {"name": "High Purchase Frequency", "metric": "purchase_count_30d", "operator": "gt", "value": 10, "severity": "medium", "auto_action": "flag_review"},
+        {"name": "Low Compliance Score", "metric": "compliance_score", "operator": "lt", "value": 40, "severity": "high", "auto_action": "warn"},
+        {"name": "Critical Compliance Drop", "metric": "compliance_score", "operator": "lt", "value": 25, "severity": "critical", "auto_action": "block_license"},
+    ]
+    
+    for thresh in demo_thresholds:
+        thresh_id = f"thresh_{thresh['metric']}_{thresh['operator']}"
+        existing = await db.alert_thresholds.find_one({"threshold_id": thresh_id})
+        if not existing:
+            await db.alert_thresholds.insert_one({
+                "threshold_id": thresh_id,
+                **thresh,
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
     return {"message": "Demo data created", "citizen_license": "LIC-DEMO-001"}
 
 # ============== AMMO RESPONSIBILITY ENGINE ==============
