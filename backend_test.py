@@ -365,6 +365,30 @@ class AmmoAPITester:
             self.log_test("Training Leaderboard Endpoint", False, str(e))
             return False
     
+    def test_gamification_api(self):
+        """Test legacy gamification API endpoints (should redirect to responsibility system)"""
+        headers = {"Authorization": f"Bearer {self.test_citizen_token}"}
+        try:
+            response = self.session.get(f"{self.api_url}/citizen/gamification", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                points = data.get('points', 0)
+                ari_score = data.get('ari_score', 0)
+                note = data.get('note', '')
+                details += f", Points/ARI: {points}, Legacy Redirect: {bool(note)}"
+                # Check if it's redirecting to new system
+                if 'AMMO rewards responsible behavior' in note:
+                    details += " [✓ Redirects to AMMO system]"
+                else:
+                    details += " [⚠ Still old system]"
+            self.log_test("Legacy Gamification API", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Legacy Gamification API", False, str(e))
+            return False
+    
     def test_daily_checkin_api(self):
         """Test daily check-in API endpoint"""
         if not self.citizen_token:
