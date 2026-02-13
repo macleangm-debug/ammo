@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Toaster } from "./components/ui/sonner";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
@@ -9,6 +10,19 @@ import CitizenDashboard from "./pages/CitizenDashboard";
 import DealerPortal from "./pages/DealerPortal";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
 import ProfileSetup from "./pages/ProfileSetup";
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('[SW] Registration successful:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('[SW] Registration failed:', error);
+      });
+  });
+}
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
