@@ -1,4 +1,4 @@
-import { Shield, CheckCircle, AlertTriangle, Lock, ArrowRight, Fingerprint, MapPin, Activity } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Lock, ArrowRight, Fingerprint, MapPin, Activity, Award, GraduationCap } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -47,8 +47,10 @@ const LandingPage = ({ api }) => {
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-aegis-signal" />
-              <span className="font-heading font-bold text-xl tracking-tight">AEGIS</span>
-              <span className="text-xs font-mono text-white/50 hidden sm:block">VERIFICATION NETWORK</span>
+              <div>
+                <span className="font-heading font-bold text-xl tracking-tight">AMMO</span>
+                <p className="text-[10px] font-mono text-white/50 -mt-1">Accountable Munitions & Mobility Oversight</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Button 
@@ -57,7 +59,7 @@ const LandingPage = ({ api }) => {
                 onClick={handleLogin}
                 data-testid="nav-login-btn"
               >
-                Citizen Portal
+                Member Portal
               </Button>
               <Button 
                 variant="ghost" 
@@ -76,18 +78,18 @@ const LandingPage = ({ api }) => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-slide-up">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-aegis-signal/10 border border-aegis-signal/20 mb-8">
-                <Activity className="w-4 h-4 text-aegis-signal" />
-                <span className="font-mono text-xs text-aegis-signal">NATIONAL VERIFICATION SYSTEM</span>
+                <Award className="w-4 h-4 text-aegis-signal" />
+                <span className="font-mono text-xs text-aegis-signal">RESPONSIBLE OWNERSHIP PLATFORM</span>
               </div>
               
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Secure Firearm<br />
-                <span className="text-aegis-signal">Digital Verification</span>
+                National Responsible<br />
+                <span className="text-aegis-signal">Ownership Ecosystem</span>
               </h1>
               
               <p className="text-lg text-white/70 mb-10 max-w-xl leading-relaxed">
-                Real-time biometric verification for licensed owners and authorized dealers. 
-                AI-powered risk assessment ensuring compliant, secure transactions.
+                AMMO rewards compliance, safety training, and responsible behavior. 
+                Build your Responsibility Index through verified actions, not purchases.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
@@ -98,7 +100,7 @@ const LandingPage = ({ api }) => {
                   data-testid="hero-citizen-login-btn"
                 >
                   <Fingerprint className="w-5 h-5 mr-2" />
-                  Citizen Access
+                  Member Access
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button 
@@ -116,11 +118,11 @@ const LandingPage = ({ api }) => {
               <div className="mt-8 flex items-center gap-6 text-sm text-white/50">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-aegis-emerald" />
-                  <span>256-bit Encryption</span>
+                  <span>Safety-First Rewards</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-aegis-emerald" />
-                  <span>Real-time Verification</span>
+                  <span>Training Recognition</span>
                 </div>
               </div>
             </div>
@@ -145,18 +147,18 @@ const LandingPage = ({ api }) => {
 
                 {/* Floating Stats Cards */}
                 <div className="absolute -right-4 top-8 bg-aegis-slate/90 backdrop-blur-lg rounded-lg p-4 border border-white/10 animate-pulse-glow">
-                  <div className="font-mono text-xs text-white/50 mb-1">RISK LEVEL</div>
+                  <div className="font-mono text-xs text-white/50 mb-1">ARI SCORE</div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-aegis-emerald"></div>
-                    <span className="font-heading font-bold text-aegis-emerald">LOW</span>
+                    <span className="font-heading font-bold text-aegis-emerald text-xl">87</span>
                   </div>
                 </div>
 
                 <div className="absolute -left-4 bottom-16 bg-aegis-slate/90 backdrop-blur-lg rounded-lg p-4 border border-white/10">
-                  <div className="font-mono text-xs text-white/50 mb-1">VERIFICATION</div>
+                  <div className="font-mono text-xs text-white/50 mb-1">TIER STATUS</div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-aegis-emerald" />
-                    <span className="font-heading font-bold">APPROVED</span>
+                    <Award className="w-5 h-5 text-purple-400" />
+                    <span className="font-heading font-bold text-purple-400">Elite Custodian</span>
                   </div>
                 </div>
               </div>
@@ -169,9 +171,9 @@ const LandingPage = ({ api }) => {
       <div className="relative bg-aegis-slate/50 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-24">
           <div className="text-center mb-16">
-            <h2 className="font-heading text-3xl font-semibold mb-4">Enterprise-Grade Security</h2>
+            <h2 className="font-heading text-3xl font-semibold mb-4">Responsibility-First Platform</h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              Built for national-scale deployment with multi-layer verification and AI-powered risk assessment.
+              AMMO rewards safe behavior, training completion, and community participation — never purchase volume.
             </p>
           </div>
 
@@ -179,50 +181,149 @@ const LandingPage = ({ api }) => {
             {/* Feature 1 */}
             <div className="bg-aegis-navy/50 rounded-lg p-8 border border-white/10 card-hover">
               <div className="w-12 h-12 rounded-lg bg-aegis-signal/10 flex items-center justify-center mb-6">
-                <Fingerprint className="w-6 h-6 text-aegis-signal" />
+                <Award className="w-6 h-6 text-aegis-signal" />
               </div>
-              <h3 className="font-heading text-xl font-semibold mb-3">Biometric Authentication</h3>
+              <h3 className="font-heading text-xl font-semibold mb-3">ARI Score System</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Secure identity verification using tokenized biometric references. No raw data storage.
+                Your Responsibility Index (0-100) reflects training, safe storage, and compliance — not purchases.
               </p>
             </div>
 
             {/* Feature 2 */}
             <div className="bg-aegis-navy/50 rounded-lg p-8 border border-white/10 card-hover">
-              <div className="w-12 h-12 rounded-lg bg-aegis-emerald/10 flex items-center justify-center mb-6">
-                <Activity className="w-6 h-6 text-aegis-emerald" />
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-6">
+                <GraduationCap className="w-6 h-6 text-purple-400" />
               </div>
-              <h3 className="font-heading text-xl font-semibold mb-3">AI Risk Analysis</h3>
+              <h3 className="font-heading text-xl font-semibold mb-3">Training Leaderboard</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Real-time pattern detection and anomaly scoring powered by GPT-5.2 intelligence.
+                Climb the ranks through safety training hours and certifications, not transaction volume.
               </p>
             </div>
 
             {/* Feature 3 */}
             <div className="bg-aegis-navy/50 rounded-lg p-8 border border-white/10 card-hover">
-              <div className="w-12 h-12 rounded-lg bg-aegis-amber/10 flex items-center justify-center mb-6">
-                <MapPin className="w-6 h-6 text-aegis-amber" />
+              <div className="w-12 h-12 rounded-lg bg-aegis-emerald/10 flex items-center justify-center mb-6">
+                <Shield className="w-6 h-6 text-aegis-emerald" />
               </div>
-              <h3 className="font-heading text-xl font-semibold mb-3">GPS Geofencing</h3>
+              <h3 className="font-heading text-xl font-semibold mb-3">Tier Benefits</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Location-based verification ensures transactions occur at authorized dealer locations.
+                Advance from Sentinel to Elite Custodian for faster verification, insurance discounts, and more.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Access Points Section */}
+      {/* Tier Showcase */}
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
-          <h2 className="font-heading text-3xl font-semibold mb-4">Multi-Role Access</h2>
+          <h2 className="font-heading text-3xl font-semibold mb-4">Responsibility Tiers</h2>
           <p className="text-white/60 max-w-2xl mx-auto">
-            Tailored dashboards for citizens, dealers, and government oversight.
+            Progress through tiers by demonstrating responsible ownership and community engagement.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Citizen Access */}
+          {/* Sentinel Tier */}
+          <div className="relative bg-gradient-to-br from-emerald-500/10 to-transparent rounded-lg p-6 border border-emerald-500/20">
+            <div className="absolute top-4 right-4">
+              <Shield className="w-8 h-8 text-emerald-400/30" />
+            </div>
+            <div className="mb-4">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono">TIER 1</span>
+            </div>
+            <h3 className="font-heading text-xl font-semibold text-emerald-400 mb-2">Sentinel</h3>
+            <p className="text-white/60 text-sm mb-4">Licensed & Compliant</p>
+            <ul className="space-y-2 text-sm text-white/50">
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                Standard Verification
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                Basic Platform Access
+              </li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-white/40">ARI Score: 0-59</p>
+            </div>
+          </div>
+
+          {/* Guardian Tier */}
+          <div className="relative bg-gradient-to-br from-blue-500/10 to-transparent rounded-lg p-6 border border-blue-500/20">
+            <div className="absolute top-4 right-4">
+              <Shield className="w-8 h-8 text-blue-400/30" />
+            </div>
+            <div className="mb-4">
+              <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-mono">TIER 2</span>
+            </div>
+            <h3 className="font-heading text-xl font-semibold text-blue-400 mb-2">Guardian</h3>
+            <p className="text-white/60 text-sm mb-4">Advanced Training Complete</p>
+            <ul className="space-y-2 text-sm text-white/50">
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-blue-400" />
+                Faster Verification
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-blue-400" />
+                Training Discounts
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-blue-400" />
+                Recognition Badge
+              </li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-white/40">ARI Score: 60-84</p>
+            </div>
+          </div>
+
+          {/* Elite Custodian Tier */}
+          <div className="relative bg-gradient-to-br from-purple-500/10 to-transparent rounded-lg p-6 border border-purple-500/20">
+            <div className="absolute top-4 right-4">
+              <Award className="w-8 h-8 text-purple-400/30" />
+            </div>
+            <div className="mb-4">
+              <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-mono">TIER 3</span>
+            </div>
+            <h3 className="font-heading text-xl font-semibold text-purple-400 mb-2">Elite Custodian</h3>
+            <p className="text-white/60 text-sm mb-4">Exemplary Responsibility</p>
+            <ul className="space-y-2 text-sm text-white/50">
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-purple-400" />
+                Priority Service
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-purple-400" />
+                Insurance Discounts
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-purple-400" />
+                Community Mentor Status
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-purple-400" />
+                Renewal Fee Reduction
+              </li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-white/40">ARI Score: 85-100</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Access Points Section */}
+      <div className="max-w-7xl mx-auto px-6 py-24 border-t border-white/5">
+        <div className="text-center mb-16">
+          <h2 className="font-heading text-3xl font-semibold mb-4">Platform Access</h2>
+          <p className="text-white/60 max-w-2xl mx-auto">
+            Choose your portal based on your role in the AMMO ecosystem.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Member Access */}
           <div 
             className="group bg-gradient-to-br from-white/5 to-transparent rounded-lg p-8 border border-white/10 hover:border-aegis-signal/50 transition-all cursor-pointer"
             onClick={handleLogin}
@@ -232,11 +333,11 @@ const LandingPage = ({ api }) => {
               <Shield className="w-10 h-10 text-aegis-signal" />
               <ArrowRight className="w-5 h-5 text-white/30 group-hover:text-aegis-signal group-hover:translate-x-1 transition-all" />
             </div>
-            <h3 className="font-heading text-xl font-semibold mb-2">Citizen Portal</h3>
+            <h3 className="font-heading text-xl font-semibold mb-2">Member Portal</h3>
             <p className="text-white/60 text-sm mb-4">
-              License wallet, transaction history, and real-time verification approvals.
+              Track ARI score, complete training, earn badges, and manage compliance.
             </p>
-            <div className="text-xs font-mono text-aegis-signal">ACCESS LEVEL: LICENSED</div>
+            <div className="text-xs font-mono text-aegis-signal">ACCESS LEVEL: MEMBER</div>
           </div>
 
           {/* Dealer Access */}
@@ -251,7 +352,7 @@ const LandingPage = ({ api }) => {
             </div>
             <h3 className="font-heading text-xl font-semibold mb-2">Dealer Portal</h3>
             <p className="text-white/60 text-sm mb-4">
-              Initiate verifications, track transactions, and manage compliance.
+              Verify members, process transactions, and maintain dealer compliance.
             </p>
             <div className="text-xs font-mono text-aegis-amber">ACCESS LEVEL: AUTHORIZED</div>
           </div>
@@ -268,7 +369,7 @@ const LandingPage = ({ api }) => {
             </div>
             <h3 className="font-heading text-xl font-semibold mb-2">Government Dashboard</h3>
             <p className="text-white/60 text-sm mb-4">
-              Real-time monitoring, risk analytics, and compliance oversight.
+              Oversight, risk analytics, and compliance monitoring.
             </p>
             <div className="text-xs font-mono text-aegis-emerald">ACCESS LEVEL: CLASSIFIED</div>
           </div>
@@ -293,11 +394,11 @@ const LandingPage = ({ api }) => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Shield className="w-6 h-6 text-aegis-signal" />
-              <span className="font-heading font-semibold">AEGIS</span>
-              <span className="text-xs text-white/40">National Verification Network</span>
+              <span className="font-heading font-semibold">AMMO</span>
+              <span className="text-xs text-white/40">Accountable Munitions & Mobility Oversight</span>
             </div>
             <div className="text-xs text-white/40 font-mono">
-              AES-256 ENCRYPTED • ZERO-TRUST ARCHITECTURE • IMMUTABLE AUDIT LOGS
+              SAFETY-FIRST REWARDS • TRAINING RECOGNITION • RESPONSIBLE OWNERSHIP
             </div>
           </div>
         </div>
