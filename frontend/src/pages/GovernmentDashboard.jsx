@@ -147,7 +147,7 @@ const GovernmentDashboard = ({ user, api }) => {
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-aegis-signal" />
               <div>
-                <span className="font-heading font-bold text-lg">AEGIS</span>
+                <span className="font-heading font-bold text-lg">AMMO</span>
                 <span className="text-xs font-mono text-white/40 ml-2">GOV COMMAND</span>
               </div>
             </div>
