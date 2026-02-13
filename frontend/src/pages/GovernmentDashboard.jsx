@@ -280,6 +280,11 @@ const GovernmentDashboard = ({ user, api }) => {
           </Card>
         </div>
 
+        {/* Risk Heatmaps Section */}
+        <div className="mb-6">
+          <RiskHeatmaps api={api} />
+        </div>
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Transaction Feed */}
           <div className="lg:col-span-2">
