@@ -739,12 +739,12 @@ const AlertsDashboard = ({ user, api }) => {
           {alertDialog && (
             <div className="space-y-4 py-4">
               <div className="p-4 bg-muted/30 rounded-lg space-y-2">
-                <p className="text-sm"><strong>Alert:</strong> {alertDialog.title}</p>
-                <p className="text-sm"><strong>User ID:</strong> {alertDialog.user_id}</p>
-                <p className="text-sm"><strong>Severity:</strong> <Badge className={getSeverityColor(alertDialog.severity)}>{alertDialog.severity}</Badge></p>
-                <p className="text-sm"><strong>Reason:</strong> {alertDialog.trigger_reason?.replace(/_/g, ' ')}</p>
+                <div className="text-sm"><strong>Alert:</strong> {alertDialog.title}</div>
+                <div className="text-sm"><strong>User ID:</strong> {alertDialog.user_id}</div>
+                <div className="text-sm flex items-center gap-2"><strong>Severity:</strong> <Badge className={getSeverityColor(alertDialog.severity)}>{alertDialog.severity}</Badge></div>
+                <div className="text-sm"><strong>Reason:</strong> {alertDialog.trigger_reason?.replace(/_/g, ' ')}</div>
                 {alertDialog.age_hours && (
-                  <p className="text-sm"><strong>Age:</strong> {Math.round(alertDialog.age_hours)} hours</p>
+                  <div className="text-sm"><strong>Age:</strong> {Math.round(alertDialog.age_hours)} hours</div>
                 )}
               </div>
               
