@@ -248,8 +248,8 @@ const GovernmentDashboard = ({ user, api }) => {
                 {alertsData.by_severity.critical} critical alert(s) need immediate intervention
               </p>
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setActiveTab("alerts")}>
-              View Alerts
+            <Button variant="destructive" size="sm" onClick={() => navigate("/government/alerts-dashboard")}>
+              Open Alerts Center
             </Button>
           </div>
         )}
