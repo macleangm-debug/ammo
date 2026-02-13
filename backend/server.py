@@ -213,11 +213,40 @@ class AlertThreshold(BaseModel):
     metric: str  # purchase_count_30d, risk_score_avg, compliance_score, training_overdue_days
     operator: str  # gt, lt, gte, lte, eq
     value: float
+    warning_value: Optional[float] = None  # Pre-warning threshold (e.g., warn at 60 before critical at 50)
     severity: str  # low, medium, high, critical
-    auto_action: Optional[str] = None  # warn, block_license, flag_review, notify_admin
+    auto_action: Optional[str] = None  # warn, block_license, flag_review, notify_admin, send_preventive_warning
+    notification_message: Optional[str] = None  # Custom message for notifications
     is_active: bool = True
     region: Optional[str] = None  # null = all regions
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RiskPrediction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    prediction_id: str = Field(default_factory=lambda: f"pred_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    current_risk_score: float
+    predicted_risk_score: float  # Predicted score in 30 days
+    risk_trajectory: str  # improving, stable, declining, critical_decline
+    confidence: float  # 0-100
+    risk_factors: list = []  # List of contributing factors
+    recommendations: list = []  # Suggested interventions
+    predicted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    valid_until: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))
+
+class PreventiveWarning(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    warning_id: str = Field(default_factory=lambda: f"pwarn_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    warning_type: str  # approaching_threshold, compliance_declining, training_due, license_expiring
+    current_value: float
+    threshold_value: float
+    days_to_threshold: Optional[int] = None  # Estimated days until threshold breach
+    message: str
+    action_required: str  # complete_training, improve_compliance, renew_license
+    status: str = "pending"  # pending, acknowledged, action_taken, expired
+    sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    acknowledged_at: Optional[datetime] = None
 
 # Region definitions
 REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
