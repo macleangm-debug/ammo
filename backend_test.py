@@ -246,26 +246,123 @@ class AmmoAPITester:
             self.log_test("Admin Dashboard Stats", False, str(e))
             return False
 
-    def test_gamification_api(self):
-        """Test gamification API endpoints"""
-        if not self.citizen_token:
-            success, token = self.test_auth_me_with_token("citizen")
-            if not success:
-                self.log_test("Gamification API", False, "No valid citizen token")
-                return False
-                
+    def test_responsibility_endpoint(self):
+        """Test new AMMO Responsibility endpoint"""
+        # Use provided test token first
+        headers = {"Authorization": f"Bearer {self.test_citizen_token}"}
         try:
-            headers = {"Authorization": f"Bearer {self.citizen_token}"}
-            response = self.session.get(f"{self.api_url}/citizen/gamification", headers=headers)
+            response = self.session.get(f"{self.api_url}/citizen/responsibility", headers=headers)
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
             if success:
                 data = response.json()
-                details += f", Points: {data.get('points', 0)}, Level: {data.get('level', {}).get('level', 1)}, Badges: {len(data.get('badges_earned', []))}"
-            self.log_test("Gamification API", success, details)
+                ari_score = data.get('ari_score', 0)
+                tier = data.get('tier', {})
+                tier_name = tier.get('name', 'Unknown')
+                details += f", ARI Score: {ari_score}, Tier: {tier_name}"
+                # Check tier ranges
+                if tier_name in ["Sentinel", "Guardian", "Elite Custodian"]:
+                    details += " [✓ Valid Tier]"
+                else:
+                    details += " [⚠ Invalid Tier]"
+                    success = False
+            self.log_test("AMMO Responsibility Endpoint", success, details)
             return success
         except Exception as e:
-            self.log_test("Gamification API", False, str(e))
+            self.log_test("AMMO Responsibility Endpoint", False, str(e))
+            return False
+
+    def test_complete_challenge_endpoint(self):
+        """Test complete challenge endpoint"""
+        headers = {"Authorization": f"Bearer {self.test_citizen_token}"}
+        try:
+            # Try to complete a training challenge
+            challenge_data = {"challenge_id": "refresher_course"}
+            response = self.session.post(f"{self.api_url}/citizen/complete-challenge", 
+                                       headers=headers, json=challenge_data)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                message = data.get('message', '')
+                ari_boost = data.get('ari_boost', 0)
+                details += f", Message: {message}, ARI Boost: +{ari_boost}"
+            self.log_test("Complete Challenge Endpoint", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Complete Challenge Endpoint", False, str(e))
+            return False
+
+    def test_verify_safe_storage_endpoint(self):
+        """Test verify safe storage endpoint"""
+        headers = {"Authorization": f"Bearer {self.test_citizen_token}"}
+        try:
+            response = self.session.post(f"{self.api_url}/citizen/verify-safe-storage", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                message = data.get('message', '')
+                new_badge = data.get('new_badge')
+                details += f", Message: {message}"
+                if new_badge:
+                    details += f", New Badge: {new_badge.get('name', 'Unknown')}"
+            self.log_test("Verify Safe Storage Endpoint", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Verify Safe Storage Endpoint", False, str(e))
+            return False
+
+    def test_log_training_endpoint(self):
+        """Test log training hours endpoint"""
+        headers = {"Authorization": f"Bearer {self.test_citizen_token}"}
+        try:
+            training_data = {
+                "hours": 2,
+                "module_id": "basic_safety",
+                "module_name": "Basic Safety Training"
+            }
+            response = self.session.post(f"{self.api_url}/citizen/log-training", 
+                                       headers=headers, json=training_data)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                message = data.get('message', '')
+                total_hours = data.get('total_hours', 0)
+                new_badges = data.get('new_badges', [])
+                details += f", Message: {message}, Total Hours: {total_hours}"
+                if new_badges:
+                    details += f", New Badges: {len(new_badges)}"
+            self.log_test("Log Training Endpoint", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Log Training Endpoint", False, str(e))
+            return False
+
+    def test_training_leaderboard_endpoint(self):
+        """Test admin training leaderboard endpoint"""
+        headers = {"Authorization": f"Bearer {self.test_admin_token}"}
+        try:
+            response = self.session.get(f"{self.api_url}/admin/training-leaderboard", headers=headers)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            if success:
+                data = response.json()
+                leaderboard = data.get('leaderboard', [])
+                ranked_by = data.get('ranked_by', '')
+                note = data.get('note', '')
+                details += f", Entries: {len(leaderboard)}, Ranked by: {ranked_by}"
+                # Verify it's NOT ranked by purchase volume
+                if 'purchase' not in ranked_by.lower() and 'volume' not in ranked_by.lower():
+                    details += " [✓ Not purchase-based]"
+                else:
+                    details += " [⚠ Still purchase-based]"
+                    success = False
+            self.log_test("Training Leaderboard Endpoint", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Training Leaderboard Endpoint", False, str(e))
             return False
     
     def test_daily_checkin_api(self):
