@@ -303,7 +303,7 @@ const GovernmentDashboard = ({ user, api }) => {
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Status</SelectItem>
+                      <SelectItem value="all_status">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
@@ -311,14 +311,14 @@ const GovernmentDashboard = ({ user, api }) => {
                     </SelectContent>
                   </Select>
                   <Select
-                    value={filters.risk_level}
-                    onValueChange={(value) => setFilters({ ...filters, risk_level: value })}
+                    value={filters.risk_level || "all_risk"}
+                    onValueChange={(value) => setFilters({ ...filters, risk_level: value === "all_risk" ? "" : value })}
                   >
                     <SelectTrigger className="w-32 h-8 bg-aegis-navy border-white/10 text-sm">
                       <SelectValue placeholder="Risk" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Risk</SelectItem>
+                      <SelectItem value="all_risk">All Risk</SelectItem>
                       <SelectItem value="green">Low</SelectItem>
                       <SelectItem value="amber">Medium</SelectItem>
                       <SelectItem value="red">High</SelectItem>
