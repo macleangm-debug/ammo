@@ -306,64 +306,94 @@ const CitizenDashboard = ({ user, api }) => {
           </Card>
         )}
 
-        {/* Transaction History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="w-5 h-5" />
-              Transaction History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No transactions yet</p>
-              </div>
-            ) : (
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-3">
-                  {transactions.map((txn, index) => (
-                    <div 
-                      key={txn.transaction_id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100"
-                      data-testid={`transaction-${txn.transaction_id}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          txn.status === 'approved' ? 'bg-emerald-100' :
-                          txn.status === 'rejected' ? 'bg-red-100' :
-                          txn.status === 'pending' ? 'bg-amber-100' : 'bg-blue-100'
-                        }`}>
-                          {txn.status === 'approved' ? <CheckCircle className="w-5 h-5 text-emerald-600" /> :
-                           txn.status === 'rejected' ? <XCircle className="w-5 h-5 text-red-600" /> :
-                           txn.status === 'pending' ? <Clock className="w-5 h-5 text-amber-600" /> :
-                           <AlertTriangle className="w-5 h-5 text-blue-600" />}
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="transactions" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="transactions" className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="rewards" className="flex items-center gap-2">
+              <Award className="w-4 h-4" />
+              <span className="hidden sm:inline">Rewards</span>
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Alerts</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Transaction History Tab */}
+          <TabsContent value="transactions">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="w-5 h-5" />
+                  Transaction History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No transactions yet</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-3">
+                      {transactions.map((txn, index) => (
+                        <div 
+                          key={txn.transaction_id}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100"
+                          data-testid={`transaction-${txn.transaction_id}`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              txn.status === 'approved' ? 'bg-emerald-100' :
+                              txn.status === 'rejected' ? 'bg-red-100' :
+                              txn.status === 'pending' ? 'bg-amber-100' : 'bg-blue-100'
+                            }`}>
+                              {txn.status === 'approved' ? <CheckCircle className="w-5 h-5 text-emerald-600" /> :
+                               txn.status === 'rejected' ? <XCircle className="w-5 h-5 text-red-600" /> :
+                               txn.status === 'pending' ? <Clock className="w-5 h-5 text-amber-600" /> :
+                               <AlertTriangle className="w-5 h-5 text-blue-600" />}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 capitalize">
+                                {txn.item_type} - {txn.item_category}
+                              </p>
+                              <p className="text-xs text-gray-500 font-mono">
+                                {txn.transaction_id} • Qty: {txn.quantity}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge className={`${getStatusBadge(txn.status)} border`}>
+                              {txn.status?.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(txn.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900 capitalize">
-                            {txn.item_type} - {txn.item_category}
-                          </p>
-                          <p className="text-xs text-gray-500 font-mono">
-                            {txn.transaction_id} • Qty: {txn.quantity}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={`${getStatusBadge(txn.status)} border`}>
-                          {txn.status?.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(txn.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Rewards/Gamification Tab */}
+          <TabsContent value="rewards">
+            <GamificationPanel api={api} darkMode={false} />
+          </TabsContent>
+
+          {/* Alerts Tab */}
+          <TabsContent value="alerts">
+            <LicenseAlerts api={api} darkMode={false} />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Verification Dialog */}
