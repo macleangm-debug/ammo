@@ -1,39 +1,33 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Shield, Bell, CreditCard, History, CheckCircle, 
-  XCircle, AlertTriangle, LogOut, User, ChevronRight,
-  Fingerprint, Clock, AlertCircle, Lock, Award, Star,
-  Target, GraduationCap, Flame, Calendar, Radio
+  LayoutDashboard, Shield, Award, History, Bell, Settings,
+  CreditCard, GraduationCap, Target, CheckCircle, Clock,
+  AlertTriangle, TrendingUp, Calendar, Users, XCircle
 } from "lucide-react";
-import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { ScrollArea } from "../components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Progress } from "../components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui/dialog";
 import { toast } from "sonner";
-import ThemeToggle from "../components/ThemeToggle";
-import GamificationPanel from "../components/GamificationPanel";
-import LicenseAlerts from "../components/LicenseAlerts";
+import DashboardLayout from "../components/DashboardLayout";
+import { StatCard, DonutChart, BarChart, ProgressBar } from "../components/Charts";
 
 const CitizenDashboard = ({ user, api }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [responsibility, setResponsibility] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [verifyDialog, setVerifyDialog] = useState(null);
-  const [processing, setProcessing] = useState(false);
+
+  const navItems = [
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'license', path: '/dashboard/license', label: 'My License', icon: CreditCard },
+    { id: 'training', path: '/dashboard/training', label: 'Training', icon: GraduationCap },
+    { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
+    { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
+    { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Settings },
+  ];
 
   useEffect(() => {
     fetchData();
@@ -41,16 +35,14 @@ const CitizenDashboard = ({ user, api }) => {
 
   const fetchData = async () => {
     try {
-      const [profileRes, txnRes, notifRes, respRes] = await Promise.all([
+      const [profileRes, txnRes, respRes] = await Promise.all([
         api.get("/citizen/profile").catch(() => ({ data: null })),
         api.get("/citizen/transactions").catch(() => ({ data: [] })),
-        api.get("/citizen/notifications").catch(() => ({ data: [] })),
         api.get("/citizen/responsibility").catch(() => ({ data: null }))
       ]);
       
       setProfile(profileRes.data);
       setTransactions(txnRes.data || []);
-      setNotifications(notifRes.data || []);
       setResponsibility(respRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -62,516 +54,314 @@ const CitizenDashboard = ({ user, api }) => {
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
-      navigate("/", { replace: true });
     } catch (error) {
-      navigate("/", { replace: true });
+      console.error("Logout error:", error);
     }
   };
 
-  const handleVerification = async (approved, distress = false) => {
-    if (!verifyDialog) return;
-    setProcessing(true);
-    
-    try {
-      await api.post(`/citizen/verify/${verifyDialog.transaction_id}`, {
-        approved,
-        distress_trigger: distress
-      });
-      
-      if (distress) {
-        toast.error("Distress signal sent. Stay safe.", { duration: 5000 });
-      } else if (approved) {
-        toast.success("Transaction approved successfully");
-      } else {
-        toast.info("Transaction rejected");
-      }
-      
-      setVerifyDialog(null);
-      fetchData();
-    } catch (error) {
-      toast.error("Failed to process verification");
-    } finally {
-      setProcessing(false);
-    }
-  };
+  // Calculate stats
+  const ariScore = responsibility?.ari_score || 0;
+  const tier = responsibility?.tier || { name: 'Sentinel', tier_id: 'sentinel' };
+  const trainingHours = responsibility?.training?.hours || 0;
+  const trainingTarget = responsibility?.training?.target_hours || 24;
+  const complianceStreak = responsibility?.compliance_streak || 0;
+  const badgesEarned = responsibility?.badges_earned?.length || 0;
+  
+  const approvedTxns = transactions.filter(t => t.status === 'approved').length;
+  const pendingTxns = transactions.filter(t => t.status === 'pending').length;
+  const rejectedTxns = transactions.filter(t => t.status === 'rejected').length;
 
-  const markAsRead = async (notificationId) => {
-    try {
-      await api.post(`/citizen/notifications/${notificationId}/read`);
-      fetchData();
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-  };
-
-  const pendingNotifications = notifications.filter(n => !n.read && n.type === "verification_request");
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Monthly activity data for bar chart
+  const monthlyData = [
+    { label: 'J', value: 2 },
+    { label: 'F', value: 5 },
+    { label: 'M', value: 3 },
+    { label: 'A', value: 8 },
+    { label: 'M', value: 4 },
+    { label: 'J', value: 6 },
+    { label: 'J', value: 7 },
+    { label: 'A', value: 3 },
+    { label: 'S', value: 5 },
+    { label: 'O', value: 4 },
+    { label: 'N', value: 6 },
+    { label: 'D', value: transactions.length || 2 },
+  ];
 
   const getTierColor = (tierName) => {
     const colors = {
-      'Sentinel': 'text-tactical-success',
-      'Guardian': 'text-tactical-primary',
-      'Elite Custodian': 'text-tactical-elite'
+      'Sentinel': 'hsl(160, 84%, 39%)',
+      'Guardian': 'hsl(217, 91%, 60%)',
+      'Elite Custodian': 'hsl(262, 83%, 58%)'
     };
-    return colors[tierName] || 'text-primary';
+    return colors[tierName] || colors.Sentinel;
   };
 
-  const getTierBg = (tierName) => {
-    const colors = {
-      'Sentinel': 'bg-tactical-success/10 border-tactical-success/30',
-      'Guardian': 'bg-tactical-primary/10 border-tactical-primary/30',
-      'Elite Custodian': 'bg-tactical-elite/10 border-tactical-elite/30'
-    };
-    return colors[tierName] || 'bg-primary/10 border-primary/30';
-  };
-
-  const getRiskBadge = (level) => {
+  const getStatusStyles = (status) => {
     const styles = {
-      green: "bg-tactical-success/10 text-tactical-success border-tactical-success/30",
-      amber: "bg-tactical-warning/10 text-tactical-warning border-tactical-warning/30",
-      red: "bg-tactical-danger/10 text-tactical-danger border-tactical-danger/30 animate-pulse"
-    };
-    return styles[level] || styles.green;
-  };
-
-  const getStatusBadge = (status) => {
-    const styles = {
-      approved: "bg-tactical-success/10 text-tactical-success border-tactical-success/30",
-      rejected: "bg-tactical-danger/10 text-tactical-danger border-tactical-danger/30",
-      pending: "bg-tactical-warning/10 text-tactical-warning border-tactical-warning/30",
-      review_required: "bg-tactical-primary/10 text-tactical-primary border-tactical-primary/30"
+      approved: { bg: 'bg-success/10', text: 'text-success', label: 'Approved' },
+      pending: { bg: 'bg-warning/10', text: 'text-warning', label: 'Pending' },
+      rejected: { bg: 'bg-danger/10', text: 'text-danger', label: 'Rejected' },
+      review_required: { bg: 'bg-info/10', text: 'text-info', label: 'Review' }
     };
     return styles[status] || styles.pending;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="loading-radar mx-auto mb-4" />
-          <p className="text-muted-foreground font-mono text-sm">LOADING PROFILE...</p>
+      <DashboardLayout 
+        user={user} 
+        navItems={navItems} 
+        title="Dashboard"
+        subtitle="Member Portal"
+        onLogout={handleLogout}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your dashboard...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
-  const ariScore = responsibility?.ari_score || 0;
-  const tier = responsibility?.tier || { name: 'Sentinel' };
-
   return (
-    <div className="min-h-screen bg-background" data-testid="citizen-dashboard">
-      {/* Header */}
-      <header className="sticky top-0 z-40 glass-heavy">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-7 h-7 text-primary" />
-            <div>
-              <span className="font-heading font-bold text-lg">AMMO</span>
-              <p className="text-xxs font-mono text-muted-foreground">MEMBER PORTAL</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative"
-              onClick={() => {}}
-              data-testid="notifications-btn"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-tactical-danger text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              data-testid="logout-btn"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* User Welcome & ARI Overview */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* User Card */}
-          <Card className="glass-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden border border-primary/20">
-                  {user?.picture ? (
-                    <img src={user.picture} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 text-primary" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h1 className="font-heading text-xl font-bold">
-                    {user?.name?.split(' ')[0] || 'Member'}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`px-2 py-1 rounded-sm text-xs font-mono border ${getTierBg(tier.name)}`}>
-                      <span className={getTierColor(tier.name)}>{tier.name?.toUpperCase()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ARI Score Card */}
-          <Card className="glass-card border-border tactical-corners overflow-visible">
-            <div className="corner-bl" />
-            <div className="corner-br" />
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground tracking-wider">ARI SCORE</p>
-                  <div className="flex items-end gap-1">
-                    <span className={`font-heading text-4xl font-bold ${getTierColor(tier.name)}`}>
-                      {ariScore}
-                    </span>
-                    <span className="text-muted-foreground text-sm mb-1">/100</span>
-                  </div>
-                </div>
-                <div className={`w-12 h-12 rounded-lg ${getTierBg(tier.name)} flex items-center justify-center`}>
-                  {tier.name === 'Elite Custodian' ? (
-                    <Award className={`w-6 h-6 ${getTierColor(tier.name)}`} />
-                  ) : (
-                    <Shield className={`w-6 h-6 ${getTierColor(tier.name)}`} />
-                  )}
-                </div>
-              </div>
-              <Progress value={ariScore} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {ariScore >= 85 ? 'Exemplary responsibility' : 
-                 ariScore >= 60 ? `${85 - ariScore} points to Elite Custodian` : 
-                 `${60 - ariScore} points to Guardian`}
-              </p>
-            </CardContent>
-          </Card>
+    <DashboardLayout 
+      user={user} 
+      navItems={navItems} 
+      title="Dashboard"
+      subtitle="Member Portal"
+      onLogout={handleLogout}
+    >
+      <div className="space-y-6" data-testid="citizen-dashboard">
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="ARI Score"
+            value={ariScore}
+            subtitle="/100 points"
+            icon={Award}
+            iconBg="bg-primary/10"
+            iconColor="text-primary"
+            trend="up"
+            trendValue="+5 this month"
+            className="stagger-1"
+          />
+          <StatCard
+            title="Training Hours"
+            value={trainingHours}
+            subtitle={`of ${trainingTarget} target`}
+            icon={GraduationCap}
+            iconBg="bg-info/10"
+            iconColor="text-info"
+            trend="up"
+            trendValue="+2.5 hrs"
+            className="stagger-2"
+          />
+          <StatCard
+            title="Compliance Streak"
+            value={`${complianceStreak} days`}
+            subtitle="Keep it up!"
+            icon={Target}
+            iconBg="bg-success/10"
+            iconColor="text-success"
+            className="stagger-3"
+          />
+          <StatCard
+            title="Badges Earned"
+            value={badgesEarned}
+            subtitle="achievements"
+            icon={Shield}
+            iconBg="bg-warning/10"
+            iconColor="text-warning"
+            className="stagger-4"
+          />
         </div>
 
-        {/* Pending Verification Alerts */}
-        {pendingNotifications.length > 0 && (
-          <Card className="border-tactical-warning/30 bg-tactical-warning/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 text-tactical-warning">
-                <Radio className="w-5 h-5 animate-pulse" />
-                PENDING VERIFICATIONS
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pendingNotifications.map((notif) => (
-                <div 
-                  key={notif.notification_id}
-                  className="glass-card rounded-lg p-4 flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-medium">{notif.title}</p>
-                    <p className="text-sm text-muted-foreground">{notif.message}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90 font-mono text-xs"
-                    onClick={() => {
-                      const txn = transactions.find(t => t.transaction_id === notif.transaction_id);
-                      setVerifyDialog(txn || { transaction_id: notif.transaction_id, ...notif });
-                      markAsRead(notif.notification_id);
-                    }}
-                    data-testid={`verify-btn-${notif.notification_id}`}
-                  >
-                    VERIFY
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - 2/3 width */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Activity Chart */}
+            <Card className="animate-slide-up stagger-5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base font-semibold">Monthly Activity</CardTitle>
+                <select className="text-sm bg-transparent border border-border rounded-md px-2 py-1">
+                  <option>2024</option>
+                  <option>2023</option>
+                </select>
+              </CardHeader>
+              <CardContent>
+                <BarChart data={monthlyData} height={180} />
+              </CardContent>
+            </Card>
 
-        {/* License Card */}
-        <Card className="overflow-hidden border-0">
-          <div className="bg-gradient-to-br from-tactical-slate to-tactical-navy p-6 text-white relative">
-            {/* Scanlines */}
-            <div className="absolute inset-0 scanlines opacity-30" />
-            
-            <div className="relative z-10">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <p className="font-mono text-xs text-white/50 tracking-wider mb-1">DIGITAL LICENSE</p>
-                  <h2 className="font-heading text-2xl font-bold tracking-wide">
-                    {profile?.license_number || 'NOT REGISTERED'}
-                  </h2>
-                </div>
-                <CreditCard className="w-10 h-10 text-white/20" />
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="font-mono text-xxs text-white/50 tracking-wider">TYPE</p>
-                  <p className="font-medium uppercase">{profile?.license_type || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-xxs text-white/50 tracking-wider">STATUS</p>
-                  <div className="flex items-center gap-2">
-                    {profile?.license_status === 'active' ? (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-tactical-success animate-pulse shadow-glow-green" />
-                        <span className="font-medium">Active</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-tactical-danger" />
-                        <span className="font-medium uppercase">{profile?.license_status || 'Inactive'}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="font-mono text-xxs text-white/50 tracking-wider">EXPIRES</p>
-                  <p className="font-medium">
-                    {profile?.license_expiry 
-                      ? new Date(profile.license_expiry).toLocaleDateString()
-                      : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <CardContent className="p-6 bg-card">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="font-heading text-2xl font-bold text-primary">
-                  {profile?.compliance_score || 0}
-                </p>
-                <p className="font-mono text-xxs text-muted-foreground tracking-wider">COMPLIANCE</p>
-              </div>
-              <div>
-                <p className="font-heading text-2xl font-bold">
-                  {responsibility?.training?.hours || 0}
-                </p>
-                <p className="font-mono text-xxs text-muted-foreground tracking-wider">TRAINING HRS</p>
-              </div>
-              <div>
-                <p className="font-heading text-2xl font-bold text-tactical-warning">
-                  {profile?.license_expiry 
-                    ? Math.max(0, Math.floor((new Date(profile.license_expiry) - new Date()) / (1000 * 60 * 60 * 24)))
-                    : 0}
-                </p>
-                <p className="font-mono text-xxs text-muted-foreground tracking-wider">DAYS LEFT</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        {!profile && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <h3 className="font-heading font-semibold">Complete Your Profile</h3>
-                <p className="text-sm text-muted-foreground">Register your license to enable verifications</p>
-              </div>
-              <Button 
-                className="bg-primary hover:bg-primary/90 font-mono text-xs"
-                onClick={() => navigate('/setup')}
-                data-testid="setup-profile-btn"
-              >
-                SETUP PROFILE
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4 bg-card border border-border">
-            <TabsTrigger value="rewards" className="flex items-center gap-2 font-mono text-xs data-[state=active]:bg-primary/10">
-              <Award className="w-4 h-4" />
-              <span className="hidden sm:inline">REWARDS</span>
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-2 font-mono text-xs data-[state=active]:bg-primary/10">
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">HISTORY</span>
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="flex items-center gap-2 font-mono text-xs data-[state=active]:bg-primary/10">
-              <AlertCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">ALERTS</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Rewards/Gamification Tab */}
-          <TabsContent value="rewards">
-            <GamificationPanel api={api} />
-          </TabsContent>
-
-          {/* Transaction History Tab */}
-          <TabsContent value="transactions">
-            <Card className="glass-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-mono text-sm">
-                  <History className="w-5 h-5 text-primary" />
-                  TRANSACTION HISTORY
-                </CardTitle>
+            {/* Recent Transactions */}
+            <Card className="animate-slide-up stagger-6">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base font-semibold">Recent Transactions</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/history')}>
+                  View All
+                </Button>
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p className="font-mono text-sm">NO TRANSACTIONS YET</p>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <History className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p>No transactions yet</p>
                   </div>
                 ) : (
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-3">
-                      {transactions.map((txn, index) => (
-                        <div 
-                          key={txn.transaction_id}
-                          className={`flex items-center justify-between p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors animate-slide-up stagger-${(index % 5) + 1}`}
-                          data-testid={`transaction-${txn.transaction_id}`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                              txn.status === 'approved' ? 'bg-tactical-success/10' :
-                              txn.status === 'rejected' ? 'bg-tactical-danger/10' :
-                              txn.status === 'pending' ? 'bg-tactical-warning/10' : 'bg-tactical-primary/10'
-                            }`}>
-                              {txn.status === 'approved' ? <CheckCircle className="w-5 h-5 text-tactical-success" /> :
-                               txn.status === 'rejected' ? <XCircle className="w-5 h-5 text-tactical-danger" /> :
-                               txn.status === 'pending' ? <Clock className="w-5 h-5 text-tactical-warning" /> :
-                               <AlertTriangle className="w-5 h-5 text-tactical-primary" />}
-                            </div>
-                            <div>
-                              <p className="font-medium capitalize">
-                                {txn.item_type} - {txn.item_category}
-                              </p>
-                              <p className="font-mono text-xs text-muted-foreground">
-                                {txn.transaction_id} • Qty: {txn.quantity}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge className={`${getStatusBadge(txn.status)} border font-mono text-xs`}>
-                              {txn.status?.replace('_', ' ').toUpperCase()}
-                            </Badge>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(txn.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                  <div className="overflow-x-auto">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Transaction</th>
+                          <th>Type</th>
+                          <th>Date</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.slice(0, 5).map((txn) => {
+                          const status = getStatusStyles(txn.status);
+                          return (
+                            <tr key={txn.transaction_id}>
+                              <td>
+                                <div>
+                                  <p className="font-medium text-sm">{txn.transaction_id}</p>
+                                  <p className="text-xs text-muted-foreground">Qty: {txn.quantity}</p>
+                                </div>
+                              </td>
+                              <td className="capitalize text-sm">{txn.item_type}</td>
+                              <td className="text-sm text-muted-foreground">
+                                {new Date(txn.created_at).toLocaleDateString()}
+                              </td>
+                              <td>
+                                <span className={`status-badge ${status.bg} ${status.text}`}>
+                                  {status.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* Alerts Tab */}
-          <TabsContent value="alerts">
-            <LicenseAlerts api={api} />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Verification Dialog */}
-      <Dialog open={!!verifyDialog} onOpenChange={() => setVerifyDialog(null)}>
-        <DialogContent className="sm:max-w-md glass-card border-border">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-mono">
-              <Fingerprint className="w-5 h-5 text-primary" />
-              VERIFICATION REQUEST
-            </DialogTitle>
-            <DialogDescription>
-              A dealer is requesting verification for a transaction.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {verifyDialog && (
-            <div className="space-y-4 py-4">
-              <div className="bg-card rounded-lg p-4 space-y-3 border border-border">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground font-mono text-xs">TRANSACTION ID</span>
-                  <span className="font-mono text-xs">{verifyDialog.transaction_id}</span>
+          {/* Right Column - 1/3 width */}
+          <div className="space-y-6">
+            {/* Tier Progress */}
+            <Card className="animate-slide-up stagger-3">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold">Current Tier</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center mb-4">
+                  <DonutChart 
+                    value={ariScore} 
+                    total={100} 
+                    size={140}
+                    strokeWidth={14}
+                    color={getTierColor(tier.name)}
+                    label="ARI"
+                  />
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground font-mono text-xs">ITEM</span>
-                  <span className="capitalize">{verifyDialog.item_type} - {verifyDialog.item_category}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground font-mono text-xs">QUANTITY</span>
-                  <span>{verifyDialog.quantity}</span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-muted-foreground font-mono text-xs">RISK LEVEL</span>
-                  <Badge className={`${getRiskBadge(verifyDialog.risk_level)} border font-mono text-xs`}>
-                    {verifyDialog.risk_level?.toUpperCase()}
+                <div className="text-center mb-4">
+                  <Badge 
+                    className="text-sm px-4 py-1"
+                    style={{ 
+                      backgroundColor: `${getTierColor(tier.name)}20`,
+                      color: getTierColor(tier.name)
+                    }}
+                  >
+                    {tier.name}
                   </Badge>
                 </div>
-              </div>
-              
-              {verifyDialog.risk_factors?.length > 0 && (
-                <div className="bg-tactical-warning/10 rounded-lg p-3 border border-tactical-warning/30">
-                  <p className="font-mono text-xs font-medium text-tactical-warning mb-2">RISK FACTORS:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    {verifyDialog.risk_factors.map((factor, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-tactical-warning" />
-                        {factor}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Progress to next tier</span>
+                      <span className="font-medium">
+                        {ariScore >= 85 ? '100%' : ariScore >= 60 ? `${Math.round(((ariScore - 60) / 25) * 100)}%` : `${Math.round((ariScore / 60) * 100)}%`}
+                      </span>
+                    </div>
+                    <ProgressBar 
+                      value={ariScore >= 85 ? 100 : ariScore >= 60 ? ariScore - 60 : ariScore} 
+                      max={ariScore >= 85 ? 100 : ariScore >= 60 ? 25 : 60}
+                      color={`bg-[${getTierColor(tier.name)}]`}
+                      showLabel={false}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
-          
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <div className="flex gap-2 w-full">
-              <Button 
-                className="flex-1 bg-tactical-success hover:bg-tactical-success/90 font-mono text-xs"
-                onClick={() => handleVerification(true)}
-                disabled={processing}
-                data-testid="approve-transaction-btn"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                APPROVE
-              </Button>
-              <Button 
-                variant="outline"
-                className="flex-1 border-tactical-danger/30 text-tactical-danger hover:bg-tactical-danger/10 font-mono text-xs"
-                onClick={() => handleVerification(false)}
-                disabled={processing}
-                data-testid="reject-transaction-btn"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                REJECT
-              </Button>
-            </div>
-            <Button 
-              variant="destructive"
-              className="w-full font-mono text-xs"
-              onClick={() => handleVerification(false, true)}
-              disabled={processing}
-              data-testid="distress-btn"
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              SILENT DISTRESS SIGNAL
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              </CardContent>
+            </Card>
+
+            {/* Transaction Summary */}
+            <Card className="animate-slide-up stagger-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold">Transaction Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-success/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      <span className="text-sm">Approved</span>
+                    </div>
+                    <span className="font-semibold text-success">{approvedTxns}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-5 h-5 text-warning" />
+                      <span className="text-sm">Pending</span>
+                    </div>
+                    <span className="font-semibold text-warning">{pendingTxns}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-danger/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <XCircle className="w-5 h-5 text-danger" />
+                      <span className="text-sm">Rejected</span>
+                    </div>
+                    <span className="font-semibold text-danger">{rejectedTxns}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* License Info */}
+            <Card className="animate-slide-up stagger-5 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <CreditCard className="w-8 h-8 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">License Number</p>
+                    <p className="font-semibold">{profile?.license_number || 'Not Registered'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Status</p>
+                    <p className="font-medium capitalize">{profile?.license_status || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Expires</p>
+                    <p className="font-medium">
+                      {profile?.license_expiry 
+                        ? new Date(profile.license_expiry).toLocaleDateString()
+                        : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
