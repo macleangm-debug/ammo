@@ -138,7 +138,10 @@ const CitizenDashboard = ({ user, api }) => {
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Shield className="w-7 h-7 text-blue-600" />
-            <span className="font-heading font-bold text-lg text-gray-900">AEGIS</span>
+            <div>
+              <span className="font-heading font-bold text-lg text-gray-900">AMMO</span>
+              <p className="text-[9px] text-gray-500 -mt-0.5">Responsible Ownership</p>
+            </div>
           </div>
           
           <div className="flex items-center gap-3">
