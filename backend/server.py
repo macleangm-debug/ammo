@@ -895,6 +895,54 @@ async def health_check():
 
 # ============== DEMO DATA ENDPOINTS ==============
 
+@api_router.post("/demo/login/{role}")
+async def demo_login(role: str, response: Response):
+    """Create a session for demo user (for testing/screenshots only)"""
+    demo_users = {
+        "citizen": "demo_citizen_001",
+        "dealer": "demo_dealer_001",
+        "admin": "demo_admin_001"
+    }
+    
+    if role not in demo_users:
+        raise HTTPException(status_code=400, detail="Invalid role. Use: citizen, dealer, admin")
+    
+    user_id = demo_users[role]
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Demo user not found. Call /demo/setup first")
+    
+    # Create session token
+    session_token = f"demo_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    
+    # Remove existing sessions and create new one
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=3600,
+        path="/"
+    )
+    
+    return {
+        "message": f"Logged in as demo {role}",
+        "session_token": session_token,
+        "user": serialize_doc(user)
+    }
+
 @api_router.post("/demo/setup")
 async def setup_demo_data():
     """Setup demo data for testing"""
