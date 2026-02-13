@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import json
 
-class AegisAPITester:
+class AmmoAPITester:
     def __init__(self, base_url="https://license-buy.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
@@ -15,6 +15,10 @@ class AegisAPITester:
         self.citizen_token = None
         self.dealer_token = None
         self.admin_token = None
+        
+        # Provided test session tokens
+        self.test_citizen_token = "test_session_gamify_1771005675566"
+        self.test_admin_token = "admin_session_heatmap_1771005693702"
 
     def log_test(self, test_name, passed, details=""):
         """Log test result"""
