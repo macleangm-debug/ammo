@@ -296,8 +296,8 @@ const GovernmentDashboard = ({ user, api }) => {
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Select
-                    value={filters.status}
-                    onValueChange={(value) => setFilters({ ...filters, status: value })}
+                    value={filters.status || "all_status"}
+                    onValueChange={(value) => setFilters({ ...filters, status: value === "all_status" ? "" : value })}
                   >
                     <SelectTrigger className="w-32 h-8 bg-aegis-navy border-white/10 text-sm">
                       <SelectValue placeholder="Status" />
