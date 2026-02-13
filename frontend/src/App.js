@@ -1,53 +1,194 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Toaster } from "./components/ui/sonner";
+
+// Pages
+import LandingPage from "./pages/LandingPage";
+import CitizenDashboard from "./pages/CitizenDashboard";
+import DealerPortal from "./pages/DealerPortal";
+import GovernmentDashboard from "./pages/GovernmentDashboard";
+import ProfileSetup from "./pages/ProfileSetup";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Create axios instance with credentials
+const api = axios.create({
+  baseURL: API,
+  withCredentials: true,
+});
+
+// REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+const AuthCallback = () => {
+  const navigate = useNavigate();
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
-    helloWorldApi();
-  }, []);
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
+    const processAuth = async () => {
+      const hash = window.location.hash;
+      const sessionIdMatch = hash.match(/session_id=([^&]+)/);
+      
+      if (sessionIdMatch) {
+        const sessionId = sessionIdMatch[1];
+        try {
+          const response = await api.post("/auth/session", { session_id: sessionId });
+          const user = response.data;
+          
+          // Clear the hash from URL
+          window.history.replaceState(null, "", window.location.pathname);
+          
+          // Navigate based on role
+          if (user.role === "admin") {
+            navigate("/government", { state: { user }, replace: true });
+          } else if (user.role === "dealer") {
+            navigate("/dealer", { state: { user }, replace: true });
+          } else {
+            navigate("/dashboard", { state: { user }, replace: true });
+          }
+        } catch (error) {
+          console.error("Auth error:", error);
+          navigate("/", { replace: true });
+        }
+      }
+    };
+
+    processAuth();
+  }, [navigate]);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-aegis-navy flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-aegis-signal border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white/70 font-mono text-sm">AUTHENTICATING...</p>
+      </div>
     </div>
   );
 };
 
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(location.state?.user ? true : null);
+  const [user, setUser] = useState(location.state?.user || null);
+  const [isLoading, setIsLoading] = useState(!location.state?.user);
+
+  useEffect(() => {
+    if (location.state?.user) {
+      setUser(location.state.user);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
+    }
+
+    const checkAuth = async () => {
+      try {
+        const response = await api.get("/auth/me");
+        setUser(response.data);
+        setIsAuthenticated(true);
+      } catch (error) {
+        setIsAuthenticated(false);
+        navigate("/", { replace: true });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [location.state, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-aegis-navy flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-aegis-signal border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white/70 font-mono text-sm">VERIFYING ACCESS...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    // Redirect to appropriate dashboard based on role
+    if (user?.role === "admin") {
+      return <Navigate to="/government" replace />;
+    } else if (user?.role === "dealer") {
+      return <Navigate to="/dealer" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return children({ user, api });
+};
+
+function AppRouter() {
+  const location = useLocation();
+
+  // Check URL fragment for session_id synchronously during render
+  if (location.hash?.includes("session_id=")) {
+    return <AuthCallback />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage api={api} />} />
+      
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "admin"]}>
+            {({ user, api }) => <CitizenDashboard user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/dealer"
+        element={
+          <ProtectedRoute allowedRoles={["dealer", "admin"]}>
+            {({ user, api }) => <DealerPortal user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/government"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <GovernmentDashboard user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/setup"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
+            {({ user, api }) => <ProfileSetup user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <AppRouter />
+      <Toaster position="top-right" richColors />
+    </BrowserRouter>
   );
 }
 
