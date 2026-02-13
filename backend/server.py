@@ -1487,26 +1487,61 @@ def get_level_from_points(points: int) -> dict:
 @api_router.get("/citizen/gamification")
 async def get_gamification_stats(user: dict = Depends(require_auth(["citizen", "admin"]))):
     """Get citizen's responsibility stats - redirects to new ARI system"""
-    # Use new responsibility system
-    resp_data = await get_responsibility_profile.__wrapped__(user)
+    user_id = user["user_id"]
+    
+    # Calculate ARI score
+    ari_data = await calculate_ari_score(user_id)
+    
+    # Get responsibility profile
+    resp_profile = await db.responsibility_profile.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not resp_profile:
+        resp_profile = {
+            "user_id": user_id,
+            "badges": [],
+            "training_hours": 0,
+            "compliance_streak_days": 0
+        }
+    
+    # Get earned badges with details
+    earned_badges = []
+    for badge_id in resp_profile.get("badges", []):
+        if badge_id in RESPONSIBILITY_BADGES:
+            earned_badges.append({
+                "badge_id": badge_id,
+                **RESPONSIBILITY_BADGES[badge_id],
+                "earned": True
+            })
+    
+    # Get available badges
+    available_badges = []
+    for badge_id, badge in RESPONSIBILITY_BADGES.items():
+        if badge_id not in resp_profile.get("badges", []):
+            available_badges.append({
+                "badge_id": badge_id,
+                **badge,
+                "earned": False
+            })
+    
+    tier = ari_data["tier"]
     
     return {
-        "points": resp_data["ari_score"],
+        "points": ari_data["ari_score"],
         "level": {
-            "level": list(TIER_DEFINITIONS.keys()).index(resp_data["tier"]["tier_id"]) + 1,
-            "name": resp_data["tier"]["name"],
-            "min_points": resp_data["tier"]["min_ari"],
-            "max_points": resp_data["tier"]["max_ari"]
+            "level": list(TIER_DEFINITIONS.keys()).index(tier["tier_id"]) + 1,
+            "name": tier["name"],
+            "min_points": tier["min_ari"],
+            "max_points": tier["max_ari"]
         },
-        "badges_earned": resp_data["badges_earned"],
-        "badges_available": resp_data["badges_available"],
-        "current_streak": resp_data["compliance_streak"],
-        "longest_streak": resp_data["compliance_streak"],
+        "badges_earned": earned_badges,
+        "badges_available": available_badges,
+        "current_streak": resp_profile.get("compliance_streak_days", 0),
+        "longest_streak": resp_profile.get("compliance_streak_days", 0),
         "total_transactions": 0,  # Deprecated - not tracking purchases for gamification
         "new_badges": [],
-        "ari_score": resp_data["ari_score"],
-        "tier": resp_data["tier"],
-        "training_hours": resp_data["training"]["hours"],
+        "ari_score": ari_data["ari_score"],
+        "tier": tier,
+        "training_hours": resp_profile.get("training_hours", 0),
         "note": "AMMO rewards responsible behavior, not purchase volume"
     }
 
