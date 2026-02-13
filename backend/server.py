@@ -26,7 +26,7 @@ db = client[os.environ['DB_NAME']]
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 
 # Create the main app
-app = FastAPI(title="AEGIS - National Firearm Verification Platform")
+app = FastAPI(title="AMMO - Accountable Munitions & Mobility Oversight")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
