@@ -199,10 +199,12 @@ function AppRouter() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRouter />
-      <Toaster position="top-right" richColors />
-    </BrowserRouter>
+    <ThemeProvider defaultTheme="dark" storageKey="ammo-theme">
+      <BrowserRouter>
+        <AppRouter />
+        <Toaster position="top-right" richColors />
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
