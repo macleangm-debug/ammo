@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { 
   Shield, Bell, CreditCard, History, CheckCircle, 
   XCircle, AlertTriangle, LogOut, User, ChevronRight,
-  Fingerprint, Clock, AlertCircle, Lock
+  Fingerprint, Clock, AlertCircle, Lock, Award, Star
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { ScrollArea } from "../components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,8 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { toast } from "sonner";
+import GamificationPanel from "../components/GamificationPanel";
+import LicenseAlerts from "../components/LicenseAlerts";
 
 const CitizenDashboard = ({ user, api }) => {
   const navigate = useNavigate();
