@@ -99,15 +99,48 @@ AMMO Responsibility Index based on:
 - Status distribution donut chart
 - Recent transactions table
 
-**Government Dashboard:**
-- Sidebar navigation (Overview, Transactions, Citizens, Dealers, Analytics, Map, Settings)
-- Distress alert banner
-- 4 stat cards (Total Citizens, Active Dealers, Today's Transactions, Total Processed)
-- Transaction trends bar chart
-- Risk distribution donut chart
-- Regional overview panel
-- Live transaction feed with filters
-- Review dialog for flagged transactions
+### Phase 5 - Enhanced Government Dashboard ✅ (February 2026)
+**Government Command Center - Complete Overhaul:**
+- **6 Tabbed Views**: Overview, Revenue, Training, Dealers, Compliance, Alerts
+- **Critical Alert Banner**: Real-time notification of critical alerts requiring intervention
+
+**Overview Tab:**
+- Key metrics: Total Citizens, Active Dealers, Monthly Revenue, Active Alerts
+- Revenue Trends chart (6 months)
+- Quick Insights panel (Training Completion, License Renewal Rate, Expiring Licenses, Overdue Enrollments)
+- Regional Compliance Overview with ARI scores per region
+
+**Revenue Tab:**
+- Revenue by type: Course Fees, License Fees, Membership Fees, Certification Fees, Penalty Fees
+- Revenue by region breakdown
+- Monthly revenue trends
+- Total revenue tracking
+
+**Training Tab:**
+- Course management system with Create Course functionality
+- Course types: Compulsory vs Optional
+- ARI impact (+boost, -penalty for skipping)
+- Regional targeting for courses
+- Training compliance rates by region
+- Active courses table with cost, duration, ARI impact
+
+**Dealers Tab:**
+- Dealer activity analytics (total dealers, firearm/ammunition sales)
+- Top dealers by transaction volume
+- Dealers distribution by region
+- Flagged dealers requiring review (avg risk score > 40 or compliance < 80)
+
+**Compliance Tab:**
+- ARI tier distribution (Elite Custodian, Guardian, Sentinel)
+- License statistics (active, expired, suspended, expiring soon)
+- Average ARI by region chart
+
+**Alerts & Intervention Tab:**
+- Active alerts by severity (Critical, High, Medium, Low)
+- Red flag visualization
+- Alert actions: Acknowledge, Intervene
+- Intervention options: Send Warning, Suspend License, Block License
+- Automated alerts based on configurable thresholds
 
 **Shared Components:**
 - DashboardLayout with responsive sidebar
@@ -115,16 +148,46 @@ AMMO Responsibility Index based on:
 - Theme toggle (light/dark)
 - PWA support (manifest.json, service worker)
 
-### Testing: ✅ 100% Pass Rate (42/42 tests)
+### Testing: ✅ 100% Pass Rate
+- Phase 4: 42/42 tests passed
+- Phase 5: 14/14 backend + 25 frontend tests passed
+
+## API Endpoints
+
+### Government Dashboard APIs (New in Phase 5)
+- `GET /api/government/dashboard-summary` - Overview stats
+- `GET /api/government/analytics/revenue` - Revenue breakdown by type, region, trends
+- `GET /api/government/analytics/training` - Training compliance and course stats
+- `GET /api/government/analytics/dealers` - Dealer activity and flagged dealers
+- `GET /api/government/analytics/compliance` - ARI distribution and license stats
+- `GET /api/government/alerts/active` - Active alerts by severity
+- `POST /api/government/alerts/acknowledge/{alert_id}` - Acknowledge alert
+- `POST /api/government/alerts/resolve/{alert_id}` - Resolve alert with notes
+- `POST /api/government/alerts/intervene/{alert_id}` - Take intervention action
+- `GET /api/government/alerts/thresholds` - Get alert thresholds
+- `POST /api/government/alerts/thresholds` - Create alert threshold
+- `GET /api/government/courses` - Get all training courses
+- `POST /api/government/courses` - Create new course
+- `PUT /api/government/courses/{course_id}` - Update course
+- `DELETE /api/government/courses/{course_id}` - Archive course
+
+### Database Collections (New/Updated)
+- `training_courses` - Course definitions with region, cost, ARI impact
+- `course_enrollments` - User enrollments with status and progress
+- `revenue_records` - Revenue tracking by type, region
+- `member_alerts` - Active alerts with severity and intervention history
+- `alert_thresholds` - Configurable thresholds for automated alerts
 
 ## Prioritized Backlog
 
 ### P0 (Critical - Next Up)
+- [ ] Full PWA Implementation (offline support, caching strategies, installability)
 - [ ] Dealer Marketplace (members-only)
 
 ### P1 (High Priority)
 - [ ] Real-time Push Notifications (browser-based)
 - [ ] SMS notifications via Twilio (deferred by user)
+- [ ] Course enrollment flow for citizens
 
 ### P2 (Medium Priority)
 - [ ] Insurance partner API integration
@@ -133,6 +196,7 @@ AMMO Responsibility Index based on:
 
 ## Technical Notes
 - EMERGENT_LLM_KEY: sk-emergent-896943c84C812645e2
-- MongoDB collections: users, citizen_profiles, dealer_profiles, transactions, responsibility_profile, audit_logs
+- MongoDB collections: users, citizen_profiles, dealer_profiles, transactions, responsibility_profile, audit_logs, training_courses, course_enrollments, revenue_records, member_alerts, alert_thresholds
 - PWA icons: /app/frontend/public/icons/
 - Service worker: /app/frontend/public/sw.js
+- Regions: northeast, southeast, midwest, southwest, west
