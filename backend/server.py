@@ -1002,6 +1002,454 @@ async def setup_demo_data():
     
     return {"message": "Demo data created", "citizen_license": "LIC-DEMO-001"}
 
+# ============== GAMIFICATION SYSTEM ==============
+
+BADGE_DEFINITIONS = {
+    "first_transaction": {"name": "First Steps", "description": "Complete your first verified transaction", "icon": "award", "points": 50},
+    "perfect_compliance": {"name": "Perfect Record", "description": "Maintain 100% compliance score", "icon": "shield-check", "points": 100},
+    "streak_7": {"name": "Weekly Warrior", "description": "7-day compliance streak", "icon": "flame", "points": 75},
+    "streak_30": {"name": "Monthly Master", "description": "30-day compliance streak", "icon": "crown", "points": 200},
+    "early_renewal": {"name": "Proactive", "description": "Renew license before expiry warning", "icon": "clock", "points": 50},
+    "verified_biometric": {"name": "Identity Verified", "description": "Complete biometric verification", "icon": "fingerprint", "points": 100},
+    "safe_storage": {"name": "Safe Keeper", "description": "Register safe storage compliance", "icon": "lock", "points": 75},
+    "training_complete": {"name": "Trained & Ready", "description": "Complete safety training module", "icon": "graduation-cap", "points": 150},
+    "community_helper": {"name": "Community Guardian", "description": "Help 5 new users onboard", "icon": "users", "points": 100},
+    "zero_flags": {"name": "Clean Slate", "description": "10 transactions with zero risk flags", "icon": "check-circle", "points": 125},
+}
+
+LEVEL_THRESHOLDS = [
+    {"level": 1, "name": "Novice", "min_points": 0, "max_points": 99},
+    {"level": 2, "name": "Apprentice", "min_points": 100, "max_points": 249},
+    {"level": 3, "name": "Guardian", "min_points": 250, "max_points": 499},
+    {"level": 4, "name": "Sentinel", "min_points": 500, "max_points": 999},
+    {"level": 5, "name": "Protector", "min_points": 1000, "max_points": 1999},
+    {"level": 6, "name": "Champion", "min_points": 2000, "max_points": 4999},
+    {"level": 7, "name": "Legend", "min_points": 5000, "max_points": float('inf')},
+]
+
+def get_level_from_points(points: int) -> dict:
+    for level in LEVEL_THRESHOLDS:
+        if level["min_points"] <= points <= level["max_points"]:
+            return level
+    return LEVEL_THRESHOLDS[-1]
+
+@api_router.get("/citizen/gamification")
+async def get_gamification_stats(user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get citizen's gamification stats including badges, points, level, and streaks"""
+    user_id = user["user_id"]
+    
+    # Get or create gamification profile
+    gamification = await db.gamification.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not gamification:
+        # Initialize gamification profile
+        gamification = {
+            "user_id": user_id,
+            "points": 0,
+            "badges": [],
+            "current_streak": 0,
+            "longest_streak": 0,
+            "last_activity_date": None,
+            "challenges_completed": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.gamification.insert_one(gamification)
+    
+    # Calculate level
+    current_level = get_level_from_points(gamification.get("points", 0))
+    next_level = LEVEL_THRESHOLDS[min(current_level["level"], len(LEVEL_THRESHOLDS) - 1)]
+    
+    # Get transaction stats for achievements
+    transactions = await db.transactions.find(
+        {"citizen_id": user_id, "status": "approved"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Check for new badges
+    earned_badges = gamification.get("badges", [])
+    new_badges = []
+    
+    # First transaction badge
+    if len(transactions) >= 1 and "first_transaction" not in earned_badges:
+        new_badges.append("first_transaction")
+    
+    # Zero flags badge (10 transactions with no risk flags)
+    clean_txns = [t for t in transactions if not t.get("risk_factors") or len(t.get("risk_factors", [])) == 0]
+    if len(clean_txns) >= 10 and "zero_flags" not in earned_badges:
+        new_badges.append("zero_flags")
+    
+    # Get citizen profile for compliance check
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if profile and profile.get("compliance_score", 0) == 100 and "perfect_compliance" not in earned_badges:
+        new_badges.append("perfect_compliance")
+    
+    if profile and profile.get("biometric_verified") and "verified_biometric" not in earned_badges:
+        new_badges.append("verified_biometric")
+    
+    # Award new badges
+    points_earned = 0
+    for badge_id in new_badges:
+        badge = BADGE_DEFINITIONS.get(badge_id)
+        if badge:
+            points_earned += badge["points"]
+            earned_badges.append(badge_id)
+    
+    if new_badges:
+        await db.gamification.update_one(
+            {"user_id": user_id},
+            {"$set": {"badges": earned_badges}, "$inc": {"points": points_earned}}
+        )
+        gamification["badges"] = earned_badges
+        gamification["points"] = gamification.get("points", 0) + points_earned
+    
+    # Build response
+    badges_data = [
+        {**BADGE_DEFINITIONS[b], "badge_id": b, "earned": True}
+        for b in earned_badges if b in BADGE_DEFINITIONS
+    ]
+    
+    available_badges = [
+        {**BADGE_DEFINITIONS[b], "badge_id": b, "earned": False}
+        for b in BADGE_DEFINITIONS if b not in earned_badges
+    ]
+    
+    current_level = get_level_from_points(gamification.get("points", 0))
+    
+    return {
+        "points": gamification.get("points", 0),
+        "level": current_level,
+        "badges_earned": badges_data,
+        "badges_available": available_badges,
+        "current_streak": gamification.get("current_streak", 0),
+        "longest_streak": gamification.get("longest_streak", 0),
+        "total_transactions": len(transactions),
+        "new_badges": [BADGE_DEFINITIONS[b] for b in new_badges] if new_badges else []
+    }
+
+@api_router.post("/citizen/check-in")
+async def daily_check_in(user: dict = Depends(require_auth(["citizen"]))):
+    """Daily check-in to maintain streak"""
+    user_id = user["user_id"]
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    gamification = await db.gamification.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not gamification:
+        gamification = {
+            "user_id": user_id,
+            "points": 0,
+            "badges": [],
+            "current_streak": 0,
+            "longest_streak": 0,
+            "last_activity_date": None
+        }
+    
+    last_date = gamification.get("last_activity_date")
+    current_streak = gamification.get("current_streak", 0)
+    longest_streak = gamification.get("longest_streak", 0)
+    
+    if last_date == today:
+        return {"message": "Already checked in today", "streak": current_streak}
+    
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+    
+    if last_date == yesterday:
+        current_streak += 1
+    else:
+        current_streak = 1
+    
+    longest_streak = max(longest_streak, current_streak)
+    points_earned = 10  # Daily check-in bonus
+    
+    # Streak milestones
+    badges_earned = gamification.get("badges", [])
+    new_badges = []
+    
+    if current_streak >= 7 and "streak_7" not in badges_earned:
+        new_badges.append("streak_7")
+        points_earned += BADGE_DEFINITIONS["streak_7"]["points"]
+    
+    if current_streak >= 30 and "streak_30" not in badges_earned:
+        new_badges.append("streak_30")
+        points_earned += BADGE_DEFINITIONS["streak_30"]["points"]
+    
+    await db.gamification.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "last_activity_date": today,
+                "current_streak": current_streak,
+                "longest_streak": longest_streak,
+                "badges": badges_earned + new_badges
+            },
+            "$inc": {"points": points_earned}
+        },
+        upsert=True
+    )
+    
+    return {
+        "message": "Check-in successful!",
+        "streak": current_streak,
+        "points_earned": points_earned,
+        "new_badges": [BADGE_DEFINITIONS[b] for b in new_badges]
+    }
+
+# ============== HEATMAP DATA ENDPOINTS ==============
+
+@api_router.get("/admin/heatmap/geographic")
+async def get_geographic_heatmap(user: dict = Depends(require_auth(["admin"]))):
+    """Get geographic heatmap data for risk visualization"""
+    transactions = await db.transactions.find(
+        {"gps_lat": {"$exists": True}, "gps_lng": {"$exists": True}},
+        {"_id": 0, "gps_lat": 1, "gps_lng": 1, "risk_level": 1, "risk_score": 1, "status": 1, "created_at": 1}
+    ).to_list(500)
+    
+    # Aggregate by approximate location (rounded to 2 decimal places)
+    location_data = {}
+    for txn in transactions:
+        lat = round(txn.get("gps_lat", 0), 2)
+        lng = round(txn.get("gps_lng", 0), 2)
+        key = f"{lat},{lng}"
+        
+        if key not in location_data:
+            location_data[key] = {
+                "lat": lat,
+                "lng": lng,
+                "total": 0,
+                "high_risk": 0,
+                "medium_risk": 0,
+                "low_risk": 0,
+                "avg_risk_score": 0,
+                "risk_scores": []
+            }
+        
+        location_data[key]["total"] += 1
+        location_data[key]["risk_scores"].append(txn.get("risk_score", 0))
+        
+        risk_level = txn.get("risk_level", "green")
+        if risk_level == "red":
+            location_data[key]["high_risk"] += 1
+        elif risk_level == "amber":
+            location_data[key]["medium_risk"] += 1
+        else:
+            location_data[key]["low_risk"] += 1
+    
+    # Calculate averages
+    result = []
+    for key, data in location_data.items():
+        data["avg_risk_score"] = sum(data["risk_scores"]) / len(data["risk_scores"]) if data["risk_scores"] else 0
+        del data["risk_scores"]
+        result.append(data)
+    
+    return result
+
+@api_router.get("/admin/heatmap/temporal")
+async def get_temporal_heatmap(user: dict = Depends(require_auth(["admin"]))):
+    """Get time-based heatmap data showing patterns by hour and day"""
+    transactions = await db.transactions.find({}, {"_id": 0, "created_at": 1, "risk_level": 1, "risk_score": 1}).to_list(1000)
+    
+    # Initialize 7x24 grid (days x hours)
+    heatmap = [[{"count": 0, "risk_sum": 0, "high_risk": 0} for _ in range(24)] for _ in range(7)]
+    
+    for txn in transactions:
+        created_at = txn.get("created_at")
+        if created_at:
+            if isinstance(created_at, str):
+                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            day = created_at.weekday()  # 0=Monday, 6=Sunday
+            hour = created_at.hour
+            
+            heatmap[day][hour]["count"] += 1
+            heatmap[day][hour]["risk_sum"] += txn.get("risk_score", 0)
+            if txn.get("risk_level") == "red":
+                heatmap[day][hour]["high_risk"] += 1
+    
+    # Format for frontend
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    result = []
+    
+    for day_idx, day_data in enumerate(heatmap):
+        for hour, cell in enumerate(day_data):
+            avg_risk = cell["risk_sum"] / cell["count"] if cell["count"] > 0 else 0
+            result.append({
+                "day": days[day_idx],
+                "day_index": day_idx,
+                "hour": hour,
+                "hour_label": f"{hour:02d}:00",
+                "count": cell["count"],
+                "avg_risk": round(avg_risk, 1),
+                "high_risk_count": cell["high_risk"],
+                "intensity": min(100, cell["count"] * 10)  # Normalize for visualization
+            })
+    
+    return result
+
+# ============== LICENSE EXPIRY ALERTS ==============
+
+@api_router.get("/citizen/license-alerts")
+async def get_license_alerts(user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get license expiry alerts and renewal reminders"""
+    profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    
+    if not profile:
+        return {"alerts": [], "status": "no_profile"}
+    
+    alerts = []
+    expiry = profile.get("license_expiry")
+    
+    if expiry:
+        if isinstance(expiry, str):
+            expiry = datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        
+        days_until_expiry = (expiry - datetime.now(timezone.utc)).days
+        
+        if days_until_expiry < 0:
+            alerts.append({
+                "type": "expired",
+                "severity": "critical",
+                "title": "License Expired",
+                "message": f"Your license expired {abs(days_until_expiry)} days ago. Renew immediately to continue using AEGIS.",
+                "action": "renew_now",
+                "days": days_until_expiry
+            })
+        elif days_until_expiry <= 7:
+            alerts.append({
+                "type": "expiring_soon",
+                "severity": "urgent",
+                "title": "License Expiring Soon",
+                "message": f"Your license expires in {days_until_expiry} days. Renew now to avoid service interruption.",
+                "action": "renew_soon",
+                "days": days_until_expiry
+            })
+        elif days_until_expiry <= 30:
+            alerts.append({
+                "type": "expiring",
+                "severity": "warning",
+                "title": "License Renewal Reminder",
+                "message": f"Your license expires in {days_until_expiry} days. Consider renewing early for bonus points!",
+                "action": "renew_early",
+                "days": days_until_expiry
+            })
+        elif days_until_expiry <= 90:
+            alerts.append({
+                "type": "reminder",
+                "severity": "info",
+                "title": "Upcoming Renewal",
+                "message": f"Your license expires in {days_until_expiry} days. Renew early to earn the 'Proactive' badge!",
+                "action": "plan_renewal",
+                "days": days_until_expiry
+            })
+    
+    # Check compliance score alerts
+    compliance_score = profile.get("compliance_score", 100)
+    if compliance_score < 70:
+        alerts.append({
+            "type": "compliance",
+            "severity": "warning",
+            "title": "Low Compliance Score",
+            "message": f"Your compliance score is {compliance_score}%. Improve it to maintain full access.",
+            "action": "improve_compliance",
+            "score": compliance_score
+        })
+    
+    return {
+        "alerts": alerts,
+        "license_expiry": profile.get("license_expiry"),
+        "compliance_score": compliance_score,
+        "days_until_expiry": days_until_expiry if expiry else None
+    }
+
+@api_router.get("/admin/expiring-licenses")
+async def get_expiring_licenses(days: int = 30, user: dict = Depends(require_auth(["admin"]))):
+    """Get all licenses expiring within specified days"""
+    cutoff_date = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    
+    expiring = await db.citizen_profiles.find(
+        {"license_expiry": {"$lte": cutoff_date}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Categorize by urgency
+    expired = []
+    critical = []  # < 7 days
+    warning = []   # 7-30 days
+    
+    for profile in expiring:
+        expiry = profile.get("license_expiry")
+        if expiry:
+            if isinstance(expiry, str):
+                expiry_dt = datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+            else:
+                expiry_dt = expiry
+            if expiry_dt.tzinfo is None:
+                expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
+            
+            days_left = (expiry_dt - datetime.now(timezone.utc)).days
+            profile["days_until_expiry"] = days_left
+            
+            if days_left < 0:
+                expired.append(serialize_doc(profile))
+            elif days_left <= 7:
+                critical.append(serialize_doc(profile))
+            else:
+                warning.append(serialize_doc(profile))
+    
+    return {
+        "expired": expired,
+        "critical": critical,
+        "warning": warning,
+        "total": len(expiring)
+    }
+
+# ============== PUSH NOTIFICATION SUBSCRIPTIONS ==============
+
+@api_router.post("/notifications/subscribe")
+async def subscribe_push(request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Subscribe to browser push notifications"""
+    body = await request.json()
+    subscription = body.get("subscription")
+    
+    if not subscription:
+        raise HTTPException(status_code=400, detail="Subscription data required")
+    
+    # Store subscription
+    await db.push_subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {
+            "$set": {
+                "user_id": user["user_id"],
+                "subscription": subscription,
+                "enabled": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"message": "Subscribed to push notifications"}
+
+@api_router.post("/notifications/unsubscribe")
+async def unsubscribe_push(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Unsubscribe from push notifications"""
+    await db.push_subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"enabled": False}}
+    )
+    return {"message": "Unsubscribed from push notifications"}
+
+@api_router.get("/notifications/status")
+async def get_notification_status(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get push notification subscription status"""
+    subscription = await db.push_subscriptions.find_one(
+        {"user_id": user["user_id"]},
+        {"_id": 0}
+    )
+    return {
+        "subscribed": subscription is not None and subscription.get("enabled", False)
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
