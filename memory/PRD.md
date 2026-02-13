@@ -191,6 +191,50 @@ AMMO Responsibility Index based on:
 - Intervention options: Send Warning, Suspend License, Block License
 - Automated alerts based on configurable thresholds
 
+### Phase 7 - Predictive Analytics & Automated Threshold Alerts ✅ (February 2026)
+**AI-Powered Risk Forecasting at `/government/predictive`:**
+
+**Predictive Risk Calculation:**
+- Multi-factor risk analysis per citizen:
+  - Purchase frequency trends (30-day comparison)
+  - Training completion status (completed vs overdue)
+  - Compliance score trajectory
+  - Violation history
+  - License expiry status
+  - Safe storage verification
+- Confidence score based on available data
+- Risk trajectory: Improving, Stable, Declining, Critical Decline
+- Predicted risk score (30-day forecast)
+
+**Overview Tab:**
+- Summary cards: Citizens Analyzed, High Risk, Declining, Needs Intervention
+- Risk Trajectory Distribution (Improving/Stable/Declining/Critical Decline)
+- Predicted Risk Distribution (Low 0-29, Medium 30-49, High 50-69, Critical 70+)
+- Most Common Risk Factors with percentage bars
+- High Risk Citizens list with top factors
+- Approaching Critical Threshold list with days-to-threshold estimate
+- Regional Risk Analysis (avg score, high risk count, declining count per region)
+
+**Thresholds Tab:**
+- Configure automated monitoring thresholds
+- Threshold fields: Name, Metric, Operator, Critical Value, Warning Value (pre-alert), Severity, Auto Action, Custom Message
+- Supported metrics: Compliance Score, ARI Score, Training Hours, Violations, Purchase Count (30d)
+- Auto actions: Send Preventive Warning, Send Critical Alert, Flag for Review, Block License
+- Create/Edit/Delete threshold operations
+
+**Warnings Tab:**
+- Preventive warnings sent to citizens approaching thresholds
+- Warning status: Pending, Acknowledged, Action Taken
+- Warning details: User, Type, Current Value, Threshold, Message, Days to Threshold
+
+**Run Analysis Actions:**
+- "Run Predictive Analysis" - Analyzes all citizens, generates warnings for declining compliance
+- "Run Threshold Check" - Checks all citizens against active thresholds, sends preventive warnings
+
+**Citizen Warning Access:**
+- Citizens can view their own warnings via /citizen/my-warnings
+- Acknowledge warnings to mark as seen
+
 **Shared Components:**
 - DashboardLayout with responsive sidebar
 - StatCard, BarChart, DonutChart, ProgressBar, Sparkline, ChartLegend
@@ -200,8 +244,23 @@ AMMO Responsibility Index based on:
 ### Testing: ✅ 100% Pass Rate
 - Phase 4: 42/42 tests passed
 - Phase 5: 14/14 backend + 25 frontend tests passed
+- Phase 6: 18/18 backend + 100% frontend tests passed
+- Phase 7: 23/23 backend + 100% frontend tests passed
 
 ## API Endpoints
+
+### Predictive Analytics APIs (New in Phase 7)
+- `GET /api/government/predictive/dashboard` - Comprehensive analytics dashboard
+- `GET /api/government/predictive/citizen/{user_id}` - Individual citizen prediction
+- `POST /api/government/predictive/run-analysis` - Run analysis for all citizens
+- `GET /api/government/thresholds` - Get all configured thresholds
+- `POST /api/government/thresholds` - Create threshold
+- `PUT /api/government/thresholds/{threshold_id}` - Update threshold
+- `DELETE /api/government/thresholds/{threshold_id}` - Delete threshold
+- `POST /api/government/thresholds/run-check` - Run threshold check for all citizens
+- `GET /api/government/preventive-warnings` - Get all preventive warnings (admin)
+- `GET /api/citizen/my-warnings` - Get citizen's own warnings
+- `POST /api/citizen/acknowledge-warning/{warning_id}` - Acknowledge warning
 
 ### Government Dashboard APIs (New in Phase 5)
 - `GET /api/government/dashboard-summary` - Overview stats
