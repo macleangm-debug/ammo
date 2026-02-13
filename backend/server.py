@@ -887,7 +887,7 @@ async def get_alerts(user: dict = Depends(require_auth(["admin"]))):
 
 @api_router.get("/")
 async def root():
-    return {"message": "AEGIS - National Firearm Verification Platform API", "version": "1.0.0"}
+    return {"message": "AMMO - Accountable Munitions & Mobility Oversight API", "version": "2.0.0"}
 
 @api_router.get("/health")
 async def health_check():
