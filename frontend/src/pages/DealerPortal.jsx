@@ -146,7 +146,7 @@ const DealerPortal = ({ user, api }) => {
           <div className="flex items-center gap-3">
             <Shield className="w-8 h-8 text-aegis-signal" />
             <div>
-              <span className="font-heading font-bold text-lg">AEGIS</span>
+              <span className="font-heading font-bold text-lg">AMMO</span>
               <p className="text-xs text-white/50">DEALER PORTAL</p>
             </div>
           </div>
