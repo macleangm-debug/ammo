@@ -523,10 +523,12 @@ class AmmoAPITester:
     def run_all_tests(self):
         """Run all backend API tests"""
         print("=" * 60)
-        print("🔧 AEGIS PLATFORM BACKEND API TESTS")
+        print("🔧 AMMO PLATFORM BACKEND API TESTS")
         print("=" * 60)
         print(f"Base URL: {self.base_url}")
         print(f"API URL: {self.api_url}")
+        print(f"Test Citizen Token: {self.test_citizen_token[:20]}...")
+        print(f"Test Admin Token: {self.test_admin_token[:20]}...")
         print()
         
         # Public endpoint tests
@@ -545,10 +547,23 @@ class AmmoAPITester:
         self.test_dealer_profile_endpoint()
         self.test_admin_dashboard_stats()
         
-        # Phase 2 Features Tests
-        print("\n🚀 PHASE 2 FEATURES TESTING:")
+        # NEW AMMO RESPONSIBILITY SYSTEM TESTS
+        print("\n🎯 AMMO RESPONSIBILITY SYSTEM TESTING:")
+        print("-" * 40)
+        self.test_responsibility_endpoint()
+        self.test_complete_challenge_endpoint()
+        self.test_verify_safe_storage_endpoint()
+        self.test_log_training_endpoint()
+        self.test_training_leaderboard_endpoint()
+        
+        # Legacy gamification (should redirect to new system)
+        print("\n🔄 LEGACY GAMIFICATION (Should Redirect):")
         print("-" * 40)
         self.test_gamification_api()
+        
+        # Phase 2 Features Tests
+        print("\n🚀 OTHER FEATURES TESTING:")
+        print("-" * 40)
         self.test_daily_checkin_api() 
         self.test_license_alerts_api()
         self.test_geographic_heatmap_api()
