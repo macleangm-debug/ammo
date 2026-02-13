@@ -14,8 +14,9 @@ Build a National-grade responsible ownership platform with verification, account
 - **Authentication**: Emergent-managed Google OAuth + JWT hybrid
 - **Database**: MongoDB (cost-effective)
 - **Gamification Philosophy**: Rewards SAFETY, TRAINING, COMPLIANCE - NEVER purchase volume
-- **Design**: Military/tactical aesthetic with both dark and light modes
-- **PWA**: Full PWA capabilities with push notifications, background sync, offline caching
+- **Design**: Modern analytics dashboard style (like reference image provided)
+- **Theme**: Light and Dark mode support
+- **PWA**: Full PWA capabilities
 
 ## Architecture
 - **Backend**: FastAPI + MongoDB + Motor (async)
@@ -23,6 +24,14 @@ Build a National-grade responsible ownership platform with verification, account
 - **Auth**: Emergent Google OAuth with session tokens
 - **AI**: GPT-5.2 via emergentintegrations library
 - **PWA**: Service worker + manifest.json
+
+## Design System (December 2025)
+Modern analytics dashboard design with:
+- **Layout**: Fixed sidebar navigation + main content area
+- **Components**: StatCard, BarChart, DonutChart, ProgressBar, DataTable
+- **Colors**: Purple primary (#8B5CF6), Success (#10B981), Warning (#F59E0B), Danger (#EF4444), Info (#3B82F6)
+- **Typography**: Inter (body), Plus Jakarta Sans (headings)
+- **Theme Toggle**: Light/Dark mode with localStorage persistence
 
 ## The AMMO Engagement Engine
 
@@ -39,21 +48,7 @@ AMMO Responsibility Index based on:
 |------|------|-----------|----------|
 | 1 | Sentinel | 0-59 | Licensed & Compliant, Standard Verification |
 | 2 | Guardian | 60-84 | Faster Verification, Training Discounts, Recognition Badge |
-| 3 | Elite Custodian | 85-100 | Priority Service, Insurance Discounts, Community Mentor Status, Renewal Fee Reduction |
-
-### Responsibility Badges (Non-Aggressive)
-- 1-Year Clean Record, 5-Year Clean Record
-- Safety Certified, Advanced Safety Certified, Range Certified
-- Secure Storage Verified, Zero Incident Milestone
-- Community Protector, Certified Mentor
-- Punctual Renewal, Emergency Ready, Education Champion
-
-### Anti-Gamification Safeguards
-- NO rewards tied to ammo volume
-- NO purchase-based rewards  
-- NO competitive weapon metrics
-- NO social comparison on hardware ownership
-- EVERYTHING centered on compliance & safety
+| 3 | Elite Custodian | 85-100 | Priority Service, Insurance Discounts, Community Mentor Status |
 
 ## What's Been Implemented
 
@@ -71,36 +66,56 @@ AMMO Responsibility Index based on:
 ### Phase 3 - AMMO Responsibility Engine ✅
 - Complete rebrand from AEGIS to AMMO
 - ARI Score calculation with 5 weighted factors
-- 3-tier progression system (Sentinel → Guardian → Elite Custodian)
-- 12 responsibility badges (training/safety-focused)
+- 3-tier progression system
+- 12 responsibility badges
 - 6 monthly challenges
 - Training hours logging
 - Safe storage verification
 - Compliance streak tracking
-- Training leaderboard (NOT purchase-based)
 
-### Phase 4 - Modern Design & PWA ✅ (December 2025)
-- **Military/Tactical Design System**
-  - Defcon Command color palette (Navy, Slate, Steel)
-  - Tactical corner brackets (HUD style)
-  - Scanline effects
-  - Glass morphism cards
-  - Status indicators with glow effects
-  - Monospace typography for data displays
-- **Dark/Light Mode Toggle**
-  - Night Ops (dark) theme
-  - Base Command (light) theme
-  - Theme persistence via localStorage
-- **PWA Implementation**
-  - manifest.json with all icon sizes
-  - Service worker with caching strategies
-  - Offline shell support
-  - Push notification support
-  - Background sync ready
-- **Responsive Design**
-  - Mobile-first approach
-  - Tablet and desktop optimizations
-- **Testing**: 100% pass rate on all 25 frontend tests
+### Phase 4 - Modern Dashboard Redesign ✅ (December 2025)
+**Landing Page:**
+- Hero section with dashboard preview mockup
+- Stats bar (2.4M+ Members, 99.9% Rate, 15K+ Dealers, 24/7 Monitoring)
+- 6 feature cards
+- 3-tier showcase
+- 3 access cards (Member, Dealer, Government)
+
+**Citizen Dashboard:**
+- Sidebar navigation (Dashboard, License, Training, History, Notifications, Settings)
+- 4 stat cards (ARI Score, Training Hours, Compliance Streak, Badges)
+- Monthly activity bar chart
+- Recent transactions table
+- Tier progress donut chart
+- Transaction summary panel
+- License info card
+
+**Dealer Portal:**
+- Sidebar navigation (Dashboard, Verify Buyer, Transactions, Inventory, Settings)
+- GPS status banner
+- 4 stat cards (Today's Transactions, Approval Rate, Pending, Total Processed)
+- Verification form
+- Weekly activity chart
+- Status distribution donut chart
+- Recent transactions table
+
+**Government Dashboard:**
+- Sidebar navigation (Overview, Transactions, Citizens, Dealers, Analytics, Map, Settings)
+- Distress alert banner
+- 4 stat cards (Total Citizens, Active Dealers, Today's Transactions, Total Processed)
+- Transaction trends bar chart
+- Risk distribution donut chart
+- Regional overview panel
+- Live transaction feed with filters
+- Review dialog for flagged transactions
+
+**Shared Components:**
+- DashboardLayout with responsive sidebar
+- StatCard, BarChart, DonutChart, ProgressBar, Sparkline, ChartLegend
+- Theme toggle (light/dark)
+- PWA support (manifest.json, service worker)
+
+### Testing: ✅ 100% Pass Rate (42/42 tests)
 
 ## Prioritized Backlog
 
@@ -110,25 +125,14 @@ AMMO Responsibility Index based on:
 ### P1 (High Priority)
 - [ ] Real-time Push Notifications (browser-based)
 - [ ] SMS notifications via Twilio (deferred by user)
-- [ ] Training marketplace integration
 
 ### P2 (Medium Priority)
 - [ ] Insurance partner API integration
-- [ ] Annual compliance rewards system
-- [ ] Advanced analytics subscription tier
-- [ ] Smart safe IoT integration (Digital Safe Health Score)
+- [ ] Smart safe IoT integration
 - [ ] Community mentor matching system
-- [ ] Dealer premium verification lane
-
-## Revenue Opportunities
-- Premium training marketplace
-- Insurance integrations
-- Advanced analytics subscription
-- Dealer premium verification lane
-- Tier certification programs
 
 ## Technical Notes
 - EMERGENT_LLM_KEY: sk-emergent-896943c84C812645e2
 - MongoDB collections: users, citizen_profiles, dealer_profiles, transactions, responsibility_profile, audit_logs
-- PWA icons located at: /app/frontend/public/icons/
+- PWA icons: /app/frontend/public/icons/
 - Service worker: /app/frontend/public/sw.js
