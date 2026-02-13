@@ -142,6 +142,86 @@ class Challenge(BaseModel):
     question: str
     expected_answer: str
 
+# ============== GOVERNMENT OVERSIGHT MODELS ==============
+
+class TrainingCourse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    course_id: str = Field(default_factory=lambda: f"course_{uuid.uuid4().hex[:12]}")
+    name: str
+    description: str
+    region: str  # northeast, southeast, midwest, southwest, west, national
+    cost: float
+    duration_hours: int
+    is_compulsory: bool = False
+    category: str  # safety, legal, tactical, refresher, specialized
+    status: str = "active"  # active, archived, draft
+    ari_boost: int = 5  # ARI points for completion
+    ari_penalty_for_skip: int = 0  # Penalty if compulsory and not completed
+    deadline_days: Optional[int] = None  # Days to complete if compulsory
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CourseEnrollment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    enrollment_id: str = Field(default_factory=lambda: f"enroll_{uuid.uuid4().hex[:12]}")
+    course_id: str
+    user_id: str
+    status: str = "enrolled"  # enrolled, in_progress, completed, expired, failed
+    enrolled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+    deadline: Optional[datetime] = None
+    progress_percent: int = 0
+    payment_status: str = "pending"  # pending, paid, waived
+    amount_paid: float = 0
+
+class RevenueRecord(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    revenue_id: str = Field(default_factory=lambda: f"rev_{uuid.uuid4().hex[:12]}")
+    type: str  # course_fee, membership_fee, license_fee, certification_fee, renewal_fee, penalty_fee
+    amount: float
+    user_id: Optional[str] = None
+    dealer_id: Optional[str] = None
+    region: str
+    reference_id: Optional[str] = None  # course_id, license_id, etc.
+    description: str
+    status: str = "completed"  # pending, completed, refunded
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MemberAlert(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    alert_id: str = Field(default_factory=lambda: f"alert_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    alert_type: str  # red_flag, warning, intervention, license_blocked
+    severity: str  # low, medium, high, critical
+    title: str
+    description: str
+    trigger_reason: str  # threshold_breach, compulsory_training_missed, compliance_drop, suspicious_activity
+    threshold_type: Optional[str] = None  # purchase_frequency, risk_score, compliance_score
+    threshold_value: Optional[float] = None
+    actual_value: Optional[float] = None
+    status: str = "active"  # active, acknowledged, resolved, escalated
+    auto_action_taken: Optional[str] = None  # license_suspended, transaction_blocked, warning_sent
+    intervention_notes: Optional[str] = None
+    assigned_to: Optional[str] = None  # admin user_id
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None
+
+class AlertThreshold(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    threshold_id: str = Field(default_factory=lambda: f"thresh_{uuid.uuid4().hex[:12]}")
+    name: str
+    metric: str  # purchase_count_30d, risk_score_avg, compliance_score, training_overdue_days
+    operator: str  # gt, lt, gte, lte, eq
+    value: float
+    severity: str  # low, medium, high, critical
+    auto_action: Optional[str] = None  # warn, block_license, flag_review, notify_admin
+    is_active: bool = True
+    region: Optional[str] = None  # null = all regions
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Region definitions
+REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
+
 # ============== HELPER FUNCTIONS ==============
 
 def serialize_doc(doc: dict) -> dict:
