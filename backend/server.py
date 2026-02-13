@@ -1929,6 +1929,593 @@ async def get_expiring_licenses(days: int = 30, user: dict = Depends(require_aut
         "total": len(expiring)
     }
 
+# ============== GOVERNMENT ANALYTICS & OVERSIGHT ==============
+
+@api_router.get("/government/analytics/revenue")
+async def get_revenue_analytics(user: dict = Depends(require_auth(["admin"]))):
+    """Get comprehensive revenue analytics by type and region"""
+    # Aggregate revenue by type
+    revenue_by_type = {}
+    revenue_by_region = {}
+    revenue_trends = []
+    
+    # Get all revenue records
+    revenues = await db.revenue_records.find({}, {"_id": 0}).to_list(10000)
+    
+    for rev in revenues:
+        rev_type = rev.get("type", "other")
+        region = rev.get("region", "unknown")
+        amount = rev.get("amount", 0)
+        
+        revenue_by_type[rev_type] = revenue_by_type.get(rev_type, 0) + amount
+        revenue_by_region[region] = revenue_by_region.get(region, 0) + amount
+    
+    # Get monthly trends (last 12 months)
+    for i in range(12):
+        month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30*i)
+        month_end = month_start + timedelta(days=30)
+        month_revenues = [r for r in revenues if month_start.isoformat() <= r.get("created_at", "") < month_end.isoformat()]
+        revenue_trends.insert(0, {
+            "month": month_start.strftime("%b"),
+            "total": sum(r.get("amount", 0) for r in month_revenues),
+            "course_fees": sum(r.get("amount", 0) for r in month_revenues if r.get("type") == "course_fee"),
+            "license_fees": sum(r.get("amount", 0) for r in month_revenues if r.get("type") in ["license_fee", "renewal_fee"]),
+            "membership_fees": sum(r.get("amount", 0) for r in month_revenues if r.get("type") == "membership_fee"),
+        })
+    
+    total_revenue = sum(revenue_by_type.values())
+    
+    return {
+        "total_revenue": total_revenue,
+        "by_type": revenue_by_type,
+        "by_region": revenue_by_region,
+        "trends": revenue_trends[-6:],  # Last 6 months
+        "type_breakdown": [
+            {"name": "Course Fees", "value": revenue_by_type.get("course_fee", 0), "color": "hsl(160, 84%, 39%)"},
+            {"name": "License Fees", "value": revenue_by_type.get("license_fee", 0) + revenue_by_type.get("renewal_fee", 0), "color": "hsl(217, 91%, 60%)"},
+            {"name": "Membership Fees", "value": revenue_by_type.get("membership_fee", 0), "color": "hsl(262, 83%, 58%)"},
+            {"name": "Certification Fees", "value": revenue_by_type.get("certification_fee", 0), "color": "hsl(47, 96%, 53%)"},
+            {"name": "Penalty Fees", "value": revenue_by_type.get("penalty_fee", 0), "color": "hsl(0, 84%, 60%)"},
+        ]
+    }
+
+@api_router.get("/government/analytics/training")
+async def get_training_analytics(user: dict = Depends(require_auth(["admin"]))):
+    """Get training compliance and participation analytics"""
+    # Get all courses
+    courses = await db.training_courses.find({"status": "active"}, {"_id": 0}).to_list(1000)
+    enrollments = await db.course_enrollments.find({}, {"_id": 0}).to_list(10000)
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    total_citizens = len(citizens)
+    compulsory_courses = [c for c in courses if c.get("is_compulsory")]
+    
+    # Calculate compliance rates
+    compliance_by_region = {}
+    for region in REGIONS:
+        region_citizens = [c for c in citizens if c.get("region", "northeast").lower() == region]
+        region_enrollments = [e for e in enrollments if e.get("status") == "completed"]
+        
+        if len(region_citizens) > 0:
+            # For each compulsory course, check how many have completed
+            completed_count = 0
+            for course in compulsory_courses:
+                course_completions = [e for e in region_enrollments if e.get("course_id") == course.get("course_id")]
+                completed_count += len(course_completions)
+            
+            total_required = len(region_citizens) * len(compulsory_courses) if compulsory_courses else 1
+            compliance_rate = min(100, (completed_count / total_required) * 100) if total_required > 0 else 100
+        else:
+            compliance_rate = 100
+            
+        compliance_by_region[region] = round(compliance_rate, 1)
+    
+    # Enrollment stats
+    total_enrollments = len(enrollments)
+    completed_enrollments = len([e for e in enrollments if e.get("status") == "completed"])
+    in_progress_enrollments = len([e for e in enrollments if e.get("status") in ["enrolled", "in_progress"]])
+    overdue_enrollments = len([e for e in enrollments if e.get("status") == "expired"])
+    
+    # Course popularity
+    course_stats = []
+    for course in courses:
+        course_enrollments = [e for e in enrollments if e.get("course_id") == course.get("course_id")]
+        course_stats.append({
+            "course_id": course.get("course_id"),
+            "name": course.get("name"),
+            "region": course.get("region"),
+            "is_compulsory": course.get("is_compulsory"),
+            "enrollments": len(course_enrollments),
+            "completions": len([e for e in course_enrollments if e.get("status") == "completed"]),
+            "revenue": sum(e.get("amount_paid", 0) for e in course_enrollments)
+        })
+    
+    return {
+        "total_courses": len(courses),
+        "compulsory_courses": len(compulsory_courses),
+        "total_enrollments": total_enrollments,
+        "completed": completed_enrollments,
+        "in_progress": in_progress_enrollments,
+        "overdue": overdue_enrollments,
+        "completion_rate": round((completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0, 1),
+        "compliance_by_region": compliance_by_region,
+        "course_stats": sorted(course_stats, key=lambda x: x["enrollments"], reverse=True)[:10]
+    }
+
+@api_router.get("/government/analytics/dealers")
+async def get_dealer_analytics(user: dict = Depends(require_auth(["admin"]))):
+    """Get dealer activity and compliance analytics"""
+    dealers = await db.dealer_profiles.find({}, {"_id": 0}).to_list(1000)
+    transactions = await db.transactions.find({}, {"_id": 0}).to_list(10000)
+    
+    # Dealer activity ranking
+    dealer_stats = []
+    for dealer in dealers:
+        dealer_id = dealer.get("dealer_id") or dealer.get("user_id")
+        dealer_txns = [t for t in transactions if t.get("dealer_id") == dealer_id]
+        
+        # Count firearms vs ammunition
+        firearm_count = sum(t.get("quantity", 0) for t in dealer_txns if t.get("item_type") == "firearm")
+        ammo_count = sum(t.get("quantity", 0) for t in dealer_txns if t.get("item_type") == "ammunition")
+        
+        # Calculate average risk
+        avg_risk = sum(t.get("risk_score", 0) for t in dealer_txns) / len(dealer_txns) if dealer_txns else 0
+        
+        dealer_stats.append({
+            "dealer_id": dealer_id,
+            "business_name": dealer.get("business_name", "Unknown"),
+            "region": dealer.get("region", "northeast"),
+            "total_transactions": len(dealer_txns),
+            "firearm_sales": firearm_count,
+            "ammunition_sales": ammo_count,
+            "avg_risk_score": round(avg_risk, 1),
+            "compliance_score": dealer.get("compliance_score", 100),
+            "license_status": dealer.get("license_status", "active")
+        })
+    
+    # Regional distribution
+    dealer_by_region = {}
+    for region in REGIONS:
+        dealer_by_region[region] = len([d for d in dealer_stats if d.get("region", "").lower() == region])
+    
+    # Top dealers by volume
+    top_by_volume = sorted(dealer_stats, key=lambda x: x["total_transactions"], reverse=True)[:10]
+    
+    # High risk dealers (avg risk > 40 or compliance < 80)
+    flagged_dealers = [d for d in dealer_stats if d["avg_risk_score"] > 40 or d["compliance_score"] < 80]
+    
+    return {
+        "total_dealers": len(dealers),
+        "active_dealers": len([d for d in dealers if d.get("license_status") == "active"]),
+        "by_region": dealer_by_region,
+        "top_by_volume": top_by_volume,
+        "flagged_dealers": flagged_dealers,
+        "total_firearm_sales": sum(d["firearm_sales"] for d in dealer_stats),
+        "total_ammunition_sales": sum(d["ammunition_sales"] for d in dealer_stats)
+    }
+
+@api_router.get("/government/analytics/compliance")
+async def get_compliance_analytics(user: dict = Depends(require_auth(["admin"]))):
+    """Get citizen compliance and ARI distribution analytics"""
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    responsibility_profiles = await db.responsibility_profile.find({}, {"_id": 0}).to_list(10000)
+    
+    # ARI score distribution
+    ari_distribution = {"sentinel": 0, "guardian": 0, "elite_custodian": 0}
+    ari_by_region = {}
+    
+    for region in REGIONS:
+        ari_by_region[region] = {"total": 0, "avg_ari": 0, "citizens": 0}
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        resp_profile = next((r for r in responsibility_profiles if r.get("user_id") == user_id), None)
+        
+        ari_score = resp_profile.get("ari_score", 40) if resp_profile else 40
+        region = citizen.get("region", "northeast").lower()
+        
+        # Tier distribution
+        if ari_score >= 85:
+            ari_distribution["elite_custodian"] += 1
+        elif ari_score >= 60:
+            ari_distribution["guardian"] += 1
+        else:
+            ari_distribution["sentinel"] += 1
+        
+        # Regional average
+        if region in ari_by_region:
+            ari_by_region[region]["total"] += ari_score
+            ari_by_region[region]["citizens"] += 1
+    
+    # Calculate averages
+    for region in ari_by_region:
+        if ari_by_region[region]["citizens"] > 0:
+            ari_by_region[region]["avg_ari"] = round(
+                ari_by_region[region]["total"] / ari_by_region[region]["citizens"], 1
+            )
+    
+    # License renewal rates
+    total_licenses = len(citizens)
+    active_licenses = len([c for c in citizens if c.get("license_status") == "active"])
+    expired_licenses = len([c for c in citizens if c.get("license_status") == "expired"])
+    suspended_licenses = len([c for c in citizens if c.get("license_status") == "suspended"])
+    
+    # Expiring soon (next 30 days)
+    now = datetime.now(timezone.utc)
+    expiring_soon = 0
+    for citizen in citizens:
+        expiry = citizen.get("license_expiry")
+        if expiry:
+            if isinstance(expiry, str):
+                try:
+                    expiry = datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+                except:
+                    continue
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            days_left = (expiry - now).days
+            if 0 < days_left <= 30:
+                expiring_soon += 1
+    
+    return {
+        "total_citizens": len(citizens),
+        "tier_distribution": ari_distribution,
+        "ari_by_region": ari_by_region,
+        "license_stats": {
+            "total": total_licenses,
+            "active": active_licenses,
+            "expired": expired_licenses,
+            "suspended": suspended_licenses,
+            "expiring_soon": expiring_soon,
+            "renewal_rate": round((active_licenses / total_licenses * 100) if total_licenses > 0 else 0, 1)
+        }
+    }
+
+# ============== ALERT & INTERVENTION SYSTEM ==============
+
+@api_router.get("/government/alerts/active")
+async def get_active_alerts(user: dict = Depends(require_auth(["admin"]))):
+    """Get all active alerts and red flags"""
+    alerts = await db.member_alerts.find(
+        {"status": {"$in": ["active", "acknowledged"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    # Categorize by severity
+    critical = [a for a in alerts if a.get("severity") == "critical"]
+    high = [a for a in alerts if a.get("severity") == "high"]
+    medium = [a for a in alerts if a.get("severity") == "medium"]
+    low = [a for a in alerts if a.get("severity") == "low"]
+    
+    return {
+        "total_active": len(alerts),
+        "by_severity": {
+            "critical": len(critical),
+            "high": len(high),
+            "medium": len(medium),
+            "low": len(low)
+        },
+        "alerts": [serialize_doc(a) for a in alerts[:50]],
+        "critical_alerts": [serialize_doc(a) for a in critical[:10]]
+    }
+
+@api_router.post("/government/alerts/acknowledge/{alert_id}")
+async def acknowledge_alert(alert_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Acknowledge an alert"""
+    result = await db.member_alerts.update_one(
+        {"alert_id": alert_id},
+        {"$set": {"status": "acknowledged", "assigned_to": user["user_id"]}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    await create_audit_log("alert_acknowledged", user["user_id"], "admin", alert_id)
+    return {"message": "Alert acknowledged"}
+
+@api_router.post("/government/alerts/resolve/{alert_id}")
+async def resolve_alert(alert_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Resolve an alert with notes"""
+    body = await request.json()
+    notes = body.get("notes", "")
+    
+    result = await db.member_alerts.update_one(
+        {"alert_id": alert_id},
+        {
+            "$set": {
+                "status": "resolved",
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": user["user_id"],
+                "intervention_notes": notes
+            }
+        }
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    await create_audit_log("alert_resolved", user["user_id"], "admin", alert_id, {"notes": notes})
+    return {"message": "Alert resolved"}
+
+@api_router.post("/government/alerts/intervene/{alert_id}")
+async def intervene_member(alert_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Take intervention action on a member"""
+    body = await request.json()
+    action = body.get("action")  # block_license, suspend, warning, restrict_purchases
+    notes = body.get("notes", "")
+    
+    alert = await db.member_alerts.find_one({"alert_id": alert_id}, {"_id": 0})
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    target_user_id = alert.get("user_id")
+    
+    # Execute intervention action
+    if action == "block_license":
+        await db.citizen_profiles.update_one(
+            {"user_id": target_user_id},
+            {"$set": {"license_status": "blocked", "blocked_reason": notes}}
+        )
+        # Create notification for user
+        await db.notifications.insert_one({
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": target_user_id,
+            "title": "License Blocked",
+            "message": f"Your license has been blocked. Reason: {notes}. Please contact authorities.",
+            "type": "alert",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    elif action == "suspend":
+        await db.citizen_profiles.update_one(
+            {"user_id": target_user_id},
+            {"$set": {"license_status": "suspended", "suspended_reason": notes}}
+        )
+    elif action == "warning":
+        await db.notifications.insert_one({
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": target_user_id,
+            "title": "Official Warning",
+            "message": notes,
+            "type": "alert",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Update alert with action taken
+    await db.member_alerts.update_one(
+        {"alert_id": alert_id},
+        {
+            "$set": {
+                "status": "resolved",
+                "auto_action_taken": action,
+                "intervention_notes": notes,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": user["user_id"]
+            }
+        }
+    )
+    
+    await create_audit_log("intervention_executed", user["user_id"], "admin", target_user_id, {
+        "alert_id": alert_id,
+        "action": action,
+        "notes": notes
+    })
+    
+    return {"message": f"Intervention '{action}' executed successfully"}
+
+@api_router.get("/government/alerts/thresholds")
+async def get_alert_thresholds(user: dict = Depends(require_auth(["admin"]))):
+    """Get configured alert thresholds"""
+    thresholds = await db.alert_thresholds.find({}, {"_id": 0}).to_list(100)
+    return {"thresholds": thresholds}
+
+@api_router.post("/government/alerts/thresholds")
+async def create_alert_threshold(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new alert threshold"""
+    body = await request.json()
+    threshold = AlertThreshold(**body)
+    await db.alert_thresholds.insert_one(threshold.model_dump())
+    
+    await create_audit_log("threshold_created", user["user_id"], "admin", threshold.threshold_id)
+    return {"message": "Threshold created", "threshold_id": threshold.threshold_id}
+
+async def check_and_trigger_alerts():
+    """Background task to check thresholds and trigger alerts"""
+    thresholds = await db.alert_thresholds.find({"is_active": True}, {"_id": 0}).to_list(100)
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        
+        for threshold in thresholds:
+            metric = threshold.get("metric")
+            operator = threshold.get("operator")
+            value = threshold.get("value")
+            
+            # Get actual metric value
+            actual_value = 0
+            if metric == "compliance_score":
+                actual_value = citizen.get("compliance_score", 100)
+            elif metric == "purchase_count_30d":
+                thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+                txn_count = await db.transactions.count_documents({
+                    "citizen_id": user_id,
+                    "created_at": {"$gte": thirty_days_ago}
+                })
+                actual_value = txn_count
+            
+            # Check if threshold is breached
+            breached = False
+            if operator == "gt" and actual_value > value:
+                breached = True
+            elif operator == "lt" and actual_value < value:
+                breached = True
+            elif operator == "gte" and actual_value >= value:
+                breached = True
+            elif operator == "lte" and actual_value <= value:
+                breached = True
+            
+            if breached:
+                # Check if alert already exists
+                existing = await db.member_alerts.find_one({
+                    "user_id": user_id,
+                    "threshold_type": metric,
+                    "status": {"$in": ["active", "acknowledged"]}
+                })
+                
+                if not existing:
+                    alert = MemberAlert(
+                        user_id=user_id,
+                        alert_type="red_flag",
+                        severity=threshold.get("severity", "medium"),
+                        title=f"Threshold Breach: {threshold.get('name')}",
+                        description=f"User breached {metric} threshold. Actual: {actual_value}, Threshold: {value}",
+                        trigger_reason="threshold_breach",
+                        threshold_type=metric,
+                        threshold_value=value,
+                        actual_value=actual_value
+                    )
+                    await db.member_alerts.insert_one(alert.model_dump())
+
+# ============== COURSE MANAGEMENT ==============
+
+@api_router.get("/government/courses")
+async def get_all_courses(user: dict = Depends(require_auth(["admin"]))):
+    """Get all training courses"""
+    courses = await db.training_courses.find({}, {"_id": 0}).to_list(1000)
+    return {"courses": [serialize_doc(c) for c in courses]}
+
+@api_router.post("/government/courses")
+async def create_course(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new training course"""
+    body = await request.json()
+    course = TrainingCourse(**body)
+    
+    await db.training_courses.insert_one(course.model_dump())
+    
+    # If compulsory, create notifications for all citizens in the region
+    if course.is_compulsory:
+        if course.region == "national":
+            citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+        else:
+            citizens = await db.citizen_profiles.find(
+                {"region": {"$regex": course.region, "$options": "i"}},
+                {"_id": 0}
+            ).to_list(10000)
+        
+        notifications = []
+        for citizen in citizens:
+            notifications.append({
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": citizen.get("user_id"),
+                "title": "New Compulsory Training Required",
+                "message": f"A new compulsory course '{course.name}' is now available. Complete within {course.deadline_days or 30} days to maintain your ARI score.",
+                "type": "system",
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        
+        if notifications:
+            await db.notifications.insert_many(notifications)
+    
+    await create_audit_log("course_created", user["user_id"], "admin", course.course_id, {
+        "name": course.name,
+        "region": course.region,
+        "is_compulsory": course.is_compulsory
+    })
+    
+    return {"message": "Course created", "course_id": course.course_id}
+
+@api_router.put("/government/courses/{course_id}")
+async def update_course(course_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a training course"""
+    body = await request.json()
+    
+    # Remove fields that shouldn't be updated directly
+    body.pop("course_id", None)
+    body.pop("created_at", None)
+    
+    result = await db.training_courses.update_one(
+        {"course_id": course_id},
+        {"$set": body}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    await create_audit_log("course_updated", user["user_id"], "admin", course_id, body)
+    return {"message": "Course updated"}
+
+@api_router.delete("/government/courses/{course_id}")
+async def archive_course(course_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Archive a training course"""
+    result = await db.training_courses.update_one(
+        {"course_id": course_id},
+        {"$set": {"status": "archived"}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    await create_audit_log("course_archived", user["user_id"], "admin", course_id)
+    return {"message": "Course archived"}
+
+# ============== GOVERNMENT DASHBOARD SUMMARY ==============
+
+@api_router.get("/government/dashboard-summary")
+async def get_government_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
+    """Get comprehensive dashboard summary for government oversight"""
+    # Counts
+    total_citizens = await db.citizen_profiles.count_documents({})
+    total_dealers = await db.dealer_profiles.count_documents({})
+    total_courses = await db.training_courses.count_documents({"status": "active"})
+    
+    # Today's stats
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    today_transactions = await db.transactions.count_documents({"created_at": {"$gte": today_start}})
+    today_enrollments = await db.course_enrollments.count_documents({"enrolled_at": {"$gte": today_start}})
+    
+    # Revenue summary
+    revenues = await db.revenue_records.find({}, {"_id": 0}).to_list(10000)
+    total_revenue = sum(r.get("amount", 0) for r in revenues)
+    this_month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    monthly_revenue = sum(r.get("amount", 0) for r in revenues if r.get("created_at", "") >= this_month_start)
+    
+    # Alerts summary
+    active_alerts = await db.member_alerts.count_documents({"status": "active"})
+    critical_alerts = await db.member_alerts.count_documents({"status": "active", "severity": "critical"})
+    
+    # Compliance summary
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    active_licenses = len([c for c in citizens if c.get("license_status") == "active"])
+    
+    # Training compliance
+    compulsory_courses = await db.training_courses.count_documents({"is_compulsory": True, "status": "active"})
+    
+    return {
+        "overview": {
+            "total_citizens": total_citizens,
+            "total_dealers": total_dealers,
+            "active_licenses": active_licenses,
+            "license_compliance_rate": round((active_licenses / total_citizens * 100) if total_citizens > 0 else 0, 1)
+        },
+        "today": {
+            "transactions": today_transactions,
+            "enrollments": today_enrollments
+        },
+        "revenue": {
+            "total": total_revenue,
+            "this_month": monthly_revenue
+        },
+        "alerts": {
+            "active": active_alerts,
+            "critical": critical_alerts
+        },
+        "training": {
+            "total_courses": total_courses,
+            "compulsory_courses": compulsory_courses
+        }
+    }
+
 # ============== PUSH NOTIFICATION SUBSCRIPTIONS ==============
 
 @api_router.post("/notifications/subscribe")
