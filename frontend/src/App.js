@@ -205,6 +205,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/marketplace"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
+            {({ user, api }) => <Marketplace user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/setup"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
