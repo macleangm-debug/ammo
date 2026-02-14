@@ -3673,6 +3673,679 @@ async def get_government_dashboard_summary(user: dict = Depends(require_auth(["a
         }
     }
 
+# ============== MARKETPLACE APIs ==============
+
+PRODUCT_CATEGORIES = ["firearm", "ammunition", "accessory", "safety_equipment", "storage", "training_material"]
+
+@api_router.get("/marketplace/products")
+async def get_marketplace_products(
+    category: str = None,
+    search: str = None,
+    min_price: float = None,
+    max_price: float = None,
+    dealer_id: str = None,
+    featured: bool = None,
+    page: int = 1,
+    limit: int = 20,
+    user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))
+):
+    """Get marketplace products (accessible by verified citizens and dealers)"""
+    # Check if citizen is verified (has active license)
+    if user.get("role") == "citizen":
+        citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+        if not citizen_profile or citizen_profile.get("license_status") != "active":
+            raise HTTPException(status_code=403, detail="Active license required to access marketplace")
+    
+    # Build query
+    query = {"status": "active"}
+    
+    if category:
+        query["category"] = category
+    if dealer_id:
+        query["dealer_id"] = dealer_id
+    if featured:
+        query["featured"] = True
+    if min_price is not None:
+        query["price"] = {"$gte": min_price}
+    if max_price is not None:
+        if "price" in query:
+            query["price"]["$lte"] = max_price
+        else:
+            query["price"] = {"$lte": max_price}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    
+    # Check region restrictions
+    citizen_region = None
+    if user.get("role") == "citizen":
+        citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+        citizen_region = citizen_profile.get("region", "").lower() if citizen_profile else None
+    
+    skip = (page - 1) * limit
+    total = await db.marketplace_products.count_documents(query)
+    products = await db.marketplace_products.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Filter out region-restricted products
+    if citizen_region:
+        products = [p for p in products if citizen_region not in [r.lower() for r in p.get("region_restrictions", [])]]
+    
+    # Add dealer info
+    for product in products:
+        dealer = await db.dealer_profiles.find_one({"user_id": product.get("dealer_id")}, {"_id": 0})
+        product["dealer_name"] = dealer.get("business_name", "Unknown") if dealer else "Unknown"
+    
+    return {
+        "products": [serialize_doc(p) for p in products],
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/marketplace/products/{product_id}")
+async def get_product_details(product_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get single product details"""
+    product = await db.marketplace_products.find_one({"product_id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Increment view count
+    await db.marketplace_products.update_one(
+        {"product_id": product_id},
+        {"$inc": {"views": 1}}
+    )
+    
+    # Add dealer info
+    dealer = await db.dealer_profiles.find_one({"user_id": product.get("dealer_id")}, {"_id": 0})
+    product["dealer_name"] = dealer.get("business_name", "Unknown") if dealer else "Unknown"
+    product["dealer_rating"] = dealer.get("rating", 4.5) if dealer else 4.5
+    
+    # Get reviews
+    reviews = await db.marketplace_reviews.find(
+        {"product_id": product_id, "status": "active"},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    product["reviews"] = [serialize_doc(r) for r in reviews]
+    product["avg_rating"] = sum(r.get("rating", 0) for r in reviews) / len(reviews) if reviews else 0
+    
+    return serialize_doc(product)
+
+@api_router.get("/marketplace/categories")
+async def get_marketplace_categories(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get product categories with counts"""
+    categories = []
+    for cat in PRODUCT_CATEGORIES:
+        count = await db.marketplace_products.count_documents({"category": cat, "status": "active"})
+        categories.append({
+            "id": cat,
+            "name": cat.replace("_", " ").title(),
+            "count": count
+        })
+    return {"categories": categories}
+
+@api_router.post("/marketplace/products")
+async def create_product(request: Request, user: dict = Depends(require_auth(["dealer"]))):
+    """Create a new product listing (dealers only)"""
+    body = await request.json()
+    body["dealer_id"] = user["user_id"]
+    
+    product = MarketplaceProduct(**body)
+    await db.marketplace_products.insert_one(product.model_dump())
+    
+    await create_audit_log("product_created", user["user_id"], "dealer", product.product_id, {"name": product.name})
+    return {"message": "Product created", "product_id": product.product_id}
+
+@api_router.put("/marketplace/products/{product_id}")
+async def update_product(product_id: str, request: Request, user: dict = Depends(require_auth(["dealer"]))):
+    """Update a product listing"""
+    # Verify ownership
+    product = await db.marketplace_products.find_one({"product_id": product_id, "dealer_id": user["user_id"]})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found or not authorized")
+    
+    body = await request.json()
+    body.pop("product_id", None)
+    body.pop("dealer_id", None)
+    body.pop("created_at", None)
+    body["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.marketplace_products.update_one({"product_id": product_id}, {"$set": body})
+    
+    await create_audit_log("product_updated", user["user_id"], "dealer", product_id, body)
+    return {"message": "Product updated"}
+
+@api_router.delete("/marketplace/products/{product_id}")
+async def delete_product(product_id: str, user: dict = Depends(require_auth(["dealer"]))):
+    """Delete/deactivate a product listing"""
+    result = await db.marketplace_products.update_one(
+        {"product_id": product_id, "dealer_id": user["user_id"]},
+        {"$set": {"status": "discontinued"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found or not authorized")
+    
+    await create_audit_log("product_deleted", user["user_id"], "dealer", product_id)
+    return {"message": "Product discontinued"}
+
+@api_router.get("/marketplace/my-products")
+async def get_my_products(user: dict = Depends(require_auth(["dealer"]))):
+    """Get dealer's own products"""
+    products = await db.marketplace_products.find(
+        {"dealer_id": user["user_id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    return {"products": [serialize_doc(p) for p in products]}
+
+# ============== MARKETPLACE ORDERS ==============
+
+@api_router.post("/marketplace/orders")
+async def create_order(request: Request, user: dict = Depends(require_auth(["citizen"]))):
+    """Create a new order (citizens only)"""
+    # Verify license
+    citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    if not citizen_profile or citizen_profile.get("license_status") != "active":
+        raise HTTPException(status_code=403, detail="Active license required to place orders")
+    
+    body = await request.json()
+    items = body.get("items", [])
+    
+    if not items:
+        raise HTTPException(status_code=400, detail="Order must contain at least one item")
+    
+    # Validate items and calculate total
+    subtotal = 0
+    processed_items = []
+    dealer_id = None
+    
+    for item in items:
+        product = await db.marketplace_products.find_one({"product_id": item.get("product_id")}, {"_id": 0})
+        if not product:
+            raise HTTPException(status_code=400, detail=f"Product {item.get('product_id')} not found")
+        
+        if product.get("status") != "active":
+            raise HTTPException(status_code=400, detail=f"Product {product.get('name')} is not available")
+        
+        if product.get("quantity_available", 0) < item.get("quantity", 1):
+            raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.get('name')}")
+        
+        # All items must be from same dealer
+        if dealer_id and dealer_id != product.get("dealer_id"):
+            raise HTTPException(status_code=400, detail="All items must be from the same dealer")
+        dealer_id = product.get("dealer_id")
+        
+        price = product.get("sale_price") or product.get("price")
+        quantity = item.get("quantity", 1)
+        
+        processed_items.append({
+            "product_id": product.get("product_id"),
+            "name": product.get("name"),
+            "quantity": quantity,
+            "price_at_purchase": price,
+            "subtotal": price * quantity
+        })
+        subtotal += price * quantity
+    
+    # Calculate tax (example: 8%)
+    tax = round(subtotal * 0.08, 2)
+    total = subtotal + tax
+    
+    # Create verification transaction
+    verification_txn_id = f"vtxn_{uuid.uuid4().hex[:12]}"
+    
+    order = MarketplaceOrder(
+        buyer_id=user["user_id"],
+        dealer_id=dealer_id,
+        items=processed_items,
+        subtotal=subtotal,
+        tax=tax,
+        total=total,
+        shipping_address=body.get("shipping_address"),
+        license_verified=True,
+        verification_transaction_id=verification_txn_id
+    )
+    
+    await db.marketplace_orders.insert_one(order.model_dump())
+    
+    # Update inventory
+    for item in processed_items:
+        await db.marketplace_products.update_one(
+            {"product_id": item["product_id"]},
+            {"$inc": {"quantity_available": -item["quantity"]}}
+        )
+    
+    # Create notification for dealer
+    await db.notifications.insert_one({
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": dealer_id,
+        "title": "New Order Received",
+        "message": f"New order #{order.order_id} for ${total:.2f}",
+        "type": "order",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Add revenue record
+    await db.revenue_records.insert_one({
+        "revenue_id": f"rev_{uuid.uuid4().hex[:12]}",
+        "type": "marketplace_sale",
+        "amount": total,
+        "dealer_id": dealer_id,
+        "user_id": user["user_id"],
+        "region": citizen_profile.get("region", "unknown"),
+        "reference_id": order.order_id,
+        "description": f"Marketplace order {order.order_id}",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    await create_audit_log("order_created", user["user_id"], "citizen", order.order_id, {"total": total})
+    
+    return {"message": "Order created", "order_id": order.order_id, "total": total}
+
+@api_router.get("/marketplace/my-orders")
+async def get_my_orders(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get user's orders (as buyer or seller)"""
+    if user.get("role") == "dealer":
+        orders = await db.marketplace_orders.find(
+            {"dealer_id": user["user_id"]},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(200)
+    else:
+        orders = await db.marketplace_orders.find(
+            {"buyer_id": user["user_id"]},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(100)
+    
+    return {"orders": [serialize_doc(o) for o in orders]}
+
+@api_router.get("/marketplace/orders/{order_id}")
+async def get_order_details(order_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get order details"""
+    order = await db.marketplace_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify access
+    if user.get("role") == "citizen" and order.get("buyer_id") != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if user.get("role") == "dealer" and order.get("dealer_id") != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Add buyer info for dealer
+    if user.get("role") == "dealer":
+        buyer = await db.users.find_one({"user_id": order.get("buyer_id")}, {"_id": 0})
+        order["buyer_name"] = buyer.get("name", "Unknown") if buyer else "Unknown"
+    
+    return serialize_doc(order)
+
+@api_router.put("/marketplace/orders/{order_id}/status")
+async def update_order_status(order_id: str, request: Request, user: dict = Depends(require_auth(["dealer"]))):
+    """Update order status (dealer only)"""
+    body = await request.json()
+    new_status = body.get("status")
+    
+    valid_statuses = ["confirmed", "processing", "shipped", "delivered", "cancelled"]
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    order = await db.marketplace_orders.find_one({"order_id": order_id, "dealer_id": user["user_id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or not authorized")
+    
+    update_data = {
+        "status": new_status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if new_status == "shipped" and body.get("tracking_number"):
+        update_data["tracking_number"] = body.get("tracking_number")
+    
+    await db.marketplace_orders.update_one({"order_id": order_id}, {"$set": update_data})
+    
+    # Notify buyer
+    await db.notifications.insert_one({
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": order.get("buyer_id"),
+        "title": f"Order {new_status.title()}",
+        "message": f"Your order #{order_id} has been {new_status}",
+        "type": "order",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    await create_audit_log("order_status_updated", user["user_id"], "dealer", order_id, {"status": new_status})
+    return {"message": f"Order status updated to {new_status}"}
+
+@api_router.post("/marketplace/reviews")
+async def create_review(request: Request, user: dict = Depends(require_auth(["citizen"]))):
+    """Create a product review"""
+    body = await request.json()
+    
+    # Verify purchase
+    order = await db.marketplace_orders.find_one({
+        "order_id": body.get("order_id"),
+        "buyer_id": user["user_id"],
+        "status": "delivered"
+    })
+    if not order:
+        raise HTTPException(status_code=400, detail="Can only review products from delivered orders")
+    
+    # Check if already reviewed
+    existing_review = await db.marketplace_reviews.find_one({
+        "product_id": body.get("product_id"),
+        "buyer_id": user["user_id"],
+        "order_id": body.get("order_id")
+    })
+    if existing_review:
+        raise HTTPException(status_code=400, detail="Already reviewed this product")
+    
+    review = MarketplaceReview(
+        product_id=body.get("product_id"),
+        buyer_id=user["user_id"],
+        order_id=body.get("order_id"),
+        rating=body.get("rating"),
+        title=body.get("title"),
+        comment=body.get("comment")
+    )
+    
+    await db.marketplace_reviews.insert_one(review.model_dump())
+    
+    return {"message": "Review submitted", "review_id": review.review_id}
+
+# ============== COURSE ENROLLMENT ==============
+
+@api_router.get("/courses/available")
+async def get_available_courses(
+    region: str = None,
+    category: str = None,
+    compulsory_only: bool = False,
+    user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))
+):
+    """Get available courses for enrollment"""
+    query = {"status": "active"}
+    
+    if category:
+        query["category"] = category
+    if compulsory_only:
+        query["is_compulsory"] = True
+    
+    # Filter by region (national courses + user's region)
+    citizen_region = None
+    if user.get("role") == "citizen":
+        citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+        citizen_region = citizen_profile.get("region", "").lower() if citizen_profile else None
+    
+    if region:
+        citizen_region = region.lower()
+    
+    courses = await db.training_courses.find(query, {"_id": 0}).to_list(500)
+    
+    # Filter by region (national + user region)
+    if citizen_region:
+        courses = [c for c in courses if c.get("region", "").lower() in ["national", citizen_region]]
+    
+    # Add enrollment status for current user
+    for course in courses:
+        enrollment = await db.course_enrollments.find_one({
+            "course_id": course.get("course_id"),
+            "user_id": user["user_id"]
+        }, {"_id": 0})
+        course["enrollment_status"] = enrollment.get("status") if enrollment else None
+        course["enrollment_id"] = enrollment.get("enrollment_id") if enrollment else None
+    
+    return {"courses": [serialize_doc(c) for c in courses]}
+
+@api_router.post("/courses/enroll/{course_id}")
+async def enroll_in_course(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer"]))):
+    """Enroll in a course"""
+    course = await db.training_courses.find_one({"course_id": course_id, "status": "active"}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Check if already enrolled
+    existing = await db.course_enrollments.find_one({
+        "course_id": course_id,
+        "user_id": user["user_id"],
+        "status": {"$in": ["enrolled", "in_progress"]}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Already enrolled in this course")
+    
+    # Calculate deadline if compulsory
+    deadline = None
+    if course.get("is_compulsory") and course.get("deadline_days"):
+        deadline = (datetime.now(timezone.utc) + timedelta(days=course["deadline_days"])).isoformat()
+    
+    enrollment = CourseEnrollment(
+        course_id=course_id,
+        user_id=user["user_id"],
+        deadline=deadline,
+        payment_status="paid" if course.get("cost", 0) == 0 else "pending",
+        amount_paid=0 if course.get("cost", 0) > 0 else 0
+    )
+    
+    await db.course_enrollments.insert_one(enrollment.model_dump())
+    
+    # Add revenue record if paid course
+    if course.get("cost", 0) > 0:
+        citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+        await db.revenue_records.insert_one({
+            "revenue_id": f"rev_{uuid.uuid4().hex[:12]}",
+            "type": "course_fee",
+            "amount": course["cost"],
+            "user_id": user["user_id"],
+            "region": citizen_profile.get("region", "unknown") if citizen_profile else "unknown",
+            "reference_id": enrollment.enrollment_id,
+            "description": f"Course enrollment: {course['name']}",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    await create_audit_log("course_enrolled", user["user_id"], user["role"], course_id, {"enrollment_id": enrollment.enrollment_id})
+    
+    return {"message": "Enrolled successfully", "enrollment_id": enrollment.enrollment_id}
+
+@api_router.get("/courses/my-enrollments")
+async def get_my_enrollments(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get user's course enrollments"""
+    enrollments = await db.course_enrollments.find(
+        {"user_id": user["user_id"]},
+        {"_id": 0}
+    ).sort("enrolled_at", -1).to_list(100)
+    
+    # Add course info
+    for enrollment in enrollments:
+        course = await db.training_courses.find_one({"course_id": enrollment.get("course_id")}, {"_id": 0})
+        if course:
+            enrollment["course_name"] = course.get("name")
+            enrollment["course_category"] = course.get("category")
+            enrollment["is_compulsory"] = course.get("is_compulsory")
+            enrollment["ari_boost"] = course.get("ari_boost", 0)
+    
+    return {"enrollments": [serialize_doc(e) for e in enrollments]}
+
+@api_router.put("/courses/progress/{enrollment_id}")
+async def update_course_progress(enrollment_id: str, request: Request, user: dict = Depends(require_auth(["citizen", "dealer"]))):
+    """Update course progress"""
+    body = await request.json()
+    
+    enrollment = await db.course_enrollments.find_one({
+        "enrollment_id": enrollment_id,
+        "user_id": user["user_id"]
+    }, {"_id": 0})
+    
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    progress = body.get("progress_percent", enrollment.get("progress_percent", 0))
+    update_data = {
+        "progress_percent": min(100, max(0, progress))
+    }
+    
+    # Update status based on progress
+    if progress > 0 and enrollment.get("status") == "enrolled":
+        update_data["status"] = "in_progress"
+        update_data["started_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if progress >= 100:
+        update_data["status"] = "completed"
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+        update_data["certificate_id"] = f"cert_{uuid.uuid4().hex[:12]}"
+        
+        # Update ARI score
+        course = await db.training_courses.find_one({"course_id": enrollment.get("course_id")}, {"_id": 0})
+        if course:
+            ari_boost = course.get("ari_boost", 5)
+            await db.responsibility_profile.update_one(
+                {"user_id": user["user_id"]},
+                {
+                    "$inc": {"ari_score": ari_boost, "training_hours": course.get("duration_hours", 0)},
+                    "$set": {"last_updated": datetime.now(timezone.utc).isoformat()}
+                },
+                upsert=True
+            )
+    
+    await db.course_enrollments.update_one(
+        {"enrollment_id": enrollment_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Progress updated", "progress": update_data.get("progress_percent")}
+
+@api_router.get("/courses/{course_id}")
+async def get_course_details(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get course details"""
+    course = await db.training_courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Add enrollment info
+    enrollment = await db.course_enrollments.find_one({
+        "course_id": course_id,
+        "user_id": user["user_id"]
+    }, {"_id": 0})
+    
+    course["enrollment_status"] = enrollment.get("status") if enrollment else None
+    course["enrollment_id"] = enrollment.get("enrollment_id") if enrollment else None
+    course["progress"] = enrollment.get("progress_percent", 0) if enrollment else 0
+    
+    return serialize_doc(course)
+
+# ============== SCHEDULED TASKS ==============
+
+@api_router.post("/admin/run-daily-analysis")
+async def run_daily_analysis(user: dict = Depends(require_auth(["admin"]))):
+    """Run daily predictive analysis and threshold checks (manual trigger)"""
+    results = {
+        "predictive_analysis": None,
+        "threshold_check": None,
+        "expired_enrollments": 0
+    }
+    
+    # Run predictive analysis
+    citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    warnings_generated = 0
+    alerts_generated = 0
+    
+    for citizen in citizens:
+        user_id = citizen.get("user_id")
+        pred = await calculate_risk_prediction(user_id)
+        
+        if not pred:
+            continue
+        
+        if pred["risk_trajectory"] in ["declining", "critical_decline"]:
+            existing_warning = await db.preventive_warnings.find_one({
+                "user_id": user_id,
+                "status": "pending",
+                "warning_type": "compliance_declining"
+            })
+            
+            if not existing_warning:
+                warning_message = f"Your compliance score is trending downward. Consider completing additional training."
+                
+                warning = PreventiveWarning(
+                    user_id=user_id,
+                    warning_type="compliance_declining",
+                    current_value=pred["current_risk_score"],
+                    threshold_value=70,
+                    message=warning_message,
+                    action_required="improve_compliance"
+                )
+                await db.preventive_warnings.insert_one(warning.model_dump())
+                
+                await db.notifications.insert_one({
+                    "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                    "user_id": user_id,
+                    "title": "Compliance Score Alert",
+                    "message": warning_message,
+                    "type": "warning",
+                    "read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                warnings_generated += 1
+        
+        if pred["predicted_risk_score"] >= 70 and pred["risk_trajectory"] == "critical_decline":
+            existing_alert = await db.member_alerts.find_one({
+                "user_id": user_id,
+                "status": {"$in": ["active", "acknowledged"]},
+                "trigger_reason": "predictive_high_risk"
+            })
+            
+            if not existing_alert:
+                alert = MemberAlert(
+                    user_id=user_id,
+                    alert_type="red_flag",
+                    severity="high",
+                    title="Predictive Risk Alert",
+                    description=f"Citizen predicted to reach critical risk level.",
+                    trigger_reason="predictive_high_risk",
+                    threshold_type="predicted_risk_score",
+                    threshold_value=70,
+                    actual_value=pred["predicted_risk_score"]
+                )
+                await db.member_alerts.insert_one(alert.model_dump())
+                alerts_generated += 1
+    
+    results["predictive_analysis"] = {
+        "citizens_analyzed": len(citizens),
+        "warnings_generated": warnings_generated,
+        "alerts_generated": alerts_generated
+    }
+    
+    # Check for expired enrollments
+    now = datetime.now(timezone.utc).isoformat()
+    expired_result = await db.course_enrollments.update_many(
+        {
+            "status": {"$in": ["enrolled", "in_progress"]},
+            "deadline": {"$lt": now}
+        },
+        {"$set": {"status": "expired"}}
+    )
+    results["expired_enrollments"] = expired_result.modified_count
+    
+    # Apply ARI penalties for expired compulsory courses
+    expired_enrollments = await db.course_enrollments.find(
+        {"status": "expired"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    for enrollment in expired_enrollments:
+        course = await db.training_courses.find_one({"course_id": enrollment.get("course_id")}, {"_id": 0})
+        if course and course.get("is_compulsory") and course.get("ari_penalty_for_skip", 0) > 0:
+            await db.responsibility_profile.update_one(
+                {"user_id": enrollment.get("user_id")},
+                {"$inc": {"ari_score": -course["ari_penalty_for_skip"]}}
+            )
+    
+    await create_audit_log("daily_analysis_run", user["user_id"], "admin", None, results)
+    
+    return {"message": "Daily analysis completed", "results": results}
+
 # ============== PUSH NOTIFICATION SUBSCRIPTIONS ==============
 
 @api_router.post("/notifications/subscribe")
