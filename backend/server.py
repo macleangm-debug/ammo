@@ -1389,6 +1389,34 @@ async def setup_demo_data():
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
+    # Create demo marketplace products
+    demo_products = [
+        {"name": "SafeGuard Pro Biometric Safe", "category": "storage", "price": 599.99, "description": "Premium biometric gun safe with quick access", "dealer_id": "demo_dealer_001", "quantity_available": 25, "featured": True},
+        {"name": "TactiClean Cleaning Kit", "category": "accessory", "price": 49.99, "description": "Complete cleaning kit for all calibers", "dealer_id": "demo_dealer_001", "quantity_available": 100},
+        {"name": "9mm Training Rounds (50ct)", "category": "ammunition", "price": 24.99, "description": "Practice rounds for range training", "dealer_id": "dealer_002", "quantity_available": 500},
+        {"name": "Electronic Hearing Protection", "category": "safety_equipment", "price": 149.99, "description": "Active noise-canceling ear protection", "dealer_id": "dealer_003", "quantity_available": 50, "featured": True},
+        {"name": "Concealed Carry Holster", "category": "accessory", "price": 79.99, "description": "Premium leather IWB holster", "dealer_id": "dealer_002", "quantity_available": 75},
+        {"name": "Range Bag Deluxe", "category": "accessory", "price": 89.99, "description": "Large capacity range bag with multiple compartments", "dealer_id": "demo_dealer_001", "quantity_available": 40},
+        {"name": "Gun Lock Cable Set (3)", "category": "safety_equipment", "price": 19.99, "description": "TSA-approved cable locks", "dealer_id": "dealer_004", "quantity_available": 200},
+        {"name": "Advanced Safety Manual", "category": "training_material", "price": 29.99, "description": "Comprehensive firearm safety guide", "dealer_id": "dealer_003", "quantity_available": 150},
+    ]
+    
+    for prod_data in demo_products:
+        prod_id = f"prod_{prod_data['name'].lower().replace(' ', '_')[:20]}"
+        existing_prod = await db.marketplace_products.find_one({"product_id": prod_id})
+        if not existing_prod:
+            await db.marketplace_products.insert_one({
+                "product_id": prod_id,
+                **prod_data,
+                "status": "active",
+                "images": [],
+                "specifications": {},
+                "requires_license": prod_data["category"] in ["firearm", "ammunition"],
+                "views": random.randint(10, 200),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+    
     return {"message": "Demo data created", "citizen_license": "LIC-DEMO-001"}
 
 # ============== AMMO RESPONSIBILITY ENGINE ==============
