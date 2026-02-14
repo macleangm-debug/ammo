@@ -248,6 +248,82 @@ class PreventiveWarning(BaseModel):
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     acknowledged_at: Optional[datetime] = None
 
+# ============== MARKETPLACE MODELS ==============
+
+class MarketplaceProduct(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    product_id: str = Field(default_factory=lambda: f"prod_{uuid.uuid4().hex[:12]}")
+    dealer_id: str
+    name: str
+    description: str
+    category: str  # firearm, ammunition, accessory, safety_equipment, storage, training_material
+    subcategory: Optional[str] = None
+    price: float
+    sale_price: Optional[float] = None
+    quantity_available: int = 0
+    min_order_quantity: int = 1
+    max_order_quantity: Optional[int] = None
+    images: list = []  # List of image URLs
+    specifications: dict = {}  # Product specs
+    requires_license: bool = True  # Requires valid firearm license
+    license_types_allowed: list = []  # specific license types required
+    region_restrictions: list = []  # Regions where this cannot be sold
+    status: str = "active"  # active, draft, out_of_stock, discontinued
+    featured: bool = False
+    views: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MarketplaceOrder(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    order_id: str = Field(default_factory=lambda: f"order_{uuid.uuid4().hex[:12]}")
+    buyer_id: str  # citizen user_id
+    dealer_id: str
+    items: list = []  # List of {product_id, quantity, price_at_purchase}
+    subtotal: float
+    tax: float = 0
+    total: float
+    status: str = "pending"  # pending, confirmed, processing, shipped, delivered, cancelled, refunded
+    payment_status: str = "pending"  # pending, paid, failed, refunded
+    payment_method: Optional[str] = None
+    shipping_address: Optional[dict] = None
+    tracking_number: Optional[str] = None
+    license_verified: bool = False
+    verification_transaction_id: Optional[str] = None  # Link to verification transaction
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MarketplaceReview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    review_id: str = Field(default_factory=lambda: f"review_{uuid.uuid4().hex[:12]}")
+    product_id: str
+    buyer_id: str
+    order_id: str
+    rating: int  # 1-5
+    title: Optional[str] = None
+    comment: Optional[str] = None
+    verified_purchase: bool = True
+    helpful_votes: int = 0
+    status: str = "active"  # active, hidden, flagged
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CourseEnrollment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    enrollment_id: str = Field(default_factory=lambda: f"enroll_{uuid.uuid4().hex[:12]}")
+    course_id: str
+    user_id: str
+    status: str = "enrolled"  # enrolled, in_progress, completed, expired, failed
+    enrolled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    deadline: Optional[datetime] = None
+    progress_percent: int = 0
+    quiz_scores: list = []  # List of quiz attempt scores
+    certificate_id: Optional[str] = None
+    payment_status: str = "pending"  # pending, paid, waived
+    amount_paid: float = 0
+
 # Region definitions
 REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
 
