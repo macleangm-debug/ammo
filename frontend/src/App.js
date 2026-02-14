@@ -11,6 +11,7 @@ import DealerPortal from "./pages/DealerPortal";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
 import AlertsDashboard from "./pages/AlertsDashboard";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
+import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 
 // Register Service Worker for PWA
