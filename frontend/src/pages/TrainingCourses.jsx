@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   GraduationCap, Clock, Award, Play, CheckCircle, AlertCircle,
   BookOpen, Target, Shield, Users, Calendar, ChevronRight,
-  ArrowLeft, Filter, Search, Star, Loader2, Trophy
+  ArrowLeft, Filter, Search, Star, Loader2, Trophy, Download, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
