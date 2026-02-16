@@ -5021,7 +5021,7 @@ async def broadcast_push_notification(request: Request, user: dict = Depends(req
                 vapid_claims={"sub": VAPID_CLAIMS_EMAIL}
             )
             sent_count += 1
-        except WebPushException:
+        except (WebPushException, Exception):
             failed_count += 1
     
     return {
