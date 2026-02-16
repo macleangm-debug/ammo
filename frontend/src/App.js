@@ -13,6 +13,7 @@ import AlertsDashboard from "./pages/AlertsDashboard";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
+import TrainingCourses from "./pages/TrainingCourses";
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
