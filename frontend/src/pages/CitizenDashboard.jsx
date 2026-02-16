@@ -23,7 +23,8 @@ const CitizenDashboard = ({ user, api }) => {
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'license', path: '/dashboard/license', label: 'My License', icon: CreditCard },
-    { id: 'training', path: '/dashboard/training', label: 'Training', icon: GraduationCap },
+    { id: 'training', path: '/training', label: 'Training', icon: GraduationCap },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: Target },
     { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
     { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
     { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Settings },
