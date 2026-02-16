@@ -703,7 +703,6 @@ const Marketplace = ({ user, api }) => {
             </TabsContent>
           )}
         </Tabs>
-      </div>
 
       {/* Product Detail Dialog */}
       <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
