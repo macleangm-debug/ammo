@@ -4712,6 +4712,360 @@ async def complete_course(enrollment_id: str, user: dict = Depends(require_auth(
         "course_name": course["name"]
     }
 
+# ============== PDF CERTIFICATE GENERATION ==============
+
+def generate_certificate_pdf(user_name: str, course_name: str, completion_date: str, certificate_id: str, ari_boost: int, duration_hours: int) -> io.BytesIO:
+    """Generate a professional PDF certificate"""
+    buffer = io.BytesIO()
+    
+    # Create PDF with landscape orientation
+    c = canvas.Canvas(buffer, pagesize=landscape(letter))
+    width, height = landscape(letter)
+    
+    # Background gradient effect (light purple to white)
+    c.setFillColor(colors.Color(0.97, 0.96, 1.0))
+    c.rect(0, 0, width, height, fill=True, stroke=False)
+    
+    # Border
+    c.setStrokeColor(colors.Color(0.545, 0.361, 0.965))  # Purple
+    c.setLineWidth(3)
+    c.rect(30, 30, width - 60, height - 60, fill=False, stroke=True)
+    
+    # Inner decorative border
+    c.setStrokeColor(colors.Color(0.545, 0.361, 0.965, 0.3))
+    c.setLineWidth(1)
+    c.rect(40, 40, width - 80, height - 80, fill=False, stroke=False)
+    
+    # Header - AMMO Logo text
+    c.setFillColor(colors.Color(0.545, 0.361, 0.965))
+    c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(width / 2, height - 80, "AMMO")
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.Color(0.4, 0.4, 0.4))
+    c.drawCentredString(width / 2, height - 100, "Accountable Munitions & Mobility Oversight")
+    
+    # Certificate title
+    c.setFillColor(colors.Color(0.2, 0.2, 0.2))
+    c.setFont("Helvetica-Bold", 36)
+    c.drawCentredString(width / 2, height - 160, "Certificate of Completion")
+    
+    # Decorative line
+    c.setStrokeColor(colors.Color(0.545, 0.361, 0.965))
+    c.setLineWidth(2)
+    c.line(200, height - 180, width - 200, height - 180)
+    
+    # "This certifies that" text
+    c.setFont("Helvetica", 14)
+    c.setFillColor(colors.Color(0.3, 0.3, 0.3))
+    c.drawCentredString(width / 2, height - 220, "This certifies that")
+    
+    # User name
+    c.setFont("Helvetica-Bold", 28)
+    c.setFillColor(colors.Color(0.1, 0.1, 0.1))
+    c.drawCentredString(width / 2, height - 260, user_name)
+    
+    # "has successfully completed" text
+    c.setFont("Helvetica", 14)
+    c.setFillColor(colors.Color(0.3, 0.3, 0.3))
+    c.drawCentredString(width / 2, height - 300, "has successfully completed the training course")
+    
+    # Course name
+    c.setFont("Helvetica-Bold", 22)
+    c.setFillColor(colors.Color(0.545, 0.361, 0.965))
+    c.drawCentredString(width / 2, height - 340, course_name)
+    
+    # Course details
+    c.setFont("Helvetica", 12)
+    c.setFillColor(colors.Color(0.4, 0.4, 0.4))
+    c.drawCentredString(width / 2, height - 380, f"Duration: {duration_hours} hours  |  ARI Points Earned: +{ari_boost}")
+    
+    # Completion date
+    c.setFont("Helvetica", 14)
+    c.setFillColor(colors.Color(0.3, 0.3, 0.3))
+    c.drawCentredString(width / 2, height - 420, f"Completed on {completion_date}")
+    
+    # Certificate ID
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.Color(0.5, 0.5, 0.5))
+    c.drawCentredString(width / 2, height - 460, f"Certificate ID: {certificate_id}")
+    
+    # Signature line
+    c.setStrokeColor(colors.Color(0.3, 0.3, 0.3))
+    c.setLineWidth(1)
+    c.line(width/2 - 100, 100, width/2 + 100, 100)
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.Color(0.4, 0.4, 0.4))
+    c.drawCentredString(width / 2, 85, "AMMO Training Authority")
+    
+    # Footer
+    c.setFont("Helvetica", 8)
+    c.setFillColor(colors.Color(0.6, 0.6, 0.6))
+    c.drawCentredString(width / 2, 50, "This certificate verifies completion of an AMMO-certified training program.")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+@api_router.get("/member/certificates/{enrollment_id}")
+async def download_certificate(enrollment_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Download PDF certificate for a completed course"""
+    enrollment = await db.course_enrollments.find_one({
+        "enrollment_id": enrollment_id,
+        "user_id": user["user_id"],
+        "status": "completed"
+    }, {"_id": 0})
+    
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Completed enrollment not found")
+    
+    if not enrollment.get("certificate_id"):
+        raise HTTPException(status_code=400, detail="No certificate available for this enrollment")
+    
+    # Get course details
+    course = await db.training_courses.find_one({"course_id": enrollment["course_id"]}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get user details
+    user_data = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    user_name = user_data.get("name", "Member") if user_data else "Member"
+    
+    # Format completion date
+    completed_at = enrollment.get("completed_at")
+    if isinstance(completed_at, str):
+        completion_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00')).strftime("%B %d, %Y")
+    else:
+        completion_date = datetime.now().strftime("%B %d, %Y")
+    
+    # Generate PDF
+    pdf_buffer = generate_certificate_pdf(
+        user_name=user_name,
+        course_name=course.get("name", "Training Course"),
+        completion_date=completion_date,
+        certificate_id=enrollment.get("certificate_id"),
+        ari_boost=course.get("ari_boost", 5),
+        duration_hours=course.get("duration_hours", 4)
+    )
+    
+    filename = f"AMMO_Certificate_{enrollment.get('certificate_id')}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+# ============== VAPID / WEB PUSH ==============
+
+@api_router.get("/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Get the VAPID public key for push notification subscription"""
+    if not VAPID_PUBLIC_KEY:
+        raise HTTPException(status_code=500, detail="VAPID keys not configured")
+    return {"publicKey": VAPID_PUBLIC_KEY}
+
+@api_router.post("/push/subscribe")
+async def subscribe_to_push(request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Subscribe to push notifications with VAPID"""
+    body = await request.json()
+    subscription = body.get("subscription")
+    
+    if not subscription:
+        raise HTTPException(status_code=400, detail="Subscription object required")
+    
+    # Store subscription
+    await db.push_subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {
+            "$set": {
+                "user_id": user["user_id"],
+                "subscription": subscription,
+                "enabled": True,
+                "subscribed_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Send a test notification to confirm
+    try:
+        webpush(
+            subscription_info=subscription,
+            data=json.dumps({
+                "title": "AMMO Notifications Enabled",
+                "body": "You will now receive important alerts and updates.",
+                "icon": "/icons/icon-192x192.png"
+            }),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": VAPID_CLAIMS_EMAIL}
+        )
+    except WebPushException as e:
+        logger.error(f"Push notification failed: {e}")
+    
+    return {"message": "Subscribed to push notifications"}
+
+@api_router.post("/push/send")
+async def send_push_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Send push notification to a user (admin only)"""
+    body = await request.json()
+    target_user_id = body.get("user_id")
+    title = body.get("title", "AMMO Alert")
+    message = body.get("message")
+    url = body.get("url", "/")
+    
+    if not target_user_id or not message:
+        raise HTTPException(status_code=400, detail="user_id and message required")
+    
+    # Get user's subscription
+    subscription_doc = await db.push_subscriptions.find_one({
+        "user_id": target_user_id,
+        "enabled": True
+    }, {"_id": 0})
+    
+    if not subscription_doc or not subscription_doc.get("subscription"):
+        raise HTTPException(status_code=404, detail="User has no active push subscription")
+    
+    try:
+        webpush(
+            subscription_info=subscription_doc["subscription"],
+            data=json.dumps({
+                "title": title,
+                "body": message,
+                "icon": "/icons/icon-192x192.png",
+                "url": url
+            }),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": VAPID_CLAIMS_EMAIL}
+        )
+        
+        # Log the notification
+        await db.push_logs.insert_one({
+            "log_id": f"push_{uuid.uuid4().hex[:12]}",
+            "target_user_id": target_user_id,
+            "sent_by": user["user_id"],
+            "title": title,
+            "message": message,
+            "status": "sent",
+            "sent_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {"message": "Push notification sent"}
+    except WebPushException as e:
+        logger.error(f"Push notification failed: {e}")
+        if e.response and e.response.status_code == 410:
+            # Subscription expired, disable it
+            await db.push_subscriptions.update_one(
+                {"user_id": target_user_id},
+                {"$set": {"enabled": False}}
+            )
+            raise HTTPException(status_code=410, detail="Subscription expired")
+        raise HTTPException(status_code=500, detail=f"Failed to send push: {str(e)}")
+
+@api_router.post("/push/broadcast")
+async def broadcast_push_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Broadcast push notification to all subscribed users (admin only)"""
+    body = await request.json()
+    title = body.get("title", "AMMO Announcement")
+    message = body.get("message")
+    url = body.get("url", "/")
+    
+    if not message:
+        raise HTTPException(status_code=400, detail="message required")
+    
+    # Get all active subscriptions
+    subscriptions = await db.push_subscriptions.find({"enabled": True}, {"_id": 0}).to_list(10000)
+    
+    sent_count = 0
+    failed_count = 0
+    
+    for sub_doc in subscriptions:
+        try:
+            webpush(
+                subscription_info=sub_doc["subscription"],
+                data=json.dumps({
+                    "title": title,
+                    "body": message,
+                    "icon": "/icons/icon-192x192.png",
+                    "url": url
+                }),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_CLAIMS_EMAIL}
+            )
+            sent_count += 1
+        except WebPushException:
+            failed_count += 1
+    
+    return {
+        "message": "Broadcast complete",
+        "sent": sent_count,
+        "failed": failed_count,
+        "total_subscribers": len(subscriptions)
+    }
+
+# ============== MORE MARKETPLACE PRODUCTS ==============
+
+@api_router.post("/marketplace/seed-products")
+async def seed_marketplace_products(user: dict = Depends(require_auth(["admin"]))):
+    """Add more marketplace products for demo purposes"""
+    new_products = [
+        # Firearms (requires license)
+        {"name": "Defender 9mm Compact", "category": "firearm", "price": 599.99, "description": "Reliable compact pistol for concealed carry", "dealer_id": "demo_dealer_001", "quantity_available": 10, "requires_license": True, "subcategory": "handgun"},
+        {"name": "Sportsman .22 Rifle", "category": "firearm", "price": 449.99, "description": "Perfect for target shooting and small game", "dealer_id": "dealer_002", "quantity_available": 15, "requires_license": True, "subcategory": "rifle"},
+        {"name": "Home Guardian 12ga", "category": "firearm", "price": 379.99, "description": "Pump-action shotgun for home defense", "dealer_id": "dealer_003", "quantity_available": 8, "requires_license": True, "subcategory": "shotgun"},
+        
+        # Ammunition (requires license)
+        {"name": "9mm FMJ Training (500ct)", "category": "ammunition", "price": 149.99, "description": "Full metal jacket range ammunition", "dealer_id": "demo_dealer_001", "quantity_available": 200, "requires_license": True},
+        {"name": ".22 LR Target (1000ct)", "category": "ammunition", "price": 79.99, "description": "High-velocity rimfire ammunition", "dealer_id": "dealer_002", "quantity_available": 300, "requires_license": True},
+        {"name": "12ga Buckshot (25ct)", "category": "ammunition", "price": 34.99, "description": "00 buckshot for home defense", "dealer_id": "dealer_003", "quantity_available": 150, "requires_license": True},
+        {"name": "9mm JHP Defense (50ct)", "category": "ammunition", "price": 44.99, "description": "Hollow point self-defense rounds", "dealer_id": "dealer_004", "quantity_available": 100, "requires_license": True},
+        
+        # Safety Equipment
+        {"name": "Pro Shooter Eye Protection", "category": "safety_equipment", "price": 29.99, "description": "ANSI Z87.1 rated safety glasses", "dealer_id": "demo_dealer_001", "quantity_available": 100, "requires_license": False},
+        {"name": "Hearing Protection Combo", "category": "safety_equipment", "price": 39.99, "description": "Earmuffs and earplugs set", "dealer_id": "dealer_002", "quantity_available": 75, "requires_license": False},
+        {"name": "Range First Aid Kit", "category": "safety_equipment", "price": 49.99, "description": "Trauma kit for shooting range emergencies", "dealer_id": "dealer_003", "quantity_available": 50, "requires_license": False},
+        {"name": "Chamber Flag Safety Kit (10)", "category": "safety_equipment", "price": 12.99, "description": "Bright orange chamber flags for multiple firearms", "dealer_id": "dealer_004", "quantity_available": 200, "requires_license": False},
+        
+        # Storage
+        {"name": "Quick-Access Bedside Safe", "category": "storage", "price": 199.99, "description": "Biometric bedside safe with quick access", "dealer_id": "demo_dealer_001", "quantity_available": 30, "requires_license": False, "featured": True},
+        {"name": "12-Gun Steel Cabinet", "category": "storage", "price": 449.99, "description": "Secure cabinet for multiple long guns", "dealer_id": "dealer_002", "quantity_available": 15, "requires_license": False},
+        {"name": "Portable Travel Vault", "category": "storage", "price": 89.99, "description": "TSA-compliant travel safe", "dealer_id": "dealer_003", "quantity_available": 60, "requires_license": False},
+        {"name": "Under-Desk Holster Mount", "category": "storage", "price": 34.99, "description": "Concealed mounting system for quick access", "dealer_id": "dealer_004", "quantity_available": 80, "requires_license": False},
+        
+        # Accessories
+        {"name": "Tactical Flashlight (1000 lumens)", "category": "accessory", "price": 79.99, "description": "Weapon-mounted LED flashlight", "dealer_id": "demo_dealer_001", "quantity_available": 45, "requires_license": False},
+        {"name": "Red Dot Sight", "category": "accessory", "price": 149.99, "description": "Compact reflex sight for pistols", "dealer_id": "dealer_002", "quantity_available": 25, "requires_license": False, "featured": True},
+        {"name": "Magazine Loader Universal", "category": "accessory", "price": 24.99, "description": "Speed loader for 9mm/.40/.45 magazines", "dealer_id": "dealer_003", "quantity_available": 100, "requires_license": False},
+        {"name": "Holster Concealment Belt", "category": "accessory", "price": 54.99, "description": "Reinforced belt for IWB carry", "dealer_id": "dealer_004", "quantity_available": 60, "requires_license": False},
+        {"name": "Rifle Bipod Adjustable", "category": "accessory", "price": 69.99, "description": "6-9 inch adjustable shooting bipod", "dealer_id": "demo_dealer_001", "quantity_available": 35, "requires_license": False},
+        
+        # Training Materials
+        {"name": "Laser Training Cartridge 9mm", "category": "training_material", "price": 89.99, "description": "Dry fire training with laser feedback", "dealer_id": "dealer_002", "quantity_available": 40, "requires_license": False},
+        {"name": "Target Stand Kit", "category": "training_material", "price": 44.99, "description": "Portable target stand with paper targets", "dealer_id": "dealer_003", "quantity_available": 50, "requires_license": False},
+        {"name": "Shooting Timer Pro", "category": "training_material", "price": 129.99, "description": "Competition-grade shot timer", "dealer_id": "dealer_004", "quantity_available": 20, "requires_license": False},
+        {"name": "Snap Caps Training Rounds (6)", "category": "training_material", "price": 19.99, "description": "Dummy rounds for safe dry fire practice", "dealer_id": "demo_dealer_001", "quantity_available": 150, "requires_license": False},
+    ]
+    
+    created_count = 0
+    for prod_data in new_products:
+        prod_id = f"prod_{prod_data['name'].lower().replace(' ', '_')[:20]}_{uuid.uuid4().hex[:6]}"
+        existing = await db.marketplace_products.find_one({"name": prod_data["name"]})
+        if not existing:
+            await db.marketplace_products.insert_one({
+                "product_id": prod_id,
+                **prod_data,
+                "status": "active",
+                "images": [],
+                "specifications": {},
+                "views": random.randint(5, 100),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+            created_count += 1
+    
+    return {"message": f"Added {created_count} new products to marketplace"}
+
 # ============== SMS NOTIFICATION PREPARATION (MOCKED) ==============
 
 class SMSNotification(BaseModel):
