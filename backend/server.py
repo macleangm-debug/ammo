@@ -1141,6 +1141,70 @@ async def health_check():
 
 # ============== DEMO DATA ENDPOINTS ==============
 
+# Pydantic model for login request
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@api_router.post("/auth/login")
+async def auth_login(login_data: LoginRequest, response: Response):
+    """Login with username and password"""
+    # Demo credentials mapping
+    demo_credentials = {
+        "citizen": {"username": "citizen", "password": "demo123", "user_id": "demo_citizen_001"},
+        "dealer": {"username": "dealer", "password": "demo123", "user_id": "demo_dealer_001"},
+        "admin": {"username": "admin", "password": "admin123", "user_id": "demo_admin_001"},
+    }
+    
+    # Find matching credentials
+    user_id = None
+    for role, creds in demo_credentials.items():
+        if creds["username"] == login_data.username and creds["password"] == login_data.password:
+            user_id = creds["user_id"]
+            break
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    # Ensure demo data exists
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        # Auto-setup demo data if not exists
+        await setup_demo_data()
+        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=500, detail="Failed to initialize demo user")
+    
+    # Create session token
+    session_token = f"session_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    # Remove existing sessions and create new one
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=86400,  # 24 hours
+        path="/"
+    )
+    
+    return {
+        "message": "Login successful",
+        "session_token": session_token,
+        "user": serialize_doc(user)
+    }
+
 @api_router.post("/demo/login/{role}")
 async def demo_login(role: str, response: Response):
     """Create a session for demo user (for testing/screenshots only)"""
