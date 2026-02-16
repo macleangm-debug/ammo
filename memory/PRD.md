@@ -1,181 +1,101 @@
-# AMMO - Accountable Munitions & Mobility Oversight
-
-## Brand Definition
-**AMMO** = **A**ccountable **M**unitions & **M**obility **O**versight
-
-This reframes the platform from "bullets" to **accountability infrastructure** — a **National Responsible Ownership Ecosystem**.
+# AMMO (Accountable Munitions & Mobility Oversight) - PRD
 
 ## Original Problem Statement
-Build a National-grade responsible ownership platform with verification, accountability, engagement, and compliance systems.
+Build a comprehensive platform for responsible firearm ownership tracking with:
+- Multi-tiered user roles (Citizen/Member, Dealer, Admin)
+- ARI (Accountability Responsibility Index) scoring system
+- Training and certification management
+- Marketplace for verified products
+- PWA capabilities for mobile access
 
-## User Choices
-- **Scope**: Full system with all 5 components
-- **AI/Risk Engine**: OpenAI GPT-5.2 for intelligent risk analysis
-- **Authentication**: Emergent-managed Google OAuth + JWT hybrid
-- **Database**: MongoDB (cost-effective)
-- **Gamification Philosophy**: Rewards SAFETY, TRAINING, COMPLIANCE - NEVER purchase volume
-- **Design**: Modern analytics dashboard style (like reference image provided)
-- **Theme**: Light and Dark mode support
-- **PWA**: Full PWA capabilities
+## Current Status: MVP Complete ✅
 
-## Architecture
-- **Backend**: FastAPI + MongoDB + Motor (async)
-- **Frontend**: React + Tailwind CSS + Shadcn UI
-- **Auth**: Emergent Google OAuth with session tokens
-- **AI**: GPT-5.2 via emergentintegrations library
-- **PWA**: Service worker + manifest.json with offline support
+### Implemented Features
 
-## Design System (December 2025)
-Modern analytics dashboard design with:
-- **Layout**: Fixed sidebar navigation + main content area
-- **Components**: StatCard, BarChart, DonutChart, ProgressBar, DataTable
-- **Colors**: Purple primary (#8B5CF6), Success (#10B981), Warning (#F59E0B), Danger (#EF4444), Info (#3B82F6)
-- **Typography**: Inter (body), Plus Jakarta Sans (headings)
-- **Theme Toggle**: Light/Dark mode with localStorage persistence
+#### Authentication & User Management
+- **Username/Password Login** (Added Feb 16, 2026)
+  - `/api/auth/login` endpoint
+  - Demo credentials: citizen/demo123, dealer/demo123, admin/admin123
+  - Session-based authentication with cookies
+- **Demo Quick Login** - One-click access for testing
+- **Role-based Access Control** - Citizen, Dealer, Admin portals
 
-## What's Been Implemented
+#### PWA Features
+- Service worker for offline support
+- Offline fallback page
+- Background sync capabilities
+- Responsive mobile-first design
 
-### Phase 1-7 (Prior Implementation)
-- Multi-role auth (member, dealer, admin)
-- Transaction verification with AI risk scoring
-- Silent distress system
-- GPS geofencing
-- Risk Heatmaps & License alerts
-- ARI Score calculation with 5 weighted factors
-- 3-tier progression system
-- Government Dashboard with 6 tabs
-- Alerts & Red Flags Dashboard
-- Predictive Analytics with thresholds
+#### Member Portal
+- Dashboard with ARI score tracking
+- Training hours progress
+- Compliance streak monitoring
+- Monthly activity charts
+- Transaction history
 
-### Phase 8 - New Features (February 2026)
+#### Training Center
+- Course enrollment system
+- Progress tracking
+- PDF certificate generation for completed courses
+- ARI points earned from training
 
-#### 1. Full PWA Implementation ✅
-- Enhanced service worker (/sw.js) with:
-  - Network-first with cache fallback strategy
-  - Offline page support (/offline.html)
-  - Background sync for offline transactions
-  - Push notification handlers
-  - Dynamic API caching
-  - Periodic cache updates
-- Offline page with retry functionality
-- Install prompt support
-
-#### 2. Marketplace Enhancements ✅ (Members Only)
+#### Marketplace
 - Product browsing with search/filters
-- Category-based navigation
-- Shopping cart functionality
-- Order placement and tracking
-- Dealer product management
-- 8 demo products across categories
+- Category organization
+- Order management
+- Dealer verification badges
 
-#### 3. Real-time Push Notifications ✅
-- Browser push notification subscription
-- Notification preferences component
-- Push/Email/SMS channel selection
-- Alert type preferences (transactions, training, license, etc.)
-- Service worker push event handling
+#### Government Portal
+- National oversight dashboard
+- Risk analytics
+- Compliance monitoring
+- Alert management
 
-#### 4. Course Enrollment Flow ✅ (For Members)
-- Training Center page (/training)
-- Browse available courses with filters
-- Course enrollment with deadlines
-- Progress tracking (start -> progress -> complete)
-- Certificate generation on completion
-- ARI points awarded automatically
-- 8 demo courses with different categories
+### API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/login` | POST | Username/password login |
+| `/api/auth/me` | GET | Get current user |
+| `/api/demo/setup` | POST | Initialize demo data |
+| `/api/demo/login/{role}` | POST | Quick demo login |
+| `/api/members/courses/available` | GET | List available courses |
+| `/api/members/courses/enroll/{id}` | POST | Enroll in course |
+| `/api/members/courses/certificate/{id}` | GET | Download PDF certificate |
+| `/api/notifications/vapid_public_key` | GET | Get VAPID key for push |
 
-#### 5. SMS Environment Preparation ✅ (MOCKED)
-- SMS Notification model
-- `/api/sms/send` endpoint (admin only, mocked)
-- `/api/sms/history` endpoint
-- `/api/sms/configure-provider` endpoint
-- Environment variables ready for local provider integration
+### Tech Stack
+- **Frontend**: React, Tailwind CSS, Shadcn UI
+- **Backend**: FastAPI (Python)
+- **Database**: MongoDB
+- **PWA**: Service Workers, Web Push (VAPID)
+- **PDF**: ReportLab
 
-## API Endpoints (New in Phase 8)
+## Backlog
 
-### Member Course Enrollment
-- `GET /api/member/courses` - Get available training courses
-- `GET /api/member/courses/{course_id}` - Get course details
-- `POST /api/member/courses/{course_id}/enroll` - Enroll in course
-- `GET /api/member/enrollments` - Get my enrollments
-- `POST /api/member/enrollments/{id}/start` - Start course
-- `POST /api/member/enrollments/{id}/progress` - Update progress
-- `POST /api/member/enrollments/{id}/complete` - Complete course
+### P1 - High Priority
+- [ ] Smart Safe IoT Integration
+- [ ] Insurance Partner API Integration
 
-### Push Notifications
-- `GET /api/notifications/status` - Get subscription status
-- `POST /api/notifications/subscribe` - Subscribe to push
-- `POST /api/notifications/unsubscribe` - Unsubscribe
+### P2 - Medium Priority  
+- [ ] Community Mentor Matching
+- [ ] SMS Notifications (currently mocked)
 
-### SMS (Mocked)
-- `POST /api/sms/send` - Send SMS (admin only)
-- `GET /api/sms/history` - Get SMS history (admin only)
-- `POST /api/sms/configure-provider` - Configure SMS provider
+### P3 - Future Enhancements
+- [ ] Backend modularization (break up server.py)
+- [ ] Real-time notifications
+- [ ] Advanced analytics dashboard
 
-### PWA Sync
-- `POST /api/sync/offline-transactions` - Sync offline transactions
-- `GET /api/sync/pending` - Get pending sync items
+## Credentials Reference
 
-## New Frontend Pages
-- `/training` - Training Center with course catalog
-- `/marketplace` - Members-only marketplace
-- NotificationSettings component for push preferences
+### Demo Accounts
+| Username | Password | Role | Access |
+|----------|----------|------|--------|
+| citizen | demo123 | Citizen | Member Dashboard |
+| dealer | demo123 | Dealer | Dealer Portal |
+| admin | admin123 | Admin | Government Dashboard |
 
-## Testing Results
-- Backend: 94.7% pass rate (18/19 tests)
-- Frontend: 95% pass rate
-- All major features working
-
-## Prioritized Backlog
-
-### P0 (Critical - Completed ✅)
-- [x] Full PWA Implementation
-- [x] Dealer Marketplace (members-only)
-- [x] Course Enrollment Flow
-
-### P1 (High Priority - Next Up)
-- [ ] Real-time Push Notifications (browser-based) - UI ready, backend done
-- [ ] SMS integration with local provider (environment prepared)
-
-### P2 (Medium Priority)
-- [ ] Insurance partner API integration
-- [ ] Smart safe IoT integration
-- [ ] Community mentor matching system
-
-## Technical Notes
-- EMERGENT_LLM_KEY: (configured in backend .env)
-- SMS_PROVIDER: local (ready for integration)
-- MongoDB collections: users, citizen_profiles, dealer_profiles, transactions, responsibility_profile, audit_logs, training_courses, course_enrollments, revenue_records, member_alerts, alert_thresholds, marketplace_products, marketplace_orders, sms_notifications
-- PWA icons: /app/frontend/public/icons/
-- Service worker: /app/frontend/public/sw.js v2
-- Offline page: /app/frontend/public/offline.html
-
-## Date Log
-- Feb 16, 2026: Phase 8 - PWA enhancements, Course Enrollment, Marketplace improvements, Push Notifications, SMS preparation
-- Feb 16, 2026: Phase 8.1 - VAPID keys for production push, PDF certificate generation, 24 new marketplace products
-
-## Latest Updates (Feb 16, 2026)
-
-### VAPID Keys for Push Notifications ✅
-- Auto-generated ECDSA P-256 keys using cryptography library
-- Keys persisted to `/app/backend/vapid_keys.json`
-- Public key endpoint: `/api/push/vapid-public-key`
-- Subscribe endpoint: `/api/push/subscribe`
-- Admin send: `/api/push/send`
-- Admin broadcast: `/api/push/broadcast`
-
-### PDF Certificate Generation ✅
-- Professional landscape PDF certificates using ReportLab
-- Download endpoint: `/api/member/certificates/{enrollment_id}`
-- Features: Course name, completion date, ARI points earned, certificate ID
-- UI: PDF download button on completed courses in Training Center
-
-### Marketplace Expansion ✅
-- 24 new products seeded via `/api/marketplace/seed-products`
-- Categories: Firearms, Ammunition, Safety Equipment, Storage, Accessories, Training Materials
-- Total products: 32+ in marketplace
-
-### Backlog Items Explained:
-1. **Smart Safe IoT**: IoT-enabled gun safe integration for automatic compliance verification
-2. **Insurance Partner API**: Integration for premium discounts based on ARI score
-3. **Community Mentor Matching**: Elite members mentor Sentinel-tier members
+### Environment Variables
+- `MONGO_URL` - MongoDB connection
+- `DB_NAME` - Database name
+- `VAPID_PRIVATE_KEY` - Push notification key
+- `VAPID_PUBLIC_KEY` - Push notification public key
