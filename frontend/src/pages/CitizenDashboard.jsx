@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Shield, Award, History, Bell, Settings,
   CreditCard, GraduationCap, Target, CheckCircle, Clock,
-  AlertTriangle, TrendingUp, Calendar, Users, XCircle
+  AlertTriangle, TrendingUp, Calendar, Users, XCircle, ShoppingBag
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
