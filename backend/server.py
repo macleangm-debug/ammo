@@ -308,7 +308,7 @@ class MarketplaceReview(BaseModel):
     status: str = "active"  # active, hidden, flagged
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class CourseEnrollment(BaseModel):
+class CourseEnrollmentExtended(BaseModel):
     model_config = ConfigDict(extra="ignore")
     enrollment_id: str = Field(default_factory=lambda: f"enroll_{uuid.uuid4().hex[:12]}")
     course_id: str
