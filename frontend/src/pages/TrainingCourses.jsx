@@ -179,37 +179,52 @@ const TrainingCourses = ({ user, api }) => {
   const inProgressEnrollments = enrollments.filter(e => ["enrolled", "in_progress"].includes(e.status));
   const completedEnrollments = enrollments.filter(e => e.status === "completed");
 
+  const navItems = [
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'license', path: '/dashboard/license', label: 'My License', icon: CreditCard },
+    { id: 'training', path: '/training', label: 'Training', icon: GraduationCap },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
+    { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
+    { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
+    { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Settings },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <GraduationCap className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading training courses...</p>
+      <DashboardLayout 
+        user={user} 
+        navItems={navItems} 
+        title="Training Center"
+        subtitle="Member Portal"
+        onLogout={handleLogout}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <GraduationCap className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading training courses...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="training-courses">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">Training Center</h1>
-                <p className="text-sm text-muted-foreground">Improve your ARI score with certified courses</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-6">
+    <DashboardLayout 
+      user={user} 
+      navItems={navItems} 
+      title="Training Center"
+      subtitle="Member Portal"
+      onLogout={handleLogout}
+    >
+      <div data-testid="training-courses">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
