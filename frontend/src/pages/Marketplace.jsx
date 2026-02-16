@@ -4,7 +4,8 @@ import {
   ShoppingBag, Search, Filter, Grid, List, Star, ShoppingCart,
   Package, Truck, ChevronRight, Plus, Edit, Trash2, Eye,
   Tag, DollarSign, Box, Shield, CheckCircle, AlertCircle,
-  Heart, Share2, ArrowLeft, X, Minus
+  Heart, Share2, ArrowLeft, X, Minus,
+  LayoutDashboard, CreditCard, GraduationCap, History, Bell, Settings
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -33,6 +34,7 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { toast } from "sonner";
+import DashboardLayout from "../components/DashboardLayout";
 
 const Marketplace = ({ user, api }) => {
   const navigate = useNavigate();
