@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Shield, Menu, X, LogOut, Sun, Moon, HelpCircle,
-  MessageSquare
+  MessageSquare, Search, Bell, Mail, ChevronDown
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { useTheme } from "../contexts/ThemeContext";
 
 const DashboardLayout = ({ 
@@ -19,6 +20,7 @@ const DashboardLayout = ({
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -42,11 +44,11 @@ const DashboardLayout = ({
         {/* Logo */}
         <div className="sidebar-logo">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-heading font-bold text-lg">AMMO</h1>
+              <h1 className="font-heading font-bold text-lg text-foreground">AMMO</h1>
               <p className="text-xs text-muted-foreground">{subtitle}</p>
             </div>
           </div>
@@ -78,13 +80,18 @@ const DashboardLayout = ({
 
         {/* Support Card */}
         <div className="sidebar-support">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
-            <HelpCircle className="w-8 h-8 text-primary" />
+          <div className="flex items-center justify-center mb-3">
+            <svg viewBox="0 0 100 80" className="w-20 h-16">
+              <circle cx="30" cy="50" r="18" fill="hsl(var(--primary) / 0.2)" />
+              <circle cx="70" cy="50" r="18" fill="hsl(var(--primary) / 0.15)" />
+              <circle cx="50" cy="35" r="12" fill="hsl(var(--primary) / 0.3)" />
+            </svg>
           </div>
-          <p className="text-sm text-muted-foreground mb-3">Need help?</p>
-          <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
+          <p className="text-sm font-medium mb-1">Support 24/7</p>
+          <p className="text-xs text-muted-foreground mb-3">Contact us anytime</p>
+          <Button size="sm" className="w-full">
             <MessageSquare className="w-4 h-4 mr-2" />
-            Get Support
+            Start chat
           </Button>
         </div>
 
@@ -104,9 +111,9 @@ const DashboardLayout = ({
       {/* Main Content */}
       <main className="dashboard-main">
         {/* Top Header */}
-        <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border">
-          <div className="px-4 lg:px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-20 bg-card border-b border-border">
+          <div className="px-4 lg:px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
               {/* Mobile menu button */}
               <Button
                 variant="ghost"
@@ -117,26 +124,28 @@ const DashboardLayout = ({
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
               
-              <div>
-                <h2 className="font-heading font-semibold text-xl">{title}</h2>
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
+              {/* Page Title */}
+              <h2 className="font-heading font-semibold text-lg">{title}</h2>
+              
+              {/* Search Bar */}
+              <div className="hidden md:flex relative flex-1 max-w-md ml-8">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-background border-border"
+                />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Theme Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                className="rounded-full"
+                className="rounded-full w-10 h-10"
                 data-testid="theme-toggle"
               >
                 {theme === 'dark' ? (
@@ -146,21 +155,38 @@ const DashboardLayout = ({
                 )}
               </Button>
 
+              {/* Messages */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-10 h-10 relative"
+              >
+                <Mail className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+              </Button>
+
+              {/* Notifications */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-10 h-10 relative"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+              </Button>
+
               {/* User Profile */}
-              <div className="flex items-center gap-3 pl-3 border-l border-border">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium">{user?.name || 'User'}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              <div className="flex items-center gap-2 pl-3 ml-2 border-l border-border cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
                   {user?.picture ? (
                     <img src={user.picture} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-primary font-semibold">
+                    <span className="text-white font-semibold text-sm">
                       {user?.name?.charAt(0) || 'U'}
                     </span>
                   )}
                 </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
               </div>
             </div>
           </div>
