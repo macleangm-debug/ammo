@@ -1,24 +1,27 @@
+#!/usr/bin/env python3
+
 import requests
 import sys
-from datetime import datetime
 import json
+from datetime import datetime
+import time
 
-class AmmoAPITester:
-    def __init__(self, base_url="https://ammo-gov-oversight.preview.emergentagent.com"):
+class AMNONewFeaturesTest:
+    """
+    Test suite specifically for the NEW features added:
+    1. VAPID push notification system
+    2. Marketplace products seeding (30+ products goal)
+    3. PDF certificate generation and download
+    """
+    
+    def __init__(self, base_url="https://ammo-pull.preview.emergentagent.com/api"):
         self.base_url = base_url
-        self.api_url = f"{base_url}/api"
         self.session = requests.Session()
+        self.admin_token = None
+        self.citizen_token = None
         self.tests_run = 0
         self.tests_passed = 0
-        
-        # Store auth tokens for different user types
-        self.citizen_token = None
-        self.dealer_token = None
-        self.admin_token = None
-        
-        # Provided test session tokens
-        self.test_citizen_token = "test_session_gamify_1771005675566"
-        self.test_admin_token = "admin_session_heatmap_1771005693702"
+        self.enrollment_id = None
 
     def log_test(self, test_name, passed, details=""):
         """Log test result"""
