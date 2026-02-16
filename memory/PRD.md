@@ -26,24 +26,14 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - Background sync capabilities
 - Responsive mobile-first design
 
-#### Member Portal
-- Dashboard with ARI score tracking
-- Training hours progress
-- Compliance streak monitoring
-- Monthly activity charts
-- Transaction history
-
-#### Training Center
-- Course enrollment system
-- Progress tracking
-- PDF certificate generation for completed courses
-- ARI points earned from training
-
-#### Marketplace
-- Product browsing with search/filters
-- Category organization
-- Order management
-- Dealer verification badges
+#### Member Portal (All pages have consistent sidebar)
+- **Dashboard** - ARI score, training hours, compliance streak, activity charts
+- **My License** - License details, expiry, compliance score, biometric status (Added Feb 16, 2026)
+- **Training Center** - Course enrollment, progress tracking, PDF certificates
+- **Marketplace** - Product browsing, cart, order management
+- **History** - Transaction history with search/filters (Added Feb 16, 2026)
+- **Notifications** - Notification management (Added Feb 16, 2026)
+- **Settings** - Profile, security, appearance settings (Added Feb 16, 2026)
 
 #### Government Portal
 - National oversight dashboard
@@ -58,10 +48,12 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/auth/me` | GET | Get current user |
 | `/api/demo/setup` | POST | Initialize demo data |
 | `/api/demo/login/{role}` | POST | Quick demo login |
-| `/api/members/courses/available` | GET | List available courses |
-| `/api/members/courses/enroll/{id}` | POST | Enroll in course |
-| `/api/members/courses/certificate/{id}` | GET | Download PDF certificate |
-| `/api/notifications/vapid_public_key` | GET | Get VAPID key for push |
+| `/api/citizen/profile` | GET | Get citizen profile with license info |
+| `/api/citizen/transactions` | GET | Get transaction history |
+| `/api/member/courses` | GET | List available courses |
+| `/api/member/courses/{id}/enroll` | POST | Enroll in course |
+| `/api/member/enrollments/{id}/complete` | POST | Complete course, get certificate |
+| `/api/marketplace/products` | GET | List marketplace products |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI
@@ -94,8 +86,12 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | dealer | demo123 | Dealer | Dealer Portal |
 | admin | admin123 | Admin | Government Dashboard |
 
-### Environment Variables
-- `MONGO_URL` - MongoDB connection
-- `DB_NAME` - Database name
-- `VAPID_PRIVATE_KEY` - Push notification key
-- `VAPID_PUBLIC_KEY` - Push notification public key
+### Pages with Sidebar Navigation
+All member portal pages now have consistent sidebar:
+- Dashboard (`/dashboard`)
+- My License (`/dashboard/license`)
+- Training (`/training`)
+- Marketplace (`/marketplace`)
+- History (`/dashboard/history`)
+- Notifications (`/dashboard/notifications`)
+- Settings (`/dashboard/settings`)
