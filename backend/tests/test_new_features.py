@@ -16,9 +16,9 @@ class TestAMMONewFeatures:
     5. Dealer Marketplace enhancements (members only)
     """
     
-    def __init__(self, base_url="https://ammo-pull.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://ammo-pwa-demo.preview.emergentagent.com/api"):
         self.base_url = base_url
-        self.frontend_url = "https://ammo-pull.preview.emergentagent.com"
+        self.frontend_url = "https://ammo-pwa-demo.preview.emergentagent.com"
         self.session = requests.Session()
         self.admin_token = None
         self.citizen_token = None
