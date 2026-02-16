@@ -79,17 +79,25 @@ const NotificationSettings = ({ user, api }) => {
     try {
       const registration = await navigator.serviceWorker.ready;
       
+      // Fetch VAPID public key from server
+      let vapidPublicKey;
+      try {
+        const keyResponse = await api.get("/push/vapid-public-key");
+        vapidPublicKey = keyResponse.data.publicKey;
+      } catch (error) {
+        console.error("Failed to fetch VAPID key:", error);
+        // Fallback key for development
+        vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+      }
+      
       // Create push subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          // This would be your VAPID public key in production
-          'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
-        )
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
 
       // Send subscription to backend
-      await api.post("/notifications/subscribe", {
+      await api.post("/push/subscribe", {
         subscription: subscription.toJSON()
       });
 
