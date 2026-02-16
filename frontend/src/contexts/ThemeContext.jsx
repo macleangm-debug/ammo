@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext({
-  theme: 'dark',
+  theme: 'light',
   setTheme: () => {},
   toggleTheme: () => {},
 });
@@ -14,7 +14,7 @@ export const useTheme = () => {
   return context;
 };
 
-export const ThemeProvider = ({ children, defaultTheme = 'dark', storageKey = 'ammo-theme' }) => {
+export const ThemeProvider = ({ children, defaultTheme = 'light', storageKey = 'ammo-theme' }) => {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(storageKey) || defaultTheme;
@@ -31,7 +31,7 @@ export const ThemeProvider = ({ children, defaultTheme = 'dark', storageKey = 'a
     // Update meta theme-color for PWA
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'dark' ? '#020617' : '#f8fafc');
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#020617' : '#f4f6fa');
     }
   }, [theme, storageKey]);
 
