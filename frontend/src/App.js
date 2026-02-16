@@ -160,6 +160,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage api={api} />} />
+      <Route path="/login" element={<LoginPage api={api} />} />
       
       <Route
         path="/dashboard"
