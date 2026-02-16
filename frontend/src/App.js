@@ -215,6 +215,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/training"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
+            {({ user, api }) => <TrainingCourses user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/setup"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
