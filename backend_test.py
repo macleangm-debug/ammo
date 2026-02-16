@@ -348,15 +348,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-                    details += " [⚠ Still shows AEGIS branding]"
-                    success = False
-            self.log_test("API Root Endpoint (AMMO Branding)", success, details)
-            return success
-        except Exception as e:
-            self.log_test("API Root Endpoint (AMMO Branding)", False, str(e))
-            return False
-
-    def test_health_endpoint(self):
         """Test health check endpoint"""
         try:
             response = self.session.get(f"{self.api_url}/health")
