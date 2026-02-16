@@ -110,25 +110,53 @@ const DashboardLayout = ({
 
       {/* Main Content */}
       <main className="dashboard-main">
-        {/* Top Header */}
-        <header className="sticky top-0 z-20 bg-card border-b border-border">
-          <div className="px-4 lg:px-6 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              {/* Mobile menu button */}
+        {/* Mobile Header - App-like */}
+        <header className="lg:hidden sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="mobile-menu-btn lg:hidden"
+                className="w-9 h-9"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-              
-              {/* Page Title */}
+              <h2 className="font-heading font-semibold">{title}</h2>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="w-9 h-9">
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="w-9 h-9 relative">
+                <Mail className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+              </Button>
+              <Button variant="ghost" size="icon" className="w-9 h-9 relative">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+              </Button>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center ml-1">
+                {user?.picture ? (
+                  <img src={user.picture} alt="" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span className="text-white font-semibold text-xs">
+                    {user?.name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Desktop Header */}
+        <header className="hidden lg:block sticky top-0 z-20 bg-card border-b border-border">
+          <div className="px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
               <h2 className="font-heading font-semibold text-lg">{title}</h2>
               
               {/* Search Bar */}
-              <div className="hidden md:flex relative flex-1 max-w-md ml-8">
+              <div className="flex relative flex-1 max-w-md ml-8">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search..."
