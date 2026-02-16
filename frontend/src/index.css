@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 /* ============================================
-   AMMO - MODERN ANALYTICS DASHBOARD DESIGN
-   Light & Dark Theme Support
+   AMMO - MODERN LIGHT DASHBOARD DESIGN
+   Clean, Airy, Professional
 ============================================ */
 
 body {
@@ -21,46 +21,46 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   CSS VARIABLES
+   CSS VARIABLES - LIGHT FIRST DESIGN
 ============================================ */
 @layer base {
     :root {
-        /* Light Mode */
-        --background: 0 0% 98%;
-        --foreground: 224 71% 4%;
+        /* Light Mode - Clean & Airy */
+        --background: 225 25% 97%;
+        --foreground: 222 47% 11%;
         --card: 0 0% 100%;
-        --card-foreground: 224 71% 4%;
+        --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
-        --popover-foreground: 224 71% 4%;
-        --primary: 262 83% 58%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 234 89% 64%;
         --primary-foreground: 0 0% 100%;
         --secondary: 220 14% 96%;
         --secondary-foreground: 220 9% 46%;
-        --muted: 220 14% 96%;
+        --muted: 225 20% 94%;
         --muted-foreground: 220 9% 46%;
-        --accent: 262 83% 58%;
+        --accent: 234 89% 64%;
         --accent-foreground: 0 0% 100%;
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
         --border: 220 13% 91%;
         --input: 220 13% 91%;
-        --ring: 262 83% 58%;
+        --ring: 234 89% 64%;
         --radius: 0.75rem;
         
-        /* Dashboard specific */
+        /* Dashboard specific - Light */
         --sidebar-bg: 0 0% 100%;
         --sidebar-border: 220 13% 91%;
         --stat-card-bg: 0 0% 100%;
-        --chart-primary: 217 91% 60%;
+        --chart-primary: 234 89% 64%;
         --chart-secondary: 43 96% 56%;
         --chart-tertiary: 160 84% 39%;
-        --chart-quaternary: 262 83% 58%;
+        --chart-quaternary: 280 67% 60%;
         
         /* Status colors */
         --status-success: 160 84% 39%;
         --status-warning: 43 96% 56%;
         --status-danger: 0 84% 60%;
-        --status-info: 217 91% 60%;
+        --status-info: 234 89% 64%;
     }
 
     .dark {
@@ -71,28 +71,28 @@ h1, h2, h3, h4, h5, h6 {
         --card-foreground: 213 31% 91%;
         --popover: 224 47% 8%;
         --popover-foreground: 213 31% 91%;
-        --primary: 262 83% 58%;
+        --primary: 234 89% 64%;
         --primary-foreground: 0 0% 100%;
         --secondary: 215 28% 17%;
         --secondary-foreground: 213 31% 91%;
         --muted: 215 28% 17%;
         --muted-foreground: 215 20% 65%;
-        --accent: 262 83% 58%;
+        --accent: 234 89% 64%;
         --accent-foreground: 0 0% 100%;
         --destructive: 0 63% 31%;
         --destructive-foreground: 0 0% 100%;
         --border: 215 28% 17%;
         --input: 215 28% 17%;
-        --ring: 262 83% 58%;
+        --ring: 234 89% 64%;
         
-        /* Dashboard specific */
+        /* Dashboard specific - Dark */
         --sidebar-bg: 224 47% 6%;
         --sidebar-border: 215 28% 17%;
         --stat-card-bg: 224 47% 8%;
-        --chart-primary: 217 91% 60%;
+        --chart-primary: 234 89% 64%;
         --chart-secondary: 43 96% 56%;
         --chart-tertiary: 160 84% 39%;
-        --chart-quaternary: 262 83% 58%;
+        --chart-quaternary: 280 67% 60%;
     }
 }
 
