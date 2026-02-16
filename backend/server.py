@@ -4424,7 +4424,7 @@ async def get_notification_status(user: dict = Depends(require_auth(["citizen", 
 # ============== MEMBER COURSE ENROLLMENT ==============
 
 @api_router.get("/member/courses")
-async def get_available_courses(
+async def get_member_courses(
     category: Optional[str] = None,
     region: Optional[str] = None,
     compulsory: Optional[bool] = None,
