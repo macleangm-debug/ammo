@@ -554,7 +554,6 @@ const TrainingCourses = ({ user, api }) => {
             )}
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Enroll Dialog */}
       <Dialog open={enrollDialog} onOpenChange={setEnrollDialog}>
