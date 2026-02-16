@@ -968,7 +968,8 @@ const Marketplace = ({ user, api }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
