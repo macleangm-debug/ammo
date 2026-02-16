@@ -4546,7 +4546,7 @@ async def member_enroll_in_course(course_id: str, user: dict = Depends(require_a
     }
 
 @api_router.get("/member/enrollments")
-async def get_my_enrollments(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+async def get_member_enrollments(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
     """Get all my course enrollments"""
     enrollments = await db.course_enrollments.find(
         {"user_id": user["user_id"]},
