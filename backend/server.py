@@ -4484,7 +4484,7 @@ async def get_member_course_details(course_id: str, user: dict = Depends(require
     return course
 
 @api_router.post("/member/courses/{course_id}/enroll")
-async def enroll_in_course(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+async def member_enroll_in_course(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
     """Enroll in a training course"""
     course = await db.training_courses.find_one({"course_id": course_id, "status": "active"}, {"_id": 0})
     if not course:
