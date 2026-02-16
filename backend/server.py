@@ -48,19 +48,43 @@ VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', 'mailto:admin@ammo.gov
 if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
     vapid_keys_file = ROOT_DIR / 'vapid_keys.json'
     if vapid_keys_file.exists():
-        with open(vapid_keys_file) as f:
-            keys = json.load(f)
-            VAPID_PRIVATE_KEY = keys.get('private_key')
-            VAPID_PUBLIC_KEY = keys.get('public_key')
-    else:
-        # Generate new keys
-        vapid = Vapid()
-        vapid.generate_keys()
-        VAPID_PRIVATE_KEY = vapid.private_pem.decode('utf-8') if isinstance(vapid.private_pem, bytes) else vapid.private_pem
-        VAPID_PUBLIC_KEY = vapid.public_key
+        try:
+            with open(vapid_keys_file) as f:
+                keys = json.load(f)
+                VAPID_PRIVATE_KEY = keys.get('private_key')
+                VAPID_PUBLIC_KEY = keys.get('public_key')
+        except (json.JSONDecodeError, IOError):
+            pass
+    
+    if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        # Generate new keys using cryptography
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import serialization
+        import base64
+        
+        private_key = ec.generate_private_key(ec.SECP256R1())
+        public_key = private_key.public_key()
+        
+        # Get public key in X962 uncompressed format
+        public_key_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )
+        VAPID_PUBLIC_KEY = base64.urlsafe_b64encode(public_key_bytes).rstrip(b'=').decode('utf-8')
+        
+        # Get private key in PEM format
+        VAPID_PRIVATE_KEY = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
         # Save for persistence
-        with open(vapid_keys_file, 'w') as f:
-            json.dump({'private_key': VAPID_PRIVATE_KEY, 'public_key': VAPID_PUBLIC_KEY}, f)
+        try:
+            with open(vapid_keys_file, 'w') as f:
+                json.dump({'private_key': VAPID_PRIVATE_KEY, 'public_key': VAPID_PUBLIC_KEY}, f)
+        except IOError:
+            pass
 
 # Create the main app
 app = FastAPI(title="AMMO - Accountable Munitions & Mobility Oversight")
