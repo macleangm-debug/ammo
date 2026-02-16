@@ -214,14 +214,14 @@ const DashboardLayout = ({
                     </span>
                   )}
                 </div>
-                <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-4 lg:p-6 pb-24 lg:pb-6">
+        <div className="p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </div>
 
@@ -238,7 +238,7 @@ const DashboardLayout = ({
                 data-testid={`mobile-nav-${item.id}`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] mt-1">{item.label.split(' ')[0]}</span>
+                <span className="text-[10px] mt-0.5">{item.label.split(' ')[0]}</span>
               </button>
             );
           })}
