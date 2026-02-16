@@ -557,6 +557,31 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Mobile App-like styling */
+@media (max-width: 1023px) {
+    /* Larger touch targets */
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Card hover effects for touch */
+    .card-touch:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+}
+
 /* ============================================
    SELECTION & FOCUS
 ============================================ */
