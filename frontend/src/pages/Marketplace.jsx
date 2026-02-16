@@ -272,62 +272,87 @@ const Marketplace = ({ user, api }) => {
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const navItems = [
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'license', path: '/dashboard/license', label: 'My License', icon: CreditCard },
+    { id: 'training', path: '/training', label: 'Training', icon: GraduationCap },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
+    { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
+    { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
+    { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Settings },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <ShoppingBag className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading marketplace...</p>
+      <DashboardLayout 
+        user={user} 
+        navItems={navItems} 
+        title="Marketplace"
+        subtitle="Member Portal"
+        onLogout={handleLogout}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <ShoppingBag className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading marketplace...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="marketplace">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">AMMO Marketplace</h1>
-                <p className="text-sm text-muted-foreground">Verified dealer products</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {!isDealer && (
-                <Button 
-                  variant="outline" 
-                  className="relative"
-                  onClick={() => setCartDialog(true)}
-                  data-testid="cart-btn"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                      {cartItemCount}
-                    </span>
-                  )}
-                </Button>
-              )}
-            </div>
+    <DashboardLayout 
+      user={user} 
+      navItems={navItems} 
+      title="Marketplace"
+      subtitle="Member Portal"
+      onLogout={handleLogout}
+    >
+      <div data-testid="marketplace">
+        {/* Cart Button for Mobile */}
+        {!isDealer && cartItemCount > 0 && (
+          <div className="fixed bottom-4 right-4 z-40 lg:hidden">
+            <Button 
+              size="lg"
+              className="rounded-full shadow-lg"
+              onClick={() => setCartDialog(true)}
+            >
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              {cartItemCount} items - ${cartTotal.toFixed(2)}
+            </Button>
           </div>
-        </div>
-      </div>
+        )}
 
-      <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid ${isDealer ? 'grid-cols-4' : 'grid-cols-2'} w-full max-w-md mb-6`}>
-            <TabsTrigger value="browse">Browse</TabsTrigger>
-            {isDealer && <TabsTrigger value="my-products">My Products</TabsTrigger>}
-            <TabsTrigger value="orders">{isDealer ? "Sales" : "My Orders"}</TabsTrigger>
-            {isDealer && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className={`grid ${isDealer ? 'grid-cols-4' : 'grid-cols-2'} w-full max-w-md`}>
+              <TabsTrigger value="browse">Browse</TabsTrigger>
+              {isDealer && <TabsTrigger value="my-products">My Products</TabsTrigger>}
+              <TabsTrigger value="orders">{isDealer ? "Sales" : "My Orders"}</TabsTrigger>
+              {isDealer && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
+            </TabsList>
+            
+            {!isDealer && (
+              <Button 
+                variant="outline" 
+                className="relative hidden lg:flex"
+                onClick={() => setCartDialog(true)}
+                data-testid="cart-btn"
+              >
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Cart ({cartItemCount})
+              </Button>
+            )}
+          </div>
 
           {/* BROWSE TAB */}
           <TabsContent value="browse" className="space-y-6">
