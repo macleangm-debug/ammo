@@ -637,7 +637,8 @@ const TrainingCourses = ({ user, api }) => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
