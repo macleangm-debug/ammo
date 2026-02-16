@@ -6,6 +6,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
 import CitizenDashboard from "./pages/CitizenDashboard";
 import DealerPortal from "./pages/DealerPortal";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
