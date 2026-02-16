@@ -24,7 +24,7 @@ const CitizenDashboard = ({ user, api }) => {
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'license', path: '/dashboard/license', label: 'My License', icon: CreditCard },
     { id: 'training', path: '/training', label: 'Training', icon: GraduationCap },
-    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: Target },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
     { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
     { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
     { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Settings },
