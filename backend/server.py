@@ -4986,6 +4986,9 @@ async def send_push_notification(request: Request, user: dict = Depends(require_
             )
             raise HTTPException(status_code=410, detail="Subscription expired")
         raise HTTPException(status_code=500, detail=f"Failed to send push: {str(e)}")
+    except Exception as e:
+        logger.error(f"Push notification error: {e}")
+        raise HTTPException(status_code=500, detail=f"Push notification error: {str(e)}")
 
 @api_router.post("/push/broadcast")
 async def broadcast_push_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
