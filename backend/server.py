@@ -4421,6 +4421,393 @@ async def get_notification_status(user: dict = Depends(require_auth(["citizen", 
         "subscribed": subscription is not None and subscription.get("enabled", False)
     }
 
+# ============== MEMBER COURSE ENROLLMENT ==============
+
+@api_router.get("/member/courses")
+async def get_available_courses(
+    category: Optional[str] = None,
+    region: Optional[str] = None,
+    compulsory: Optional[bool] = None,
+    user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))
+):
+    """Get available training courses for members"""
+    query = {"status": "active"}
+    
+    if category:
+        query["category"] = category
+    if compulsory is not None:
+        query["is_compulsory"] = compulsory
+    
+    # Get user's region for regional courses
+    citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    user_region = citizen_profile.get("region") if citizen_profile else None
+    
+    # Include national courses and region-specific courses
+    if region:
+        query["$or"] = [{"region": "national"}, {"region": region}]
+    elif user_region:
+        query["$or"] = [{"region": "national"}, {"region": user_region}]
+    
+    courses = await db.training_courses.find(query, {"_id": 0}).sort("is_compulsory", -1).to_list(100)
+    
+    # Get user's enrollments to show enrollment status
+    enrollments = await db.course_enrollments.find(
+        {"user_id": user["user_id"]},
+        {"_id": 0}
+    ).to_list(100)
+    enrollment_map = {e["course_id"]: e for e in enrollments}
+    
+    # Add enrollment status to each course
+    for course in courses:
+        enrollment = enrollment_map.get(course["course_id"])
+        course["enrollment_status"] = enrollment.get("status") if enrollment else None
+        course["enrollment_id"] = enrollment.get("enrollment_id") if enrollment else None
+        course["progress_percent"] = enrollment.get("progress_percent", 0) if enrollment else 0
+    
+    return {"courses": courses}
+
+@api_router.get("/member/courses/{course_id}")
+async def get_course_details(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get detailed course information"""
+    course = await db.training_courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get user's enrollment if exists
+    enrollment = await db.course_enrollments.find_one(
+        {"course_id": course_id, "user_id": user["user_id"]},
+        {"_id": 0}
+    )
+    
+    course["enrollment"] = serialize_doc(enrollment) if enrollment else None
+    
+    return course
+
+@api_router.post("/member/courses/{course_id}/enroll")
+async def enroll_in_course(course_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Enroll in a training course"""
+    course = await db.training_courses.find_one({"course_id": course_id, "status": "active"}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found or not available")
+    
+    # Check if already enrolled
+    existing = await db.course_enrollments.find_one({
+        "course_id": course_id,
+        "user_id": user["user_id"],
+        "status": {"$in": ["enrolled", "in_progress"]}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Already enrolled in this course")
+    
+    # Calculate deadline if compulsory
+    deadline = None
+    if course.get("deadline_days"):
+        deadline = datetime.now(timezone.utc) + timedelta(days=course["deadline_days"])
+    
+    enrollment = CourseEnrollment(
+        course_id=course_id,
+        user_id=user["user_id"],
+        deadline=deadline,
+        payment_status="pending" if course.get("cost", 0) > 0 else "waived",
+        amount_paid=0
+    )
+    
+    doc = enrollment.model_dump()
+    doc["enrolled_at"] = doc["enrolled_at"].isoformat()
+    if doc.get("deadline"):
+        doc["deadline"] = doc["deadline"].isoformat()
+    
+    await db.course_enrollments.insert_one(doc)
+    
+    # Create revenue record for course fee
+    if course.get("cost", 0) > 0:
+        citizen_profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+        region = citizen_profile.get("region", "national") if citizen_profile else "national"
+        
+        revenue = RevenueRecord(
+            type="course_fee",
+            amount=course["cost"],
+            user_id=user["user_id"],
+            region=region,
+            reference_id=enrollment.enrollment_id,
+            description=f"Enrollment in {course['name']}"
+        )
+        rev_doc = revenue.model_dump()
+        rev_doc["created_at"] = rev_doc["created_at"].isoformat()
+        await db.revenue_records.insert_one(rev_doc)
+    
+    await create_audit_log("course_enrollment", user["user_id"], user["role"], course_id)
+    
+    return {
+        "message": "Successfully enrolled",
+        "enrollment_id": enrollment.enrollment_id,
+        "course_name": course["name"],
+        "deadline": deadline.isoformat() if deadline else None
+    }
+
+@api_router.get("/member/enrollments")
+async def get_my_enrollments(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get all my course enrollments"""
+    enrollments = await db.course_enrollments.find(
+        {"user_id": user["user_id"]},
+        {"_id": 0}
+    ).sort("enrolled_at", -1).to_list(100)
+    
+    # Enrich with course details
+    for enrollment in enrollments:
+        course = await db.training_courses.find_one(
+            {"course_id": enrollment["course_id"]},
+            {"_id": 0}
+        )
+        enrollment["course"] = serialize_doc(course) if course else None
+    
+    return {"enrollments": [serialize_doc(e) for e in enrollments]}
+
+@api_router.post("/member/enrollments/{enrollment_id}/start")
+async def start_course(enrollment_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Start a course (mark as in_progress)"""
+    enrollment = await db.course_enrollments.find_one({
+        "enrollment_id": enrollment_id,
+        "user_id": user["user_id"],
+        "status": "enrolled"
+    })
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    await db.course_enrollments.update_one(
+        {"enrollment_id": enrollment_id},
+        {
+            "$set": {
+                "status": "in_progress",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "progress_percent": 5
+            }
+        }
+    )
+    
+    return {"message": "Course started"}
+
+@api_router.post("/member/enrollments/{enrollment_id}/progress")
+async def update_course_progress(enrollment_id: str, request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Update course progress"""
+    body = await request.json()
+    progress = body.get("progress", 0)
+    
+    enrollment = await db.course_enrollments.find_one({
+        "enrollment_id": enrollment_id,
+        "user_id": user["user_id"],
+        "status": "in_progress"
+    })
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Active enrollment not found")
+    
+    # Ensure progress doesn't decrease
+    current_progress = enrollment.get("progress_percent", 0)
+    new_progress = max(current_progress, min(100, progress))
+    
+    await db.course_enrollments.update_one(
+        {"enrollment_id": enrollment_id},
+        {"$set": {"progress_percent": new_progress}}
+    )
+    
+    return {"message": "Progress updated", "progress": new_progress}
+
+@api_router.post("/member/enrollments/{enrollment_id}/complete")
+async def complete_course(enrollment_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Complete a course and earn ARI boost"""
+    enrollment = await db.course_enrollments.find_one({
+        "enrollment_id": enrollment_id,
+        "user_id": user["user_id"],
+        "status": "in_progress"
+    })
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Active enrollment not found")
+    
+    # Get course details
+    course = await db.training_courses.find_one({"course_id": enrollment["course_id"]}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Generate certificate
+    certificate_id = f"cert_{uuid.uuid4().hex[:12]}"
+    
+    # Update enrollment
+    await db.course_enrollments.update_one(
+        {"enrollment_id": enrollment_id},
+        {
+            "$set": {
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "progress_percent": 100,
+                "certificate_id": certificate_id
+            }
+        }
+    )
+    
+    # Apply ARI boost
+    ari_boost = course.get("ari_boost", 5)
+    await db.responsibility_profile.update_one(
+        {"user_id": user["user_id"]},
+        {
+            "$inc": {"ari_score": ari_boost, "training_hours": course.get("duration_hours", 0)},
+            "$push": {"completed_courses": course["course_id"]}
+        },
+        upsert=True
+    )
+    
+    # Create notification
+    await db.notifications.insert_one({
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "title": "Course Completed!",
+        "message": f"Congratulations! You completed {course['name']} and earned +{ari_boost} ARI points.",
+        "type": "achievement",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    await create_audit_log("course_completed", user["user_id"], user["role"], enrollment_id, {"ari_boost": ari_boost})
+    
+    return {
+        "message": "Course completed!",
+        "certificate_id": certificate_id,
+        "ari_boost": ari_boost,
+        "course_name": course["name"]
+    }
+
+# ============== SMS NOTIFICATION PREPARATION (MOCKED) ==============
+
+class SMSNotification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    sms_id: str = Field(default_factory=lambda: f"sms_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    phone_number: str
+    message: str
+    status: str = "pending"  # pending, sent, delivered, failed
+    provider: str = "twilio"  # twilio, local_provider
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    sent_at: Optional[datetime] = None
+
+@api_router.post("/sms/send")
+async def send_sms_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Send SMS notification (MOCKED - ready for local provider integration)"""
+    body = await request.json()
+    target_user_id = body.get("user_id")
+    message = body.get("message")
+    
+    if not target_user_id or not message:
+        raise HTTPException(status_code=400, detail="user_id and message required")
+    
+    # Get user's phone number
+    profile = await db.citizen_profiles.find_one({"user_id": target_user_id}, {"_id": 0})
+    if not profile or not profile.get("phone"):
+        raise HTTPException(status_code=400, detail="User phone number not found")
+    
+    # Create SMS record (MOCKED)
+    sms = SMSNotification(
+        user_id=target_user_id,
+        phone_number=profile["phone"],
+        message=message
+    )
+    
+    sms_doc = sms.model_dump()
+    sms_doc["created_at"] = sms_doc["created_at"].isoformat()
+    
+    # MOCKED: In production, integrate with local SMS provider here
+    # Example: await local_sms_provider.send(phone_number, message)
+    sms_doc["status"] = "mocked_sent"
+    sms_doc["sent_at"] = datetime.now(timezone.utc).isoformat()
+    sms_doc["provider_response"] = "MOCKED - Ready for local provider integration"
+    
+    await db.sms_notifications.insert_one(sms_doc)
+    
+    logger.info(f"[MOCKED SMS] To: {profile['phone']}, Message: {message[:50]}...")
+    
+    return {
+        "sms_id": sms.sms_id,
+        "status": "mocked_sent",
+        "message": "SMS queued (MOCKED - integrate with local provider)"
+    }
+
+@api_router.get("/sms/history")
+async def get_sms_history(user: dict = Depends(require_auth(["admin"]))):
+    """Get SMS notification history"""
+    sms_records = await db.sms_notifications.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"sms_notifications": [serialize_doc(s) for s in sms_records]}
+
+@api_router.post("/sms/configure-provider")
+async def configure_sms_provider(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Configure SMS provider settings (for local provider integration)"""
+    body = await request.json()
+    
+    config = {
+        "provider": body.get("provider", "local"),
+        "api_endpoint": body.get("api_endpoint"),
+        "api_key": body.get("api_key"),
+        "sender_id": body.get("sender_id"),
+        "configured_by": user["user_id"],
+        "configured_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.sms_config.update_one(
+        {"_id": "sms_settings"},
+        {"$set": config},
+        upsert=True
+    )
+    
+    return {"message": "SMS provider configured (integration pending)"}
+
+# ============== PWA OFFLINE SYNC ==============
+
+@api_router.post("/sync/offline-transactions")
+async def sync_offline_transactions(request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Sync transactions that were created offline"""
+    body = await request.json()
+    offline_transactions = body.get("transactions", [])
+    
+    synced = []
+    failed = []
+    
+    for txn_data in offline_transactions:
+        try:
+            # Validate and process the offline transaction
+            txn_id = f"txn_{uuid.uuid4().hex[:12]}"
+            txn_data["transaction_id"] = txn_id
+            txn_data["synced_at"] = datetime.now(timezone.utc).isoformat()
+            txn_data["offline_created"] = True
+            
+            await db.transactions.insert_one(txn_data)
+            synced.append(txn_id)
+        except Exception as e:
+            failed.append({"data": txn_data, "error": str(e)})
+    
+    return {
+        "synced_count": len(synced),
+        "failed_count": len(failed),
+        "synced_ids": synced,
+        "failed": failed
+    }
+
+@api_router.get("/sync/pending")
+async def get_pending_sync_items(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get items pending sync for the user"""
+    # Get any pending notifications
+    notifications = await db.notifications.find(
+        {"user_id": user["user_id"], "read": False},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Get pending transactions
+    pending_txns = await db.transactions.find(
+        {"$or": [{"citizen_id": user["user_id"]}, {"dealer_id": user["user_id"]}], "status": "pending"},
+        {"_id": 0}
+    ).to_list(20)
+    
+    return {
+        "notifications": [serialize_doc(n) for n in notifications],
+        "pending_transactions": [serialize_doc(t) for t in pending_txns]
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
