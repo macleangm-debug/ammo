@@ -152,3 +152,30 @@ Modern analytics dashboard design with:
 
 ## Date Log
 - Feb 16, 2026: Phase 8 - PWA enhancements, Course Enrollment, Marketplace improvements, Push Notifications, SMS preparation
+- Feb 16, 2026: Phase 8.1 - VAPID keys for production push, PDF certificate generation, 24 new marketplace products
+
+## Latest Updates (Feb 16, 2026)
+
+### VAPID Keys for Push Notifications ✅
+- Auto-generated ECDSA P-256 keys using cryptography library
+- Keys persisted to `/app/backend/vapid_keys.json`
+- Public key endpoint: `/api/push/vapid-public-key`
+- Subscribe endpoint: `/api/push/subscribe`
+- Admin send: `/api/push/send`
+- Admin broadcast: `/api/push/broadcast`
+
+### PDF Certificate Generation ✅
+- Professional landscape PDF certificates using ReportLab
+- Download endpoint: `/api/member/certificates/{enrollment_id}`
+- Features: Course name, completion date, ARI points earned, certificate ID
+- UI: PDF download button on completed courses in Training Center
+
+### Marketplace Expansion ✅
+- 24 new products seeded via `/api/marketplace/seed-products`
+- Categories: Firearms, Ammunition, Safety Equipment, Storage, Accessories, Training Materials
+- Total products: 32+ in marketplace
+
+### Backlog Items Explained:
+1. **Smart Safe IoT**: IoT-enabled gun safe integration for automatic compliance verification
+2. **Insurance Partner API**: Integration for premium discounts based on ARI score
+3. **Community Mentor Matching**: Elite members mentor Sentinel-tier members
