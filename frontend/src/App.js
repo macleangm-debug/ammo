@@ -281,7 +281,7 @@ function AppRouter() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="ammo-theme">
+    <ThemeProvider defaultTheme="light" storageKey="ammo-theme">
       <BrowserRouter>
         <AppRouter />
         <Toaster position="top-right" richColors />
