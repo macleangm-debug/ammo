@@ -39,6 +39,29 @@ db = client[os.environ['DB_NAME']]
 # LLM Key for risk analysis
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 
+# VAPID Keys for Web Push Notifications
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
+VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', 'mailto:admin@ammo.gov')
+
+# Generate VAPID keys if not provided
+if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+    vapid_keys_file = ROOT_DIR / 'vapid_keys.json'
+    if vapid_keys_file.exists():
+        with open(vapid_keys_file) as f:
+            keys = json.load(f)
+            VAPID_PRIVATE_KEY = keys.get('private_key')
+            VAPID_PUBLIC_KEY = keys.get('public_key')
+    else:
+        # Generate new keys
+        vapid = Vapid()
+        vapid.generate_keys()
+        VAPID_PRIVATE_KEY = vapid.private_pem.decode('utf-8') if isinstance(vapid.private_pem, bytes) else vapid.private_pem
+        VAPID_PUBLIC_KEY = vapid.public_key
+        # Save for persistence
+        with open(vapid_keys_file, 'w') as f:
+            json.dump({'private_key': VAPID_PRIVATE_KEY, 'public_key': VAPID_PUBLIC_KEY}, f)
+
 # Create the main app
 app = FastAPI(title="AMMO - Accountable Munitions & Mobility Oversight")
 
