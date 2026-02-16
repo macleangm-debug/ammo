@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Shield, CheckCircle, Lock, ArrowRight, Fingerprint, 
   Activity, Award, GraduationCap, Target, Users, Building,
@@ -10,24 +11,22 @@ import { useTheme } from "../contexts/ThemeContext";
 const LandingPage = ({ api }) => {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleLogin = () => {
-    const redirectUrl = window.location.origin + '/dashboard';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    navigate("/login");
   };
 
   const handleDealerLogin = () => {
-    const redirectUrl = window.location.origin + '/dealer';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    navigate("/login");
   };
 
   const handleGovLogin = () => {
-    const redirectUrl = window.location.origin + '/government';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    navigate("/login");
   };
 
   const setupDemo = async () => {
