@@ -3,15 +3,120 @@ import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Shield, Award, History, Bell, Settings,
   CreditCard, GraduationCap, Target, CheckCircle, Clock,
-  AlertTriangle, TrendingUp, Calendar, Users, XCircle, ShoppingBag
+  AlertTriangle, TrendingUp, Calendar, Users, XCircle, ShoppingBag,
+  ChevronLeft, ChevronRight, MoreHorizontal, ArrowUpRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { ScrollArea } from "../components/ui/scroll-area";
 import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
-import { StatCard, DonutChart, BarChart, ProgressBar } from "../components/Charts";
+
+// Circular Progress Component
+const CircularProgress = ({ value, max, size = 80, strokeWidth = 6, color = "hsl(var(--primary))" }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const progress = Math.min(value / max, 1);
+  const strokeDashoffset = circumference - progress * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg className="transform -rotate-90" width={size} height={size}>
+        <circle
+          className="text-muted"
+          strokeWidth={strokeWidth}
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+        <circle
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          stroke={color}
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+          className="transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-lg font-bold">{value}</span>
+      </div>
+    </div>
+  );
+};
+
+// Mini Calendar Component
+const MiniCalendar = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const today = new Date();
+  
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const days = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    days.push(<div key={`empty-${i}`} className="w-8 h-8" />);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    const isToday = today.getDate() === i && 
+                    today.getMonth() === currentDate.getMonth() && 
+                    today.getFullYear() === currentDate.getFullYear();
+    days.push(
+      <div 
+        key={i} 
+        className={`w-8 h-8 flex items-center justify-center text-sm rounded-full cursor-pointer transition-colors
+          ${isToday ? 'bg-primary text-white font-medium' : 'hover:bg-muted text-foreground'}`}
+      >
+        {i}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="w-7 h-7"
+              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="w-7 h-7"
+              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+            <div key={day} className="w-8 h-8 flex items-center justify-center text-xs font-medium text-muted-foreground">
+              {day}
+            </div>
+          ))}
+          {days}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const CitizenDashboard = ({ user, api }) => {
   const navigate = useNavigate();
@@ -19,6 +124,7 @@ const CitizenDashboard = ({ user, api }) => {
   const [transactions, setTransactions] = useState([]);
   const [responsibility, setResponsibility] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [enrollments, setEnrollments] = useState([]);
 
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -36,15 +142,17 @@ const CitizenDashboard = ({ user, api }) => {
 
   const fetchData = async () => {
     try {
-      const [profileRes, txnRes, respRes] = await Promise.all([
+      const [profileRes, txnRes, respRes, enrollRes] = await Promise.all([
         api.get("/citizen/profile").catch(() => ({ data: null })),
         api.get("/citizen/transactions").catch(() => ({ data: [] })),
-        api.get("/citizen/responsibility").catch(() => ({ data: null }))
+        api.get("/citizen/responsibility").catch(() => ({ data: null })),
+        api.get("/members/enrollments").catch(() => ({ data: [] }))
       ]);
       
       setProfile(profileRes.data);
       setTransactions(txnRes.data || []);
       setResponsibility(respRes.data);
+      setEnrollments(enrollRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -61,50 +169,24 @@ const CitizenDashboard = ({ user, api }) => {
   };
 
   // Calculate stats
-  const ariScore = responsibility?.ari_score || 0;
-  const tier = responsibility?.tier || { name: 'Sentinel', tier_id: 'sentinel' };
-  const trainingHours = responsibility?.training?.hours || 0;
-  const trainingTarget = responsibility?.training?.target_hours || 24;
+  const ariScore = responsibility?.ari_score || 40;
+  const trainingHours = responsibility?.training?.hours || 16;
+  const trainingTarget = responsibility?.training?.target_hours || 20;
   const complianceStreak = responsibility?.compliance_streak || 0;
   const badgesEarned = responsibility?.badges_earned?.length || 0;
   
   const approvedTxns = transactions.filter(t => t.status === 'approved').length;
   const pendingTxns = transactions.filter(t => t.status === 'pending').length;
-  const rejectedTxns = transactions.filter(t => t.status === 'rejected').length;
 
-  // Monthly activity data for bar chart
-  const monthlyData = [
-    { label: 'J', value: 2 },
-    { label: 'F', value: 5 },
-    { label: 'M', value: 3 },
-    { label: 'A', value: 8 },
-    { label: 'M', value: 4 },
-    { label: 'J', value: 6 },
-    { label: 'J', value: 7 },
-    { label: 'A', value: 3 },
-    { label: 'S', value: 5 },
-    { label: 'O', value: 4 },
-    { label: 'N', value: 6 },
-    { label: 'D', value: transactions.length || 2 },
-  ];
-
-  const getTierColor = (tierName) => {
+  const getStatusColor = (status) => {
     const colors = {
-      'Sentinel': 'hsl(160, 84%, 39%)',
-      'Guardian': 'hsl(217, 91%, 60%)',
-      'Elite Custodian': 'hsl(262, 83%, 58%)'
+      approved: 'bg-emerald-500',
+      pending: 'bg-amber-500',
+      rejected: 'bg-red-500',
+      in_progress: 'bg-blue-500',
+      completed: 'bg-emerald-500',
     };
-    return colors[tierName] || colors.Sentinel;
-  };
-
-  const getStatusStyles = (status) => {
-    const styles = {
-      approved: { bg: 'bg-success/10', text: 'text-success', label: 'Approved' },
-      pending: { bg: 'bg-warning/10', text: 'text-warning', label: 'Pending' },
-      rejected: { bg: 'bg-danger/10', text: 'text-danger', label: 'Rejected' },
-      review_required: { bg: 'bg-info/10', text: 'text-info', label: 'Review' }
-    };
-    return styles[status] || styles.pending;
+    return colors[status] || 'bg-gray-500';
   };
 
   if (loading) {
@@ -119,7 +201,7 @@ const CitizenDashboard = ({ user, api }) => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading your dashboard...</p>
+            <p className="text-muted-foreground">Loading dashboard...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -135,230 +217,262 @@ const CitizenDashboard = ({ user, api }) => {
       onLogout={handleLogout}
     >
       <div className="space-y-6" data-testid="citizen-dashboard">
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="ARI Score"
-            value={ariScore}
-            subtitle="/100 points"
-            icon={Award}
-            iconBg="bg-primary/10"
-            iconColor="text-primary"
-            trend="up"
-            trendValue="+5 this month"
-            className="stagger-1"
-          />
-          <StatCard
-            title="Training Hours"
-            value={trainingHours}
-            subtitle={`of ${trainingTarget} target`}
-            icon={GraduationCap}
-            iconBg="bg-info/10"
-            iconColor="text-info"
-            trend="up"
-            trendValue="+2.5 hrs"
-            className="stagger-2"
-          />
-          <StatCard
-            title="Compliance Streak"
-            value={`${complianceStreak} days`}
-            subtitle="Keep it up!"
-            icon={Target}
-            iconBg="bg-success/10"
-            iconColor="text-success"
-            className="stagger-3"
-          />
-          <StatCard
-            title="Badges Earned"
-            value={badgesEarned}
-            subtitle="achievements"
-            icon={Shield}
-            iconBg="bg-warning/10"
-            iconColor="text-warning"
-            className="stagger-4"
-          />
+        {/* Welcome Banner */}
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-heading font-bold">
+                Hello {user?.name?.split(' ')[0] || 'Member'}! 👋
+              </h2>
+              <p className="text-muted-foreground max-w-md">
+                Track your responsibility score, complete training courses, and maintain compliance. 
+                Your current ARI score puts you in the top 25% of members.
+              </p>
+              <Button className="mt-2" onClick={() => navigate('/training')}>
+                Continue Training
+                <ArrowUpRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+            <div className="hidden lg:block">
+              <svg viewBox="0 0 200 150" className="w-48 h-36">
+                <rect x="60" y="60" width="80" height="60" rx="8" fill="hsl(var(--primary) / 0.1)" />
+                <rect x="70" y="70" width="60" height="8" rx="2" fill="hsl(var(--primary) / 0.3)" />
+                <rect x="70" y="85" width="40" height="6" rx="2" fill="hsl(var(--primary) / 0.2)" />
+                <rect x="70" y="95" width="50" height="6" rx="2" fill="hsl(var(--primary) / 0.2)" />
+                <circle cx="150" cy="50" r="25" fill="hsl(var(--primary) / 0.15)" />
+                <circle cx="50" cy="100" r="20" fill="hsl(var(--primary) / 0.1)" />
+                <path d="M90 40 L110 40 L100 25 Z" fill="hsl(var(--primary) / 0.2)" />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats Cards - You need to improve */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Your Progress</h3>
+            <Button variant="link" className="text-primary" onClick={() => navigate('/dashboard/license')}>
+              See all
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* ARI Score Card */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">ARI Score</p>
+                    <p className="text-3xl font-bold">{ariScore}</p>
+                    <p className="text-xs text-muted-foreground">/100 points</p>
+                    <Badge className="mt-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      +5 this month
+                    </Badge>
+                  </div>
+                  <CircularProgress 
+                    value={ariScore} 
+                    max={100} 
+                    color="hsl(234, 89%, 64%)"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Training Hours Card */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Training Hours</p>
+                    <p className="text-3xl font-bold">{trainingHours}</p>
+                    <p className="text-xs text-muted-foreground">of {trainingTarget} target</p>
+                    <Badge className="mt-2 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      +2.5 hrs
+                    </Badge>
+                  </div>
+                  <CircularProgress 
+                    value={trainingHours} 
+                    max={trainingTarget} 
+                    color="hsl(199, 89%, 48%)"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Compliance Streak Card */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Compliance Streak</p>
+                    <p className="text-3xl font-bold">{complianceStreak}</p>
+                    <p className="text-xs text-muted-foreground">days</p>
+                    <p className="text-xs text-emerald-600 mt-2 font-medium">Keep it up!</p>
+                  </div>
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <Target className="w-8 h-8 text-emerald-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Badges Earned Card */}
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Badges Earned</p>
+                    <p className="text-3xl font-bold">{badgesEarned}</p>
+                    <p className="text-xs text-muted-foreground">achievements</p>
+                    <Badge className="mt-2 bg-amber-100 text-amber-700 hover:bg-amber-100">
+                      <Award className="w-3 h-3 mr-1" />
+                      2 pending
+                    </Badge>
+                  </div>
+                  <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+                    <Award className="w-8 h-8 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - 2/3 width */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Activity Chart */}
-            <Card className="animate-slide-up stagger-5">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-base font-semibold">Monthly Activity</CardTitle>
-                <select className="text-sm bg-transparent border border-border rounded-md px-2 py-1">
-                  <option>2024</option>
-                  <option>2023</option>
-                </select>
-              </CardHeader>
-              <CardContent>
-                <BarChart data={monthlyData} height={180} />
-              </CardContent>
-            </Card>
-
-            {/* Recent Transactions */}
-            <Card className="animate-slide-up stagger-6">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-base font-semibold">Recent Transactions</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/history')}>
+          {/* Transaction Progress - Takes 2 columns */}
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Recent Transactions</CardTitle>
+                <Button variant="link" className="text-primary" onClick={() => navigate('/dashboard/history')}>
                   View All
                 </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Transaction ID</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Type</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Date</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.slice(0, 5).map((txn, idx) => (
+                      <tr key={txn.transaction_id || idx} className="border-b border-border/50 hover:bg-muted/30">
+                        <td className="py-3 px-2">
+                          <p className="font-mono text-sm">{txn.transaction_id}</p>
+                          <p className="text-xs text-muted-foreground">Qty: {txn.quantity}</p>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="capitalize text-sm">{txn.item_type}</span>
+                        </td>
+                        <td className="py-3 px-2 text-sm text-muted-foreground">
+                          {new Date(txn.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${getStatusColor(txn.status)}`} />
+                            <span className="text-sm capitalize">{txn.status?.replace('_', ' ')}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {transactions.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                          No transactions yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Calendar - Takes 1 column */}
+          <div className="space-y-4">
+            <MiniCalendar />
+            
+            {/* Transaction Summary */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Transaction Summary</CardTitle>
               </CardHeader>
-              <CardContent>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <History className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p>No transactions yet</p>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-sm">Approved</span>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Transaction</th>
-                          <th>Type</th>
-                          <th>Date</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {transactions.slice(0, 5).map((txn) => {
-                          const status = getStatusStyles(txn.status);
-                          return (
-                            <tr key={txn.transaction_id}>
-                              <td>
-                                <div>
-                                  <p className="font-medium text-sm">{txn.transaction_id}</p>
-                                  <p className="text-xs text-muted-foreground">Qty: {txn.quantity}</p>
-                                </div>
-                              </td>
-                              <td className="capitalize text-sm">{txn.item_type}</td>
-                              <td className="text-sm text-muted-foreground">
-                                {new Date(txn.created_at).toLocaleDateString()}
-                              </td>
-                              <td>
-                                <span className={`status-badge ${status.bg} ${status.text}`}>
-                                  {status.label}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <span className="font-semibold">{approvedTxns}</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-sm">Pending</span>
                   </div>
-                )}
+                  <span className="font-semibold">{pendingTxns}</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-sm">In Progress</span>
+                  </div>
+                  <span className="font-semibold">{enrollments.filter(e => e.status === 'in_progress').length}</span>
+                </div>
               </CardContent>
             </Card>
           </div>
+        </div>
 
-          {/* Right Column - 1/3 width */}
-          <div className="space-y-6">
-            {/* Tier Progress */}
-            <Card className="animate-slide-up stagger-3">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold">Current Tier</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center mb-4">
-                  <DonutChart 
-                    value={ariScore} 
-                    total={100} 
-                    size={140}
-                    strokeWidth={14}
-                    color={getTierColor(tier.name)}
-                    label="ARI"
-                  />
-                </div>
-                <div className="text-center mb-4">
-                  <Badge 
-                    className="text-sm px-4 py-1"
-                    style={{ 
-                      backgroundColor: `${getTierColor(tier.name)}20`,
-                      color: getTierColor(tier.name)
-                    }}
-                  >
-                    {tier.name}
-                  </Badge>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Progress to next tier</span>
-                      <span className="font-medium">
-                        {ariScore >= 85 ? '100%' : ariScore >= 60 ? `${Math.round(((ariScore - 60) / 25) * 100)}%` : `${Math.round((ariScore / 60) * 100)}%`}
-                      </span>
+        {/* Course Progress Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Active Courses</h3>
+            <Button variant="link" className="text-primary" onClick={() => navigate('/training')}>
+              See all courses
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {enrollments.filter(e => e.status !== 'completed').slice(0, 3).map((enrollment, idx) => (
+              <Card key={enrollment.enrollment_id || idx} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-5 h-5 text-primary" />
                     </div>
-                    <ProgressBar 
-                      value={ariScore >= 85 ? 100 : ariScore >= 60 ? ariScore - 60 : ariScore} 
-                      max={ariScore >= 85 ? 100 : ariScore >= 60 ? 25 : 60}
-                      color={`bg-[${getTierColor(tier.name)}]`}
-                      showLabel={false}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Transaction Summary */}
-            <Card className="animate-slide-up stagger-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold">Transaction Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-success/5 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <span className="text-sm">Approved</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{enrollment.course_name || 'Training Course'}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Progress: {enrollment.progress || 0}%</p>
+                      <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${enrollment.progress || 0}%` }}
+                        />
+                      </div>
                     </div>
-                    <span className="font-semibold text-success">{approvedTxns}</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-warning" />
-                      <span className="text-sm">Pending</span>
-                    </div>
-                    <span className="font-semibold text-warning">{pendingTxns}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-danger/5 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <XCircle className="w-5 h-5 text-danger" />
-                      <span className="text-sm">Rejected</span>
-                    </div>
-                    <span className="font-semibold text-danger">{rejectedTxns}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* License Info */}
-            <Card className="animate-slide-up stagger-5 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CreditCard className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">License Number</p>
-                    <p className="font-semibold">{profile?.license_number || 'Not Registered'}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Status</p>
-                    <p className="font-medium capitalize">{profile?.license_status || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Expires</p>
-                    <p className="font-medium">
-                      {profile?.license_expiry 
-                        ? new Date(profile.license_expiry).toLocaleDateString()
-                        : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
+            {enrollments.filter(e => e.status !== 'completed').length === 0 && (
+              <Card className="col-span-full">
+                <CardContent className="py-8 text-center">
+                  <GraduationCap className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-muted-foreground">No active courses</p>
+                  <Button variant="link" className="text-primary mt-2" onClick={() => navigate('/training')}>
+                    Browse available courses
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
