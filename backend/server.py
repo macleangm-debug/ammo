@@ -3265,7 +3265,7 @@ async def run_predictive_analysis(user: dict = Depends(require_auth(["admin"])))
             
             if not existing_warning:
                 # Create preventive warning
-                warning_message = f"Your compliance score is trending downward. "
+                warning_message = "Your compliance score is trending downward. "
                 if pred["risk_trajectory"] == "critical_decline":
                     warning_message += "Immediate action is recommended to avoid license restrictions."
                 else:
@@ -4294,7 +4294,7 @@ async def run_daily_analysis(user: dict = Depends(require_auth(["admin"]))):
             })
             
             if not existing_warning:
-                warning_message = f"Your compliance score is trending downward. Consider completing additional training."
+                warning_message = "Your compliance score is trending downward. Consider completing additional training."
                 
                 warning = PreventiveWarning(
                     user_id=user_id,
@@ -4330,7 +4330,7 @@ async def run_daily_analysis(user: dict = Depends(require_auth(["admin"]))):
                     alert_type="red_flag",
                     severity="high",
                     title="Predictive Risk Alert",
-                    description=f"Citizen predicted to reach critical risk level.",
+                    description="Citizen predicted to reach critical risk level.",
                     trigger_reason="predictive_high_risk",
                     threshold_type="predicted_risk_score",
                     threshold_value=70,
