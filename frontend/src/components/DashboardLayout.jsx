@@ -193,9 +193,28 @@ const DashboardLayout = ({
         </header>
 
         {/* Page Content */}
-        <div className="p-4 lg:p-6">
+        <div className="p-4 lg:p-6 pb-24 lg:pb-6">
           {children}
         </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="mobile-bottom-nav lg:hidden">
+          {navItems.slice(0, 5).map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.path}
+                className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigate(item.path)}
+                data-testid={`mobile-nav-${item.id}`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] mt-1">{item.label.split(' ')[0]}</span>
+              </button>
+            );
+          })}
+        </nav>
       </main>
     </div>
   );
