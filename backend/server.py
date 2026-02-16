@@ -4588,7 +4588,7 @@ async def start_course(enrollment_id: str, user: dict = Depends(require_auth(["c
     return {"message": "Course started"}
 
 @api_router.post("/member/enrollments/{enrollment_id}/progress")
-async def update_course_progress(enrollment_id: str, request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+async def update_member_course_progress(enrollment_id: str, request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
     """Update course progress"""
     body = await request.json()
     progress = body.get("progress", 0)
