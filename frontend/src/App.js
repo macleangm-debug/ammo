@@ -176,6 +176,42 @@ function AppRouter() {
       />
       
       <Route
+        path="/dashboard/license"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "admin"]}>
+            {({ user, api }) => <LicensePage user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/dashboard/history"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "admin"]}>
+            {({ user, api }) => <HistoryPage user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/dashboard/notifications"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "admin"]}>
+            {({ user, api }) => <NotificationsPage user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/dashboard/settings"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "admin"]}>
+            {({ user, api }) => <SettingsPage user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/dealer"
         element={
           <ProtectedRoute allowedRoles={["dealer", "admin"]}>
