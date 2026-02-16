@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   GraduationCap, Clock, Award, Play, CheckCircle, AlertCircle,
   BookOpen, Target, Shield, Users, Calendar, ChevronRight,
+  LayoutDashboard, CreditCard, ShoppingBag, History, Bell, Settings,
   ArrowLeft, Filter, Search, Star, Loader2, Trophy, Download, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -32,6 +33,7 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { toast } from "sonner";
+import DashboardLayout from "../components/DashboardLayout";
 
 const TrainingCourses = ({ user, api }) => {
   const navigate = useNavigate();
