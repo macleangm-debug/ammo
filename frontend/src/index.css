@@ -146,6 +146,7 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0;
     z-index: 40;
     transition: transform 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);
 }
 
 .dashboard-main {
@@ -161,6 +162,7 @@ h1, h2, h3, h4, h5, h6 {
     }
     .dashboard-sidebar.open {
         transform: translateX(0);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
     }
     .dashboard-main {
         margin-left: 0;
@@ -203,6 +205,7 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-nav-item.active {
     background: hsl(var(--primary) / 0.1);
     color: hsl(var(--primary));
+    font-weight: 600;
 }
 
 .sidebar-nav-item.active::before {
@@ -220,9 +223,10 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-support {
     padding: 1rem;
     margin: 1rem;
-    background: hsl(var(--muted));
+    background: hsl(var(--primary) / 0.05);
     border-radius: var(--radius);
     text-align: center;
+    border: 1px solid hsl(var(--primary) / 0.1);
 }
 
 .sidebar-footer {
@@ -231,7 +235,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   STAT CARDS
+   STAT CARDS - Clean & Modern
 ============================================ */
 .stat-card {
     background: hsl(var(--card));
@@ -239,10 +243,12 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: var(--radius);
     padding: 1.25rem;
     transition: box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .stat-card:hover {
-    box-shadow: 0 4px 12px hsl(var(--foreground) / 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
 }
 
 .stat-card-value {
