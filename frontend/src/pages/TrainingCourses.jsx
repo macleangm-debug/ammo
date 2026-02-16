@@ -508,9 +508,23 @@ const TrainingCourses = ({ user, api }) => {
                             </div>
                             
                             {enrollment.certificate_id && (
-                              <div className="mt-3 p-2 bg-background/50 rounded flex items-center gap-2">
-                                <Award className="w-4 h-4 text-warning" />
-                                <span className="text-xs font-mono">{enrollment.certificate_id}</span>
+                              <div className="mt-3 p-2 bg-background/50 rounded flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Award className="w-4 h-4 text-warning" />
+                                  <span className="text-xs font-mono">{enrollment.certificate_id}</span>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`${process.env.REACT_APP_BACKEND_URL}/api/member/certificates/${enrollment.enrollment_id}`, '_blank');
+                                  }}
+                                  data-testid={`download-cert-${enrollment.enrollment_id}`}
+                                >
+                                  <Download className="w-4 h-4 mr-1" />
+                                  PDF
+                                </Button>
                               </div>
                             )}
                           </div>
