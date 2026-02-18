@@ -12,6 +12,13 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 
 ### Implemented Features
 
+#### Shared Utilities
+- **Number Formatting** (Added Feb 18, 2026) - `/utils/formatters.js`
+  - formatNumber: Comma separators (15,800)
+  - formatCurrency: $ symbol with commas ($4,250,000)
+  - formatPercentage: % with decimals (94.2%)
+  - formatCompact: K/M/B suffixes (2.4M)
+
 #### Authentication & User Management
 - **Username/Password Login** (Added Feb 16, 2026)
   - `/api/auth/login` endpoint
@@ -31,19 +38,23 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Horizontal scrolling stats cards
   - Card-based layouts optimized for touch
 
-#### Member Portal (All pages have consistent sidebar)
-- **Dashboard** - ARI score, training hours, compliance streak, activity charts
-  - Mobile: Welcome banner, quick actions, horizontal progress cards
+#### Member Portal (Professional Analytics Dashboard - Feb 18, 2026)
+- **Dashboard** - Welcome banner, colored stat cards (ARI Score, Training Hours, Compliance Streak, Total Spent, Pending)
+  - Activity stacked bar chart with Week/Month/Year toggle
+  - Spending area chart
+  - Purchases by Category donut chart
+  - Training Progress horizontal bars
+  - Compliance Checklist with completed/pending status
 - **My License** - License details, expiry, compliance score, biometric status
 - **Training Center** - Course enrollment, progress tracking, PDF certificates
-  - Mobile: Tab navigation (Browse/My Courses/Completed), card-based course listings (Feb 18, 2026)
+  - Mobile: Tab navigation (Browse/My Courses/Completed), card-based course listings
 - **Marketplace** - Product browsing, cart, order management
-  - Mobile: 2-column product grid, floating cart button, category filter pills (Feb 18, 2026)
+  - Mobile: 2-column product grid, floating cart button, category filter pills
 - **History** - Transaction history with search/filters
 - **Notifications** - Notification management
 - **Settings** - Profile, security, appearance settings
 
-#### Dealer Portal
+#### Dealer Portal (Professional Analytics Dashboard)
 - **Analytics Dashboard** (Redesigned Feb 18, 2026)
   - Colored stat cards: Total Transactions, Pending, Completed, Rejected, Revenue
   - Transactions stacked bar chart with Week/Month/Year toggle
