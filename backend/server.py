@@ -316,7 +316,7 @@ class MarketplaceProduct(BaseModel):
     product_id: str = Field(default_factory=lambda: f"prod_{uuid.uuid4().hex[:12]}")
     dealer_id: str
     name: str
-    description: str
+    description: Optional[str] = ""
     category: str  # firearm, ammunition, accessory, safety_equipment, storage, training_material
     subcategory: Optional[str] = None
     price: float
