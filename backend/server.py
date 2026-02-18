@@ -385,6 +385,79 @@ class CourseEnrollmentExtended(BaseModel):
     payment_status: str = "pending"  # pending, paid, waived
     amount_paid: float = 0
 
+# ============== INVENTORY MANAGEMENT MODELS ==============
+
+class InventoryItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    item_id: str = Field(default_factory=lambda: f"inv_{uuid.uuid4().hex[:12]}")
+    dealer_id: str
+    sku: str  # Stock Keeping Unit / Barcode
+    name: str
+    description: Optional[str] = None
+    category: str  # firearm, ammunition, accessory, safety_equipment, storage, training_material
+    subcategory: Optional[str] = None
+    quantity: int = 0
+    min_stock_level: int = 5  # For reorder alerts
+    unit_cost: float = 0  # Cost to dealer
+    unit_price: float = 0  # Sale price
+    supplier_id: Optional[str] = None
+    supplier_name: Optional[str] = None
+    location: Optional[str] = None  # Warehouse/shelf location
+    serial_numbers: list = []  # For serialized items (firearms)
+    requires_license: bool = False
+    linked_to_marketplace: bool = False
+    marketplace_product_id: Optional[str] = None
+    status: str = "active"  # active, discontinued, out_of_stock
+    last_restock_date: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class InventoryMovement(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    movement_id: str = Field(default_factory=lambda: f"mov_{uuid.uuid4().hex[:12]}")
+    item_id: str
+    dealer_id: str
+    movement_type: str  # restock, sale, adjustment, return, transfer, damage, expired
+    quantity: int  # Positive for in, negative for out
+    quantity_before: int
+    quantity_after: int
+    reference_id: Optional[str] = None  # Transaction ID, Order ID, etc.
+    reference_type: Optional[str] = None  # transaction, order, manual
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class InventorySupplier(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    supplier_id: str = Field(default_factory=lambda: f"sup_{uuid.uuid4().hex[:12]}")
+    dealer_id: str
+    name: str
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    lead_time_days: int = 7  # Average days to receive order
+    payment_terms: Optional[str] = None
+    notes: Optional[str] = None
+    status: str = "active"  # active, inactive
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ReorderAlert(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    alert_id: str = Field(default_factory=lambda: f"alert_{uuid.uuid4().hex[:12]}")
+    item_id: str
+    dealer_id: str
+    item_name: str
+    current_quantity: int
+    min_stock_level: int
+    suggested_reorder_qty: int
+    supplier_id: Optional[str] = None
+    supplier_name: Optional[str] = None
+    status: str = "active"  # active, acknowledged, ordered, resolved
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    acknowledged_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+
 # Region definitions
 REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
 
