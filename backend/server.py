@@ -5363,6 +5363,611 @@ async def get_pending_sync_items(user: dict = Depends(require_auth(["citizen", "
         "pending_transactions": [serialize_doc(t) for t in pending_txns]
     }
 
+# ============== DEALER INVENTORY MANAGEMENT ==============
+
+@api_router.get("/dealer/inventory")
+async def get_dealer_inventory(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    low_stock: Optional[bool] = None,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["dealer", "admin"]))
+):
+    """Get dealer's inventory items"""
+    query = {"dealer_id": user["user_id"]}
+    
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"sku": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    if category:
+        query["category"] = category
+    if status:
+        query["status"] = status
+    if low_stock:
+        query["$expr"] = {"$lte": ["$quantity", "$min_stock_level"]}
+    
+    skip = (page - 1) * limit
+    total = await db.inventory_items.count_documents(query)
+    items = await db.inventory_items.find(query, {"_id": 0}).skip(skip).limit(limit).sort("name", 1).to_list(limit)
+    
+    # Calculate inventory stats
+    all_items = await db.inventory_items.find({"dealer_id": user["user_id"]}, {"_id": 0}).to_list(10000)
+    total_items = len(all_items)
+    total_value = sum(item.get("quantity", 0) * item.get("unit_cost", 0) for item in all_items)
+    total_retail_value = sum(item.get("quantity", 0) * item.get("unit_price", 0) for item in all_items)
+    low_stock_count = sum(1 for item in all_items if item.get("quantity", 0) <= item.get("min_stock_level", 5))
+    out_of_stock = sum(1 for item in all_items if item.get("quantity", 0) == 0)
+    
+    return {
+        "items": [serialize_doc(item) for item in items],
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit,
+        "stats": {
+            "total_items": total_items,
+            "total_cost_value": round(total_value, 2),
+            "total_retail_value": round(total_retail_value, 2),
+            "potential_profit": round(total_retail_value - total_value, 2),
+            "low_stock_count": low_stock_count,
+            "out_of_stock": out_of_stock
+        }
+    }
+
+@api_router.post("/dealer/inventory")
+async def create_inventory_item(request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Create a new inventory item"""
+    body = await request.json()
+    
+    # Check for duplicate SKU
+    existing = await db.inventory_items.find_one({"dealer_id": user["user_id"], "sku": body.get("sku")})
+    if existing:
+        raise HTTPException(status_code=400, detail="SKU already exists in your inventory")
+    
+    item = InventoryItem(
+        dealer_id=user["user_id"],
+        sku=body.get("sku", f"SKU-{uuid.uuid4().hex[:8].upper()}"),
+        name=body.get("name"),
+        description=body.get("description"),
+        category=body.get("category", "accessory"),
+        subcategory=body.get("subcategory"),
+        quantity=body.get("quantity", 0),
+        min_stock_level=body.get("min_stock_level", 5),
+        unit_cost=body.get("unit_cost", 0),
+        unit_price=body.get("unit_price", 0),
+        supplier_id=body.get("supplier_id"),
+        supplier_name=body.get("supplier_name"),
+        location=body.get("location"),
+        serial_numbers=body.get("serial_numbers", []),
+        requires_license=body.get("requires_license", False),
+        linked_to_marketplace=body.get("linked_to_marketplace", False)
+    )
+    
+    await db.inventory_items.insert_one(item.model_dump())
+    
+    # Create initial stock movement if quantity > 0
+    if item.quantity > 0:
+        movement = InventoryMovement(
+            item_id=item.item_id,
+            dealer_id=user["user_id"],
+            movement_type="restock",
+            quantity=item.quantity,
+            quantity_before=0,
+            quantity_after=item.quantity,
+            reference_type="initial",
+            notes="Initial stock",
+            created_by=user["user_id"]
+        )
+        await db.inventory_movements.insert_one(movement.model_dump())
+    
+    # Check for low stock alert
+    if item.quantity <= item.min_stock_level:
+        await create_reorder_alert(item, user["user_id"])
+    
+    return {"item": item.model_dump(), "message": "Inventory item created"}
+
+@api_router.get("/dealer/inventory/{item_id}")
+async def get_inventory_item(item_id: str, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Get a specific inventory item"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Get movement history
+    movements = await db.inventory_movements.find(
+        {"item_id": item_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {"item": serialize_doc(item), "movements": [serialize_doc(m) for m in movements]}
+
+@api_router.put("/dealer/inventory/{item_id}")
+async def update_inventory_item(item_id: str, request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Update an inventory item"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    body = await request.json()
+    old_quantity = item.get("quantity", 0)
+    new_quantity = body.get("quantity", old_quantity)
+    
+    # Check for SKU conflict
+    if body.get("sku") and body.get("sku") != item.get("sku"):
+        existing = await db.inventory_items.find_one({"dealer_id": user["user_id"], "sku": body.get("sku")})
+        if existing:
+            raise HTTPException(status_code=400, detail="SKU already exists in your inventory")
+    
+    update_data = {
+        "name": body.get("name", item.get("name")),
+        "description": body.get("description", item.get("description")),
+        "sku": body.get("sku", item.get("sku")),
+        "category": body.get("category", item.get("category")),
+        "subcategory": body.get("subcategory", item.get("subcategory")),
+        "quantity": new_quantity,
+        "min_stock_level": body.get("min_stock_level", item.get("min_stock_level")),
+        "unit_cost": body.get("unit_cost", item.get("unit_cost")),
+        "unit_price": body.get("unit_price", item.get("unit_price")),
+        "supplier_id": body.get("supplier_id", item.get("supplier_id")),
+        "supplier_name": body.get("supplier_name", item.get("supplier_name")),
+        "location": body.get("location", item.get("location")),
+        "requires_license": body.get("requires_license", item.get("requires_license")),
+        "linked_to_marketplace": body.get("linked_to_marketplace", item.get("linked_to_marketplace")),
+        "status": body.get("status", item.get("status")),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.inventory_items.update_one({"item_id": item_id}, {"$set": update_data})
+    
+    # Create movement record if quantity changed
+    if new_quantity != old_quantity:
+        movement_type = "adjustment"
+        if body.get("movement_type"):
+            movement_type = body.get("movement_type")
+        
+        movement = InventoryMovement(
+            item_id=item_id,
+            dealer_id=user["user_id"],
+            movement_type=movement_type,
+            quantity=new_quantity - old_quantity,
+            quantity_before=old_quantity,
+            quantity_after=new_quantity,
+            reference_type="manual",
+            notes=body.get("notes", f"Quantity adjusted from {old_quantity} to {new_quantity}"),
+            created_by=user["user_id"]
+        )
+        await db.inventory_movements.insert_one(movement.model_dump())
+        
+        # Update restock date if adding stock
+        if new_quantity > old_quantity:
+            await db.inventory_items.update_one(
+                {"item_id": item_id},
+                {"$set": {"last_restock_date": datetime.now(timezone.utc).isoformat()}}
+            )
+    
+    # Check for low stock alert
+    updated_item = await db.inventory_items.find_one({"item_id": item_id}, {"_id": 0})
+    if updated_item.get("quantity", 0) <= updated_item.get("min_stock_level", 5):
+        await create_reorder_alert(updated_item, user["user_id"])
+    else:
+        # Resolve any existing alerts
+        await db.reorder_alerts.update_many(
+            {"item_id": item_id, "status": "active"},
+            {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    # Update linked marketplace product if exists
+    if updated_item.get("linked_to_marketplace") and updated_item.get("marketplace_product_id"):
+        await db.marketplace_products.update_one(
+            {"product_id": updated_item.get("marketplace_product_id")},
+            {"$set": {
+                "quantity_available": new_quantity,
+                "price": updated_item.get("unit_price"),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {"item": serialize_doc(updated_item), "message": "Inventory item updated"}
+
+@api_router.delete("/dealer/inventory/{item_id}")
+async def delete_inventory_item(item_id: str, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Delete an inventory item"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Unlink from marketplace if linked
+    if item.get("marketplace_product_id"):
+        await db.marketplace_products.update_one(
+            {"product_id": item.get("marketplace_product_id")},
+            {"$set": {"status": "inactive"}}
+        )
+    
+    await db.inventory_items.delete_one({"item_id": item_id})
+    await db.inventory_movements.delete_many({"item_id": item_id})
+    await db.reorder_alerts.delete_many({"item_id": item_id})
+    
+    return {"message": "Inventory item deleted"}
+
+@api_router.post("/dealer/inventory/{item_id}/adjust")
+async def adjust_inventory(item_id: str, request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Adjust inventory quantity with movement record"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    body = await request.json()
+    adjustment_type = body.get("type", "adjustment")  # restock, sale, adjustment, return, transfer, damage, expired
+    quantity_change = body.get("quantity", 0)
+    
+    if adjustment_type in ["sale", "transfer", "damage", "expired"]:
+        quantity_change = -abs(quantity_change)
+    elif adjustment_type in ["restock", "return"]:
+        quantity_change = abs(quantity_change)
+    
+    old_quantity = item.get("quantity", 0)
+    new_quantity = max(0, old_quantity + quantity_change)
+    
+    # Create movement record
+    movement = InventoryMovement(
+        item_id=item_id,
+        dealer_id=user["user_id"],
+        movement_type=adjustment_type,
+        quantity=quantity_change,
+        quantity_before=old_quantity,
+        quantity_after=new_quantity,
+        reference_id=body.get("reference_id"),
+        reference_type=body.get("reference_type", "manual"),
+        notes=body.get("notes"),
+        created_by=user["user_id"]
+    )
+    await db.inventory_movements.insert_one(movement.model_dump())
+    
+    # Update item quantity
+    update_fields = {"quantity": new_quantity, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if adjustment_type == "restock":
+        update_fields["last_restock_date"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.inventory_items.update_one({"item_id": item_id}, {"$set": update_fields})
+    
+    # Check for low stock
+    if new_quantity <= item.get("min_stock_level", 5):
+        item["quantity"] = new_quantity
+        await create_reorder_alert(item, user["user_id"])
+    
+    # Sync to marketplace if linked
+    if item.get("linked_to_marketplace") and item.get("marketplace_product_id"):
+        await db.marketplace_products.update_one(
+            {"product_id": item.get("marketplace_product_id")},
+            {"$set": {"quantity_available": new_quantity}}
+        )
+    
+    return {
+        "movement": movement.model_dump(),
+        "new_quantity": new_quantity,
+        "message": f"Inventory adjusted: {quantity_change:+d} ({adjustment_type})"
+    }
+
+@api_router.get("/dealer/inventory/movements")
+async def get_inventory_movements(
+    item_id: Optional[str] = None,
+    movement_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    page: int = 1,
+    limit: int = 100,
+    user: dict = Depends(require_auth(["dealer", "admin"]))
+):
+    """Get inventory movement history"""
+    query = {"dealer_id": user["user_id"]}
+    
+    if item_id:
+        query["item_id"] = item_id
+    if movement_type:
+        query["movement_type"] = movement_type
+    if start_date:
+        query["created_at"] = {"$gte": start_date}
+    if end_date:
+        query.setdefault("created_at", {})["$lte"] = end_date
+    
+    skip = (page - 1) * limit
+    total = await db.inventory_movements.count_documents(query)
+    movements = await db.inventory_movements.find(query, {"_id": 0}).skip(skip).limit(limit).sort("created_at", -1).to_list(limit)
+    
+    # Enrich with item names
+    item_ids = list(set(m.get("item_id") for m in movements))
+    items = await db.inventory_items.find({"item_id": {"$in": item_ids}}, {"_id": 0, "item_id": 1, "name": 1, "sku": 1}).to_list(1000)
+    item_map = {i["item_id"]: i for i in items}
+    
+    for movement in movements:
+        item = item_map.get(movement.get("item_id"), {})
+        movement["item_name"] = item.get("name", "Unknown")
+        movement["item_sku"] = item.get("sku", "")
+    
+    return {
+        "movements": [serialize_doc(m) for m in movements],
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
+
+# Helper function to create reorder alert
+async def create_reorder_alert(item: dict, dealer_id: str):
+    """Create a reorder alert for low stock item"""
+    existing = await db.reorder_alerts.find_one({
+        "item_id": item.get("item_id"),
+        "status": "active"
+    })
+    
+    if not existing:
+        alert = ReorderAlert(
+            item_id=item.get("item_id"),
+            dealer_id=dealer_id,
+            item_name=item.get("name"),
+            current_quantity=item.get("quantity", 0),
+            min_stock_level=item.get("min_stock_level", 5),
+            suggested_reorder_qty=max(item.get("min_stock_level", 5) * 2, 10),
+            supplier_id=item.get("supplier_id"),
+            supplier_name=item.get("supplier_name")
+        )
+        await db.reorder_alerts.insert_one(alert.model_dump())
+
+@api_router.get("/dealer/inventory/alerts")
+async def get_reorder_alerts(
+    status: Optional[str] = None,
+    user: dict = Depends(require_auth(["dealer", "admin"]))
+):
+    """Get reorder alerts"""
+    query = {"dealer_id": user["user_id"]}
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = {"$in": ["active", "acknowledged"]}
+    
+    alerts = await db.reorder_alerts.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"alerts": [serialize_doc(a) for a in alerts]}
+
+@api_router.put("/dealer/inventory/alerts/{alert_id}")
+async def update_reorder_alert(alert_id: str, request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Update a reorder alert status"""
+    alert = await db.reorder_alerts.find_one({"alert_id": alert_id, "dealer_id": user["user_id"]})
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    body = await request.json()
+    new_status = body.get("status")
+    
+    update_data = {"status": new_status}
+    if new_status == "acknowledged":
+        update_data["acknowledged_at"] = datetime.now(timezone.utc).isoformat()
+    elif new_status == "resolved":
+        update_data["resolved_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.reorder_alerts.update_one({"alert_id": alert_id}, {"$set": update_data})
+    return {"message": f"Alert status updated to {new_status}"}
+
+@api_router.post("/dealer/inventory/link-marketplace/{item_id}")
+async def link_to_marketplace(item_id: str, request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Link inventory item to marketplace listing"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    body = await request.json()
+    
+    # Get dealer profile for name
+    dealer_profile = await db.dealer_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    dealer_name = dealer_profile.get("business_name") if dealer_profile else user.get("name", "Unknown Dealer")
+    
+    # Create marketplace product
+    product = MarketplaceProduct(
+        dealer_id=user["user_id"],
+        dealer_name=dealer_name,
+        name=body.get("name", item.get("name")),
+        description=body.get("description", item.get("description")),
+        category=item.get("category"),
+        price=item.get("unit_price"),
+        sale_price=body.get("sale_price"),
+        quantity_available=item.get("quantity"),
+        requires_license=item.get("requires_license", False),
+        status="active"
+    )
+    
+    await db.marketplace_products.insert_one(product.model_dump())
+    
+    # Update inventory item
+    await db.inventory_items.update_one(
+        {"item_id": item_id},
+        {"$set": {
+            "linked_to_marketplace": True,
+            "marketplace_product_id": product.product_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "product_id": product.product_id,
+        "message": "Item linked to marketplace"
+    }
+
+@api_router.post("/dealer/inventory/unlink-marketplace/{item_id}")
+async def unlink_from_marketplace(item_id: str, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Unlink inventory item from marketplace"""
+    item = await db.inventory_items.find_one({"item_id": item_id, "dealer_id": user["user_id"]})
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    if item.get("marketplace_product_id"):
+        await db.marketplace_products.update_one(
+            {"product_id": item.get("marketplace_product_id")},
+            {"$set": {"status": "inactive"}}
+        )
+    
+    await db.inventory_items.update_one(
+        {"item_id": item_id},
+        {"$set": {
+            "linked_to_marketplace": False,
+            "marketplace_product_id": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Item unlinked from marketplace"}
+
+@api_router.post("/dealer/inventory/import")
+async def import_inventory_csv(request: Request, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Import inventory from CSV data"""
+    body = await request.json()
+    csv_data = body.get("data", [])  # List of item dictionaries
+    
+    imported = 0
+    errors = []
+    
+    for idx, row in enumerate(csv_data):
+        try:
+            # Check for existing SKU
+            sku = row.get("sku", f"SKU-{uuid.uuid4().hex[:8].upper()}")
+            existing = await db.inventory_items.find_one({"dealer_id": user["user_id"], "sku": sku})
+            
+            if existing:
+                # Update existing item
+                await db.inventory_items.update_one(
+                    {"item_id": existing["item_id"]},
+                    {"$set": {
+                        "name": row.get("name", existing.get("name")),
+                        "quantity": int(row.get("quantity", existing.get("quantity", 0))),
+                        "unit_cost": float(row.get("unit_cost", existing.get("unit_cost", 0))),
+                        "unit_price": float(row.get("unit_price", existing.get("unit_price", 0))),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            else:
+                # Create new item
+                item = InventoryItem(
+                    dealer_id=user["user_id"],
+                    sku=sku,
+                    name=row.get("name", "Unnamed Item"),
+                    description=row.get("description"),
+                    category=row.get("category", "accessory"),
+                    quantity=int(row.get("quantity", 0)),
+                    min_stock_level=int(row.get("min_stock_level", 5)),
+                    unit_cost=float(row.get("unit_cost", 0)),
+                    unit_price=float(row.get("unit_price", 0)),
+                    location=row.get("location"),
+                    requires_license=str(row.get("requires_license", "false")).lower() == "true"
+                )
+                await db.inventory_items.insert_one(item.model_dump())
+            
+            imported += 1
+        except Exception as e:
+            errors.append({"row": idx + 1, "error": str(e)})
+    
+    return {
+        "imported": imported,
+        "errors": errors,
+        "message": f"Imported {imported} items with {len(errors)} errors"
+    }
+
+@api_router.get("/dealer/inventory/export")
+async def export_inventory_csv(user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Export inventory to CSV format"""
+    items = await db.inventory_items.find({"dealer_id": user["user_id"]}, {"_id": 0}).to_list(10000)
+    
+    # Format for CSV export
+    export_data = []
+    for item in items:
+        export_data.append({
+            "sku": item.get("sku"),
+            "name": item.get("name"),
+            "description": item.get("description", ""),
+            "category": item.get("category"),
+            "quantity": item.get("quantity", 0),
+            "min_stock_level": item.get("min_stock_level", 5),
+            "unit_cost": item.get("unit_cost", 0),
+            "unit_price": item.get("unit_price", 0),
+            "location": item.get("location", ""),
+            "supplier_name": item.get("supplier_name", ""),
+            "requires_license": item.get("requires_license", False),
+            "status": item.get("status", "active")
+        })
+    
+    return {"data": export_data, "count": len(export_data)}
+
+@api_router.get("/dealer/inventory/valuation")
+async def get_inventory_valuation(user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Get inventory valuation report"""
+    items = await db.inventory_items.find({"dealer_id": user["user_id"], "status": "active"}, {"_id": 0}).to_list(10000)
+    
+    # Calculate by category
+    by_category = {}
+    total_cost = 0
+    total_retail = 0
+    total_items = 0
+    total_units = 0
+    
+    for item in items:
+        category = item.get("category", "other")
+        quantity = item.get("quantity", 0)
+        cost_value = quantity * item.get("unit_cost", 0)
+        retail_value = quantity * item.get("unit_price", 0)
+        
+        if category not in by_category:
+            by_category[category] = {"items": 0, "units": 0, "cost_value": 0, "retail_value": 0}
+        
+        by_category[category]["items"] += 1
+        by_category[category]["units"] += quantity
+        by_category[category]["cost_value"] += cost_value
+        by_category[category]["retail_value"] += retail_value
+        
+        total_cost += cost_value
+        total_retail += retail_value
+        total_items += 1
+        total_units += quantity
+    
+    # Top items by value
+    top_items = sorted(items, key=lambda x: x.get("quantity", 0) * x.get("unit_price", 0), reverse=True)[:10]
+    
+    return {
+        "summary": {
+            "total_items": total_items,
+            "total_units": total_units,
+            "total_cost_value": round(total_cost, 2),
+            "total_retail_value": round(total_retail, 2),
+            "potential_profit": round(total_retail - total_cost, 2),
+            "profit_margin": round((total_retail - total_cost) / total_retail * 100, 1) if total_retail > 0 else 0
+        },
+        "by_category": {k: {
+            "items": v["items"],
+            "units": v["units"],
+            "cost_value": round(v["cost_value"], 2),
+            "retail_value": round(v["retail_value"], 2),
+            "profit": round(v["retail_value"] - v["cost_value"], 2)
+        } for k, v in by_category.items()},
+        "top_items": [{
+            "name": item.get("name"),
+            "sku": item.get("sku"),
+            "quantity": item.get("quantity"),
+            "value": round(item.get("quantity", 0) * item.get("unit_price", 0), 2)
+        } for item in top_items]
+    }
+
+@api_router.get("/dealer/inventory/scan/{sku}")
+async def scan_inventory_barcode(sku: str, user: dict = Depends(require_auth(["dealer", "admin"]))):
+    """Look up inventory item by SKU/barcode"""
+    item = await db.inventory_items.find_one(
+        {"dealer_id": user["user_id"], "sku": {"$regex": f"^{sku}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if not item:
+        return {"found": False, "message": "Item not found with this SKU/barcode"}
+    
+    return {"found": True, "item": serialize_doc(item)}
+
 # Include the router in the main app
 app.include_router(api_router)
 
