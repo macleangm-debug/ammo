@@ -43,6 +43,22 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - **Notifications** - Notification management
 - **Settings** - Profile, security, appearance settings
 
+#### Dealer Portal
+- **Dashboard** - Transaction stats, approval rate, pending verifications
+- **Verify Buyer** - License verification with GPS tracking
+- **Transactions** - Transaction history and management
+- **Inventory Management** (Added Feb 18, 2026)
+  - Stock tracking with quantity and low stock alerts
+  - Add/Edit/Delete inventory items with SKU/barcode support
+  - Stock adjustments (restock, sale, return, damage, expired, transfer)
+  - Movement history and audit trail
+  - Automatic reorder alerts for low stock items
+  - Inventory valuation reports (by category, profit margins)
+  - CSV bulk export
+  - Barcode/SKU scanning lookup
+  - Optional marketplace linking (dealer can choose to list items or not)
+- **Settings** - Profile and business settings
+
 #### Government Portal
 - National oversight dashboard
 - Risk analytics
@@ -62,6 +78,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/member/courses/{id}/enroll` | POST | Enroll in course |
 | `/api/member/enrollments/{id}/complete` | POST | Complete course, get certificate |
 | `/api/marketplace/products` | GET | List marketplace products |
+| `/api/dealer/inventory` | GET/POST | List/Create inventory items |
+| `/api/dealer/inventory/{item_id}` | GET/PUT/DELETE | CRUD inventory item |
+| `/api/dealer/inventory/{item_id}/adjust` | POST | Adjust stock with movement record |
+| `/api/dealer/inventory/movements` | GET | Get movement history |
+| `/api/dealer/inventory/alerts` | GET | Get reorder alerts |
+| `/api/dealer/inventory/export` | GET | Export inventory to CSV |
+| `/api/dealer/inventory/valuation` | GET | Get valuation report |
+| `/api/dealer/inventory/scan/{sku}` | GET | SKU/barcode lookup |
+| `/api/dealer/inventory/link-marketplace/{item_id}` | POST | Link item to marketplace |
+| `/api/dealer/inventory/unlink-marketplace/{item_id}` | POST | Unlink from marketplace |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
