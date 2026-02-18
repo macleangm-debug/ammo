@@ -20,6 +20,7 @@ import {
 } from "../components/ui/select";
 import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
+import { formatNumber, formatCurrency, formatPercentage } from "../utils/formatters";
 import {
   BarChart,
   Bar,
