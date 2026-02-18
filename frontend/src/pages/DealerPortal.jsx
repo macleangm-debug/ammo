@@ -204,35 +204,35 @@ const DealerPortal = ({ user, api }) => {
   const stats = [
     {
       title: "Total Transactions",
-      value: analyticsData.totalTransactions || profile?.total_transactions || 0,
+      value: formatNumber(analyticsData.totalTransactions || profile?.total_transactions || 0),
       bgColor: "bg-[#3b5bdb]",
       textColor: "text-white"
     },
     {
       title: "Pending",
-      value: analyticsData.activeTransactions,
-      percentage: analyticsData.totalTransactions ? `${((analyticsData.activeTransactions / analyticsData.totalTransactions) * 100).toFixed(0)}% of total` : "0%",
+      value: formatNumber(analyticsData.activeTransactions),
+      percentage: analyticsData.totalTransactions ? formatPercentage((analyticsData.activeTransactions / analyticsData.totalTransactions) * 100) + " of total" : "0%",
       bgColor: "bg-[#d0f0c0]",
       textColor: "text-emerald-700"
     },
     {
       title: "Completed",
-      value: analyticsData.completedTransactions,
-      percentage: analyticsData.totalTransactions ? `${((analyticsData.completedTransactions / analyticsData.totalTransactions) * 100).toFixed(0)}% of total` : "0%",
+      value: formatNumber(analyticsData.completedTransactions),
+      percentage: analyticsData.totalTransactions ? formatPercentage((analyticsData.completedTransactions / analyticsData.totalTransactions) * 100) + " of total" : "0%",
       bgColor: "bg-[#c7f9cc]",
       textColor: "text-emerald-800"
     },
     {
       title: "Rejected",
-      value: analyticsData.rejectedTransactions,
-      percentage: analyticsData.totalTransactions ? `${((analyticsData.rejectedTransactions / analyticsData.totalTransactions) * 100).toFixed(0)}% of total` : "0%",
+      value: formatNumber(analyticsData.rejectedTransactions),
+      percentage: analyticsData.totalTransactions ? formatPercentage((analyticsData.rejectedTransactions / analyticsData.totalTransactions) * 100) + " of total" : "0%",
       bgColor: "bg-[#ffe8e8]",
       textColor: "text-red-700"
     },
     {
       title: "Revenue",
-      value: `$${Math.round(analyticsData.revenue).toLocaleString()}`,
-      percentage: analyticsData.totalTransactions ? `${((analyticsData.revenue / (analyticsData.totalTransactions * 300)) * 100).toFixed(0)}% of target` : "0%",
+      value: formatCurrency(analyticsData.revenue),
+      percentage: analyticsData.totalTransactions ? formatPercentage((analyticsData.revenue / (analyticsData.totalTransactions * 300)) * 100) + " of target" : "0%",
       bgColor: "bg-[#e8e0f8]",
       textColor: "text-purple-700"
     }
