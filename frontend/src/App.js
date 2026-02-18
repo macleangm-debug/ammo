@@ -13,6 +13,7 @@ import HistoryPage from "./pages/HistoryPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import DealerPortal from "./pages/DealerPortal";
+import DealerInventory from "./pages/DealerInventory";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
 import AlertsDashboard from "./pages/AlertsDashboard";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
