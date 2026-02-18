@@ -32,6 +32,27 @@ const DashboardLayout = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Swipe navigation for mobile
+  const currentIndex = SWIPE_ROUTES.findIndex(route => location.pathname === route);
+  
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (currentIndex >= 0 && currentIndex < SWIPE_ROUTES.length - 1 && !sidebarOpen) {
+        navigate(SWIPE_ROUTES[currentIndex + 1]);
+      }
+    },
+    onSwipedRight: () => {
+      if (currentIndex > 0 && !sidebarOpen) {
+        navigate(SWIPE_ROUTES[currentIndex - 1]);
+      }
+    },
+    preventScrollOnSwipe: false,
+    trackMouse: false,
+    trackTouch: true,
+    delta: 80,
+    swipeDuration: 400,
+  });
+
   const handleLogout = async () => {
     if (onLogout) {
       await onLogout();
@@ -40,7 +61,7 @@ const DashboardLayout = ({
   };
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout" {...swipeHandlers}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div 
