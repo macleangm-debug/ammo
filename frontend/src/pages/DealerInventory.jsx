@@ -1344,6 +1344,103 @@ const DealerInventory = ({ user, api }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialog} onOpenChange={setImportDialog}>
+        <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-primary" />
+              Import Inventory
+            </DialogTitle>
+            <DialogDescription>
+              Import inventory items from a CSV file. Items with matching SKUs will be updated.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {!importPreview ? (
+            <div className="space-y-4 py-4">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload a CSV file with your inventory data
+                </p>
+                <Button onClick={() => fileInputRef.current?.click()}>
+                  Select File
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              
+              <Button variant="outline" className="w-full" onClick={downloadTemplate}>
+                <Download className="w-4 h-4 mr-2" />
+                Download Template
+              </Button>
+              
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium">Supported columns:</p>
+                <p>sku, name, description, category, quantity, min_stock_level, unit_cost, unit_price, location, supplier_name, requires_license</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="text-sm">
+                  {importData.length} items to import
+                </Badge>
+                <Button variant="ghost" size="sm" onClick={() => { setImportPreview(false); setImportData([]); }}>
+                  <X className="w-4 h-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+              
+              <div className="max-h-64 overflow-y-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-medium">SKU</th>
+                      <th className="text-left py-2 px-3 font-medium">Name</th>
+                      <th className="text-right py-2 px-3 font-medium">Qty</th>
+                      <th className="text-right py-2 px-3 font-medium">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importData.slice(0, 20).map((item, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="py-2 px-3 font-mono text-xs">{item.sku || '-'}</td>
+                        <td className="py-2 px-3">{item.name || '-'}</td>
+                        <td className="py-2 px-3 text-right">{item.quantity || 0}</td>
+                        <td className="py-2 px-3 text-right">${item.unit_price || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {importData.length > 20 && (
+                  <p className="text-xs text-center py-2 text-muted-foreground">
+                    +{importData.length - 20} more items
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setImportDialog(false); setImportData([]); setImportPreview(false); }}>
+              Cancel
+            </Button>
+            {importPreview && (
+              <Button onClick={handleImport} disabled={processing || importData.length === 0}>
+                {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Import {importData.length} Items
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
