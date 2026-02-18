@@ -43,18 +43,24 @@ const TrainingCourses = ({ user, api }) => {
   const fetchCourses = useCallback(async () => {
     try {
       const response = await api.get("/member/courses");
-      setCourses(response.data || []);
+      // API returns { courses: [...] }
+      const coursesData = response.data?.courses || response.data || [];
+      setCourses(Array.isArray(coursesData) ? coursesData : []);
     } catch (error) {
       console.error("Error fetching courses:", error);
+      setCourses([]);
     }
   }, [api]);
 
   const fetchEnrollments = useCallback(async () => {
     try {
       const response = await api.get("/members/enrollments");
-      setEnrollments(response.data || []);
+      // API returns { enrollments: [...] }
+      const enrollmentsData = response.data?.enrollments || response.data || [];
+      setEnrollments(Array.isArray(enrollmentsData) ? enrollmentsData : []);
     } catch (error) {
       console.error("Error fetching enrollments:", error);
+      setEnrollments([]);
     }
   }, [api]);
 
