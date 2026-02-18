@@ -25,15 +25,23 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - Offline fallback page
 - Background sync capabilities
 - Responsive mobile-first design
+- **Native App-Like Mobile UI** (Added Feb 18, 2026)
+  - Bottom navigation bar for mobile
+  - Swipe gestures for navigation between sections
+  - Horizontal scrolling stats cards
+  - Card-based layouts optimized for touch
 
 #### Member Portal (All pages have consistent sidebar)
 - **Dashboard** - ARI score, training hours, compliance streak, activity charts
-- **My License** - License details, expiry, compliance score, biometric status (Added Feb 16, 2026)
+  - Mobile: Welcome banner, quick actions, horizontal progress cards
+- **My License** - License details, expiry, compliance score, biometric status
 - **Training Center** - Course enrollment, progress tracking, PDF certificates
+  - Mobile: Tab navigation (Browse/My Courses/Completed), card-based course listings (Feb 18, 2026)
 - **Marketplace** - Product browsing, cart, order management
-- **History** - Transaction history with search/filters (Added Feb 16, 2026)
-- **Notifications** - Notification management (Added Feb 16, 2026)
-- **Settings** - Profile, security, appearance settings (Added Feb 16, 2026)
+  - Mobile: 2-column product grid, floating cart button, category filter pills (Feb 18, 2026)
+- **History** - Transaction history with search/filters
+- **Notifications** - Notification management
+- **Settings** - Profile, security, appearance settings
 
 #### Government Portal
 - National oversight dashboard
