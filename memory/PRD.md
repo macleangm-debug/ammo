@@ -44,7 +44,14 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - **Settings** - Profile, security, appearance settings
 
 #### Dealer Portal
-- **Dashboard** - Transaction stats, approval rate, pending verifications
+- **Analytics Dashboard** (Redesigned Feb 18, 2026)
+  - Colored stat cards: Total Transactions, Pending, Completed, Rejected, Revenue
+  - Transactions stacked bar chart with Week/Month/Year toggle
+  - Sales area chart with category filters
+  - Popular Categories donut chart
+  - Av. Transaction horizontal bar chart
+  - Av. Processing Time horizontal bar chart with status colors
+  - Recent Activity feed
 - **Verify Buyer** - License verification with GPS tracking
 - **Transactions** - Transaction history and management
 - **Inventory Management** (Added Feb 18, 2026)
@@ -54,7 +61,11 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Movement history and audit trail
   - Automatic reorder alerts for low stock items
   - Inventory valuation reports (by category, profit margins)
-  - CSV bulk export
+  - **CSV/Excel Import & Export** (Added Feb 18, 2026)
+    - CSV export with Excel-compatible format
+    - CSV import with smart header mapping
+    - Preview imported data before confirmation
+    - Download template for bulk uploads
   - Barcode/SKU scanning lookup
   - Optional marketplace linking (dealer can choose to list items or not)
 - **Settings** - Profile and business settings
