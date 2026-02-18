@@ -5365,6 +5365,27 @@ async def get_pending_sync_items(user: dict = Depends(require_auth(["citizen", "
 
 # ============== DEALER INVENTORY MANAGEMENT ==============
 
+# Helper function to create reorder alert
+async def create_reorder_alert(item: dict, dealer_id: str):
+    """Create a reorder alert for low stock item"""
+    existing = await db.reorder_alerts.find_one({
+        "item_id": item.get("item_id"),
+        "status": "active"
+    })
+    
+    if not existing:
+        alert = ReorderAlert(
+            item_id=item.get("item_id"),
+            dealer_id=dealer_id,
+            item_name=item.get("name"),
+            current_quantity=item.get("quantity", 0),
+            min_stock_level=item.get("min_stock_level", 5),
+            suggested_reorder_qty=max(item.get("min_stock_level", 5) * 2, 10),
+            supplier_id=item.get("supplier_id"),
+            supplier_name=item.get("supplier_name")
+        )
+        await db.reorder_alerts.insert_one(alert.model_dump())
+
 @api_router.get("/dealer/inventory")
 async def get_dealer_inventory(
     search: Optional[str] = None,
