@@ -64,7 +64,7 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/marketplace/products` | GET | List marketplace products |
 
 ### Tech Stack
-- **Frontend**: React, Tailwind CSS, Shadcn UI
+- **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
 - **PWA**: Service Workers, Web Push (VAPID)
