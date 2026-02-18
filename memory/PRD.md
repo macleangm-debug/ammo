@@ -81,11 +81,17 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Optional marketplace linking (dealer can choose to list items or not)
 - **Settings** - Profile and business settings
 
-#### Government Portal
-- National oversight dashboard
+#### Government Portal (Professional Analytics Dashboard - Feb 18, 2026)
+- **National Oversight Dashboard** - Colored stat cards (Licensed Owners 2.4M, Active Dealers, Compliance Rate, Pending Reviews, Monthly Revenue)
+  - License Registrations stacked bar chart (New Licenses, Renewals, Revocations)
+  - Revenue Collection area chart
+  - Transaction Categories donut chart
+  - Regional Compliance horizontal bars
+  - Alert Distribution donut chart by severity
+  - Recent Alerts section
 - Risk analytics
 - Compliance monitoring
-- Alert management
+- Alert management with resolution workflow
 
 ### API Endpoints
 | Endpoint | Method | Description |
