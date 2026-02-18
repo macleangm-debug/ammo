@@ -96,6 +96,9 @@ const DealerInventory = ({ user, api }) => {
   // Scan
   const [scanInput, setScanInput] = useState("");
   const scanInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [importData, setImportData] = useState([]);
+  const [importPreview, setImportPreview] = useState(false);
 
   const navItems = [
     { id: 'dashboard', path: '/dealer', label: 'Dashboard', icon: LayoutDashboard },
