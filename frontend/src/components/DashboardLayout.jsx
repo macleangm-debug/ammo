@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useSwipeable } from 'react-swipeable';
 import { 
   Shield, Menu, X, LogOut, Sun, Moon, HelpCircle,
   MessageSquare, Search, Bell, Mail, ChevronDown
@@ -7,6 +8,15 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useTheme } from "../contexts/ThemeContext";
+
+// Navigation paths for swipe navigation
+const SWIPE_ROUTES = [
+  '/dashboard',
+  '/dashboard/license',
+  '/training',
+  '/marketplace',
+  '/dashboard/history',
+];
 
 const DashboardLayout = ({ 
   children, 
