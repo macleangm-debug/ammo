@@ -293,11 +293,17 @@ const DealerInventory = ({ user, api }) => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format = 'csv') => {
     try {
       const response = await api.get("/dealer/inventory/export");
-      const csv = convertToCSV(response.data.data);
-      downloadCSV(csv, "inventory_export.csv");
+      if (format === 'csv') {
+        const csv = convertToCSV(response.data.data);
+        downloadFile(csv, "inventory_export.csv", "text/csv");
+      } else {
+        // Export as Excel-compatible CSV with BOM for Excel
+        const csv = "\uFEFF" + convertToCSV(response.data.data);
+        downloadFile(csv, "inventory_export.xlsx.csv", "text/csv;charset=utf-8");
+      }
       toast.success(`Exported ${response.data.count} items`);
     } catch (error) {
       toast.error("Export failed");
@@ -311,14 +317,142 @@ const DealerInventory = ({ user, api }) => {
     return [headers.join(","), ...rows].join("\n");
   };
 
-  const downloadCSV = (csv, filename) => {
-    const blob = new Blob([csv], { type: "text/csv" });
+  const downloadFile = (content, filename, type) => {
+    const blob = new Blob([content], { type });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    
+    try {
+      let data = [];
+      const text = await file.text();
+      
+      if (fileExtension === 'csv' || fileExtension === 'txt') {
+        data = parseCSV(text);
+      } else {
+        toast.error("Please upload a CSV file");
+        return;
+      }
+      
+      if (data.length === 0) {
+        toast.error("No data found in file");
+        return;
+      }
+      
+      setImportData(data);
+      setImportPreview(true);
+      setImportDialog(true);
+    } catch (error) {
+      console.error("File parsing error:", error);
+      toast.error("Failed to parse file");
+    }
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    // Parse headers
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+    
+    // Map common header variations
+    const headerMap = {
+      'sku': 'sku',
+      'barcode': 'sku',
+      'product_code': 'sku',
+      'item_code': 'sku',
+      'name': 'name',
+      'product_name': 'name',
+      'item_name': 'name',
+      'description': 'description',
+      'desc': 'description',
+      'category': 'category',
+      'type': 'category',
+      'quantity': 'quantity',
+      'qty': 'quantity',
+      'stock': 'quantity',
+      'min_stock_level': 'min_stock_level',
+      'min_stock': 'min_stock_level',
+      'reorder_level': 'min_stock_level',
+      'unit_cost': 'unit_cost',
+      'cost': 'unit_cost',
+      'cost_price': 'unit_cost',
+      'unit_price': 'unit_price',
+      'price': 'unit_price',
+      'sale_price': 'unit_price',
+      'selling_price': 'unit_price',
+      'location': 'location',
+      'shelf': 'location',
+      'warehouse': 'location',
+      'supplier_name': 'supplier_name',
+      'supplier': 'supplier_name',
+      'vendor': 'supplier_name',
+      'requires_license': 'requires_license',
+      'licensed': 'requires_license'
+    };
+    
+    const mappedHeaders = headers.map(h => headerMap[h] || h);
+    
+    // Parse rows
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+      if (values.length === 0 || values.every(v => !v)) continue;
+      
+      const row = {};
+      mappedHeaders.forEach((header, idx) => {
+        row[header] = values[idx] || '';
+      });
+      
+      // Ensure required fields
+      if (row.name || row.sku) {
+        data.push(row);
+      }
+    }
+    
+    return data;
+  };
+
+  const handleImport = async () => {
+    if (importData.length === 0) return;
+    
+    setProcessing(true);
+    try {
+      const response = await api.post("/dealer/inventory/import", { data: importData });
+      toast.success(response.data.message);
+      
+      if (response.data.errors?.length > 0) {
+        toast.error(`${response.data.errors.length} rows had errors`);
+      }
+      
+      setImportDialog(false);
+      setImportData([]);
+      setImportPreview(false);
+      await fetchInventory();
+    } catch (error) {
+      toast.error("Import failed");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = "sku,name,description,category,quantity,min_stock_level,unit_cost,unit_price,location,supplier_name,requires_license\nSKU-001,Sample Item,Description here,accessory,10,5,25.00,49.99,Shelf A1,Supplier Inc,false";
+    downloadFile(template, "inventory_template.csv", "text/csv");
+    toast.success("Template downloaded");
   };
 
   const handleLinkMarketplace = async (item) => {
