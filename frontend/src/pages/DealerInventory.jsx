@@ -581,15 +581,24 @@ const DealerInventory = ({ user, api }) => {
             <Scan className="w-4 h-4" />
             <span className="text-[10px]">Scan</span>
           </Button>
-          <Button size="sm" variant="outline" onClick={handleExport} className="flex-col h-16 gap-1">
+          <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-col h-16 gap-1">
+            <Upload className="w-4 h-4" />
+            <span className="text-[10px]">Import</span>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport('csv')} className="flex-col h-16 gap-1">
             <Download className="w-4 h-4" />
             <span className="text-[10px]">Export</span>
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setShowLowStock(!showLowStock)} className={`flex-col h-16 gap-1 ${showLowStock ? 'bg-amber-100 border-amber-300' : ''}`}>
-            <AlertTriangle className="w-4 h-4" />
-            <span className="text-[10px]">Low Stock</span>
-          </Button>
         </div>
+        
+        {/* Hidden file input for import */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept=".csv,.txt"
+          className="hidden"
+        />
 
         {/* Tabs */}
         <div className="flex gap-2 bg-muted/50 p-1 rounded-xl">
