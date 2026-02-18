@@ -977,7 +977,11 @@ const DealerInventory = ({ user, api }) => {
                   <Scan className="w-4 h-4 mr-2" />
                   Scan
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExport}>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
                   <Download className="w-4 h-4 mr-2" />
                   Export
                 </Button>
