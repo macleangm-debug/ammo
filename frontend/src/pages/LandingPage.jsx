@@ -3,9 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { 
   Shield, CheckCircle, Lock, ArrowRight, Fingerprint, 
   Activity, Award, GraduationCap, Target, Users, Building,
-  ChevronRight, Eye, Sun, Moon
+  ChevronRight, Eye, Sun, Moon, FileText, AlertTriangle, Send, X, Loader2
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { toast } from "sonner";
 import { useTheme } from "../contexts/ThemeContext";
 
 const LandingPage = ({ api }) => {
