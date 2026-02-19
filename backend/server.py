@@ -7119,6 +7119,7 @@ async def get_users_list(
 
 # Standard templates that come pre-loaded
 STANDARD_TEMPLATES = [
+    # ============== WARNING LETTERS ==============
     {
         "template_id": "std_warning_general",
         "name": "General Warning Letter",
@@ -7147,6 +7148,49 @@ Reference Number: {{reference_number}}""",
         "created_by": "system"
     },
     {
+        "template_id": "std_warning_final",
+        "name": "Final Warning Letter",
+        "description": "Final warning before license suspension",
+        "template_type": "warning_letter",
+        "category": "compliance",
+        "is_standard": True,
+        "primary_color": "#991b1b",
+        "secondary_color": "#dc2626",
+        "title": "FINAL WARNING NOTICE",
+        "body_template": """URGENT - FINAL WARNING
+
+Dear {{recipient_name}},
+
+This is your FINAL WARNING regarding repeated compliance violations.
+
+Previous warnings issued:
+- {{previous_warning_1}}
+- {{previous_warning_2}}
+
+Current violation: {{current_violation}}
+
+IMMEDIATE ACTION REQUIRED:
+
+You must rectify all outstanding issues within 14 days of this notice. Failure to comply WILL result in:
+- Immediate license suspension
+- Potential permanent revocation
+- Possible legal proceedings
+
+To avoid these consequences, you must:
+1. {{required_action_1}}
+2. {{required_action_2}}
+3. Schedule a compliance review meeting
+
+Contact the Compliance Department immediately at compliance@ammo.gov
+
+Case Reference: {{case_number}}""",
+        "footer_text": "This is an official final warning. Non-compliance will result in immediate enforcement action.",
+        "signature_title": "Chief Compliance Officer",
+        "created_by": "system"
+    },
+    
+    # ============== LICENSE CERTIFICATES ==============
+    {
         "template_id": "std_license_cert",
         "name": "License Certificate",
         "description": "Official license issuance certificate",
@@ -7174,6 +7218,40 @@ The holder must maintain compliance with all AMMO requirements and complete mand
         "signature_title": "Licensing Authority",
         "created_by": "system"
     },
+    {
+        "template_id": "std_license_renewal",
+        "name": "License Renewal Certificate",
+        "description": "Certificate confirming license renewal",
+        "template_type": "license_certificate",
+        "category": "license",
+        "is_standard": True,
+        "primary_color": "#2563eb",
+        "secondary_color": "#60a5fa",
+        "title": "License Renewal Confirmation",
+        "body_template": """OFFICIAL RENEWAL CERTIFICATE
+
+This confirms that the license held by
+
+{{recipient_name}}
+
+has been successfully renewed.
+
+License Number: {{license_number}}
+License Type: {{license_type}}
+Previous Expiry: {{previous_expiry}}
+New Expiry Date: {{new_expiry_date}}
+Renewal Date: {{renewal_date}}
+
+Compliance Status at Renewal: {{compliance_status}}
+ARI Score: {{ari_score}}
+
+Your continued commitment to responsible ownership is appreciated. Please ensure all training requirements remain current throughout the license period.""",
+        "footer_text": "Thank you for your continued compliance with AMMO regulations.",
+        "signature_title": "License Renewal Authority",
+        "created_by": "system"
+    },
+    
+    # ============== TRAINING CERTIFICATES ==============
     {
         "template_id": "std_training_cert",
         "name": "Training Completion Certificate",
@@ -7205,6 +7283,80 @@ This training fulfills the requirements for {{training_category}} under AMMO gui
         "auto_send_enabled": True
     },
     {
+        "template_id": "std_safety_cert",
+        "name": "Safety Course Certificate",
+        "description": "Mandatory safety training completion certificate",
+        "template_type": "training_certificate",
+        "category": "training",
+        "is_standard": True,
+        "primary_color": "#047857",
+        "secondary_color": "#10b981",
+        "title": "Firearm Safety Certification",
+        "body_template": """OFFICIAL SAFETY CERTIFICATION
+
+This is to certify that
+
+{{recipient_name}}
+
+has successfully completed the AMMO Firearm Safety Training Program and demonstrated proficiency in:
+
+✓ Safe handling and storage procedures
+✓ Legal responsibilities and regulations
+✓ Emergency protocols
+✓ Secure transportation guidelines
+✓ Home safety best practices
+
+Assessment Score: {{score}}%
+Practical Evaluation: {{practical_grade}}
+Completion Date: {{completion_date}}
+Valid Until: {{validity_date}}
+
+This certification is MANDATORY for all license holders and must be renewed every {{renewal_period}} years.""",
+        "footer_text": "Safety First - AMMO Certified Training Program",
+        "signature_title": "Chief Safety Instructor",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_advanced_training",
+        "name": "Advanced Training Certificate",
+        "description": "Advanced/specialized training completion",
+        "template_type": "training_certificate",
+        "category": "training",
+        "is_standard": True,
+        "primary_color": "#0d9488",
+        "secondary_color": "#2dd4bf",
+        "title": "Advanced Training Certification",
+        "body_template": """ADVANCED CERTIFICATION
+
+This certificate recognizes that
+
+{{recipient_name}}
+
+has completed advanced specialized training in:
+
+{{specialization_area}}
+
+Program Details:
+- Course Level: Advanced
+- Training Hours: {{training_hours}}
+- Modules Completed: {{modules_completed}}
+- Final Assessment: {{assessment_score}}%
+- Practical Evaluation: {{practical_result}}
+
+Skills Certified:
+{{certified_skills}}
+
+This advanced certification qualifies the holder for {{qualification_details}}.
+
+Certification Date: {{certification_date}}
+Instructor: {{instructor_name}}""",
+        "footer_text": "Advanced Certification - AMMO Professional Development Program",
+        "signature_title": "Advanced Training Director",
+        "created_by": "system"
+    },
+    
+    # ============== ACHIEVEMENT CERTIFICATES ==============
+    {
         "template_id": "std_achievement_cert",
         "name": "Achievement Certificate",
         "description": "Certificate for special achievements and milestones",
@@ -7232,6 +7384,158 @@ Awarded on: {{award_date}}""",
         "created_by": "system"
     },
     {
+        "template_id": "std_excellence_award",
+        "name": "Excellence Award Certificate",
+        "description": "Recognition for exemplary compliance and conduct",
+        "template_type": "achievement_certificate",
+        "category": "achievement",
+        "is_standard": True,
+        "primary_color": "#b45309",
+        "secondary_color": "#f59e0b",
+        "title": "Certificate of Excellence",
+        "body_template": """AWARD OF EXCELLENCE
+
+The AMMO Government Portal proudly presents this
+
+CERTIFICATE OF EXCELLENCE
+
+to
+
+{{recipient_name}}
+
+For demonstrating exceptional standards in:
+
+{{excellence_category}}
+
+Key Achievements:
+• Maintained ARI Score above {{ari_threshold}} for {{consecutive_months}} consecutive months
+• Completed {{training_count}} voluntary training courses
+• Zero compliance violations
+• {{additional_achievement}}
+
+Your dedication to responsible ownership sets an example for the entire AMMO community.
+
+Award Date: {{award_date}}
+Excellence Level: {{excellence_level}}""",
+        "footer_text": "Excellence in Responsible Ownership - AMMO Recognition Program",
+        "signature_title": "Director of Member Excellence",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_mentor_cert",
+        "name": "Mentor Recognition Certificate",
+        "description": "Recognition for community mentorship contributions",
+        "template_type": "achievement_certificate",
+        "category": "achievement",
+        "is_standard": True,
+        "primary_color": "#7c3aed",
+        "secondary_color": "#a78bfa",
+        "title": "Community Mentor Recognition",
+        "body_template": """MENTOR RECOGNITION CERTIFICATE
+
+This certificate honors
+
+{{recipient_name}}
+
+For outstanding service as an AMMO Community Mentor
+
+Mentorship Contributions:
+• Members Mentored: {{mentees_count}}
+• Guidance Sessions: {{sessions_count}}
+• Training Assistance Hours: {{assistance_hours}}
+• Community Events Participated: {{events_count}}
+
+Mentee Success Rate: {{success_rate}}%
+Average Mentee ARI Improvement: +{{ari_improvement}} points
+
+Your commitment to guiding new members and fostering a culture of responsibility has made a significant positive impact on our community.
+
+Recognition Period: {{period_start}} to {{period_end}}
+Mentor Level: {{mentor_level}}""",
+        "footer_text": "Building a Stronger Community Through Mentorship",
+        "signature_title": "Community Programs Director",
+        "created_by": "system"
+    },
+    
+    # ============== COMPLIANCE CERTIFICATES ==============
+    {
+        "template_id": "std_compliance_cert",
+        "name": "Compliance Certificate",
+        "description": "Certificate confirming full compliance status",
+        "template_type": "compliance_certificate",
+        "category": "compliance",
+        "is_standard": True,
+        "primary_color": "#0891b2",
+        "secondary_color": "#22d3ee",
+        "title": "Certificate of Compliance",
+        "body_template": """OFFICIAL COMPLIANCE CERTIFICATE
+
+This certifies that
+
+{{recipient_name}}
+
+is in FULL COMPLIANCE with all AMMO regulations and requirements.
+
+Compliance Details:
+- License Status: {{license_status}}
+- ARI Score: {{ari_score}} ({{ari_rank}})
+- Training Status: All requirements met
+- Storage Compliance: Verified
+- Documentation: Complete
+
+Last Compliance Review: {{review_date}}
+Next Review Due: {{next_review_date}}
+Compliance Officer: {{reviewer_name}}
+
+This certificate confirms the holder meets all regulatory standards for responsible firearm ownership.""",
+        "footer_text": "Compliance Verified - AMMO Regulatory Authority",
+        "signature_title": "Compliance Verification Officer",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_audit_clearance",
+        "name": "Audit Clearance Certificate",
+        "description": "Certificate issued after successful compliance audit",
+        "template_type": "compliance_certificate",
+        "category": "compliance",
+        "is_standard": True,
+        "primary_color": "#0e7490",
+        "secondary_color": "#06b6d4",
+        "title": "Compliance Audit Clearance",
+        "body_template": """AUDIT CLEARANCE CERTIFICATE
+
+Following a comprehensive compliance audit, this certificate confirms that
+
+{{recipient_name}}
+
+has successfully passed all audit requirements.
+
+Audit Details:
+Audit Type: {{audit_type}}
+Audit Date: {{audit_date}}
+Audit Reference: {{audit_reference}}
+
+Areas Reviewed:
+✓ License Documentation
+✓ Storage Facilities
+✓ Training Records
+✓ Transaction History
+✓ Safety Protocols
+
+Audit Result: PASSED
+Overall Score: {{audit_score}}/100
+Auditor: {{auditor_name}}
+
+No deficiencies or violations were identified during this audit.
+
+Next Scheduled Audit: {{next_audit_date}}""",
+        "footer_text": "Official Audit Clearance - AMMO Compliance Division",
+        "signature_title": "Chief Audit Officer",
+        "created_by": "system"
+    },
+    
+    # ============== FORMAL NOTICES ==============
+    {
         "template_id": "std_formal_notice",
         "name": "Formal Notice",
         "description": "General formal notice template",
@@ -7255,6 +7559,91 @@ Reference: {{reference_number}}""",
         "footer_text": "Official communication from AMMO Government Portal.",
         "signature_title": "Government Administrator",
         "created_by": "system"
+    },
+    {
+        "template_id": "std_policy_update",
+        "name": "Policy Update Notice",
+        "description": "Notification of policy or regulation changes",
+        "template_type": "formal_notice",
+        "category": "general",
+        "is_standard": True,
+        "primary_color": "#6366f1",
+        "secondary_color": "#a5b4fc",
+        "title": "Important Policy Update",
+        "body_template": """OFFICIAL POLICY NOTIFICATION
+
+Dear {{recipient_name}},
+
+This notice informs you of important updates to AMMO policies and regulations that may affect your license.
+
+Policy Reference: {{policy_reference}}
+Effective Date: {{effective_date}}
+
+Summary of Changes:
+{{policy_summary}}
+
+Key Points:
+• {{key_point_1}}
+• {{key_point_2}}
+• {{key_point_3}}
+
+Required Actions:
+{{required_actions}}
+
+Compliance Deadline: {{compliance_deadline}}
+
+Please review the full policy document at ammo.gov/policies/{{policy_id}}
+
+For questions, contact policy@ammo.gov""",
+        "footer_text": "Stay informed - Your compliance matters",
+        "signature_title": "Policy Administration",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_renewal_reminder",
+        "name": "License Renewal Reminder",
+        "description": "Reminder notice for upcoming license expiration",
+        "template_type": "formal_notice",
+        "category": "license",
+        "is_standard": True,
+        "primary_color": "#ea580c",
+        "secondary_color": "#fb923c",
+        "title": "License Renewal Reminder",
+        "body_template": """IMPORTANT: LICENSE RENEWAL REQUIRED
+
+Dear {{recipient_name}},
+
+Your AMMO license is approaching its expiration date.
+
+License Details:
+License Number: {{license_number}}
+License Type: {{license_type}}
+Expiration Date: {{expiry_date}}
+Days Remaining: {{days_remaining}}
+
+To renew your license, please:
+1. Log in to your AMMO account
+2. Navigate to "My License" section
+3. Complete the renewal application
+4. Submit required documentation
+5. Pay the renewal fee ({{renewal_fee}})
+
+Renewal Requirements:
+✓ Valid identification
+✓ Completed safety training (if expired)
+✓ Updated contact information
+✓ Current compliance status
+
+IMPORTANT: Operating with an expired license is a violation and may result in penalties.
+
+Renew online at: ammo.gov/renew
+
+Reference: {{reminder_reference}}""",
+        "footer_text": "Renew on time to maintain your license privileges",
+        "signature_title": "License Renewal Department",
+        "created_by": "system",
+        "auto_send_on_event": "license_expiring",
+        "auto_send_enabled": True
     }
 ]
 
