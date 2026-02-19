@@ -54,7 +54,10 @@ const GovernmentTemplates = ({ user, api }) => {
     recipients: [],
     recipient_type: "individual",
     placeholder_values: {},
-    priority: "normal"
+    priority: "normal",
+    issuer_signature_name: "",
+    issuer_designation: "",
+    organization_name: "AMMO Government Portal"
   });
   
   const [users, setUsers] = useState([]);
