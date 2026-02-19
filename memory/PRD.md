@@ -159,16 +159,24 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 
 ## Backlog
 
+### P0 - Completed (Feb 19, 2026)
+- [x] Review System - Full implementation with 6 review types
+- [x] Public application forms on landing page
+- [x] Citizen renewal and appeal forms in portal
+- [x] Government pending reviews management page
+
 ### P1 - High Priority
 - [ ] Smart Safe IoT Integration
 - [ ] Insurance Partner API Integration
+- [ ] Flagged transaction auto-detection logic (partially implemented, needs rule engine)
 
 ### P2 - Medium Priority  
 - [ ] Community Mentor Matching
 - [ ] SMS Notifications (currently mocked)
+- [ ] Email notifications for review status changes
 
 ### P3 - Future Enhancements
-- [ ] Backend modularization (break up server.py)
+- [ ] Backend modularization (break up server.py - now ~6500 lines)
 - [ ] Real-time notifications
 - [ ] Advanced analytics dashboard
 
