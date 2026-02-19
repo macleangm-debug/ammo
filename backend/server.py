@@ -7258,8 +7258,8 @@ Reference: {{reference_number}}""",
     }
 ]
 
-def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
-    """Generate a professional PDF for a formal document"""
+def generate_formal_document_pdf(doc: dict, base_url: str = None) -> io.BytesIO:
+    """Generate a professional PDF for a formal document with QR verification"""
     buffer = io.BytesIO()
     
     # Parse colors
@@ -7288,11 +7288,11 @@ def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
     # Watermark if enabled
     if doc.get("watermark_enabled", True):
         c.saveState()
-        c.setFillColor(colors.Color(0.9, 0.9, 0.95))
+        c.setFillColor(colors.Color(0.92, 0.92, 0.96))
         c.setFont("Helvetica-Bold", 60)
         c.translate(width/2, height/2)
         c.rotate(45)
-        c.drawCentredString(0, 0, "AMMO OFFICIAL")
+        c.drawCentredString(0, 0, "VERIFIED")
         c.restoreState()
     
     # Border
@@ -7353,7 +7353,7 @@ def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
     max_width = width - 120
     
     for line in lines:
-        if y_position < 120:  # Leave room for footer
+        if y_position < 160:  # Leave room for footer and QR
             break
         
         # Handle empty lines
@@ -7386,25 +7386,74 @@ def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
         
         y_position -= line_height
     
-    # Signature section
-    sig_y = 100
+    # Signature section - enhanced with issuer name
+    sig_y = 130 if is_certificate else 120
+    
+    # Issuer signature name (handwritten style)
+    issuer_sig_name = doc.get("issuer_signature_name") or doc.get("issued_by_name", "")
+    if issuer_sig_name:
+        c.setFont("Helvetica-Oblique", 14)
+        c.setFillColor(colors.Color(0.2, 0.2, 0.4))
+        c.drawCentredString(width / 2, sig_y + 5, issuer_sig_name)
+    
+    # Signature line
     c.setStrokeColor(colors.Color(0.3, 0.3, 0.3))
     c.setLineWidth(1)
-    c.line(width/2 - 100, sig_y, width/2 + 100, sig_y)
+    c.line(width/2 - 100, sig_y - 10, width/2 + 100, sig_y - 10)
     
+    # Signature title/designation
     c.setFont("Helvetica", 10)
     c.setFillColor(colors.Color(0.4, 0.4, 0.4))
-    c.drawCentredString(width / 2, sig_y - 15, doc.get("signature_title", "Government Administrator"))
+    sig_title = doc.get("issuer_designation") or doc.get("signature_title", "Government Administrator")
+    c.drawCentredString(width / 2, sig_y - 25, sig_title)
+    
+    # Organization name
+    org_name = doc.get("organization_name", "AMMO Government Portal")
+    c.setFont("Helvetica", 9)
+    c.drawCentredString(width / 2, sig_y - 38, org_name)
     
     # Issue date
     c.setFont("Helvetica", 9)
     issued_at = doc.get("issued_at", datetime.now(timezone.utc).isoformat())
     if isinstance(issued_at, str):
         try:
-            issued_at = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+            issued_at_dt = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
         except:
-            issued_at = datetime.now(timezone.utc)
-    c.drawCentredString(width / 2, sig_y - 30, f"Issued: {issued_at.strftime('%B %d, %Y')}")
+            issued_at_dt = datetime.now(timezone.utc)
+    else:
+        issued_at_dt = issued_at
+    c.drawCentredString(width / 2, sig_y - 52, f"Issued: {issued_at_dt.strftime('%B %d, %Y')}")
+    
+    # QR Code for verification (bottom-right corner)
+    verification_hash = doc.get("verification_hash")
+    if verification_hash and base_url:
+        document_id = doc.get("document_id", "")
+        verification_url = f"{base_url}/verify/{document_id}?h={verification_hash[:16]}"
+        
+        try:
+            # Generate QR code
+            qr_buffer = generate_verification_qr(verification_url)
+            
+            # Draw QR code
+            qr_x = width - 100 if is_certificate else width - 90
+            qr_y = 50
+            qr_size = 60
+            
+            from reportlab.lib.utils import ImageReader
+            qr_img = ImageReader(qr_buffer)
+            c.drawImage(qr_img, qr_x - qr_size/2, qr_y, width=qr_size, height=qr_size)
+            
+            # QR label
+            c.setFont("Helvetica", 6)
+            c.setFillColor(colors.Color(0.5, 0.5, 0.5))
+            c.drawCentredString(qr_x, qr_y - 8, "Scan to Verify")
+            
+            # Verification badge
+            c.setFillColor(colors.Color(0.2, 0.6, 0.3))
+            c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(qr_x, qr_y + qr_size + 8, "✓ VERIFIED")
+        except Exception as e:
+            logging.error(f"Error generating QR code: {e}")
     
     # Footer
     c.setFont("Helvetica", 8)
@@ -7412,9 +7461,14 @@ def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
     footer_text = doc.get("footer_text", "")
     c.drawCentredString(width / 2, 50, footer_text)
     
-    # Document ID
+    # Document ID and verification hash
     c.setFont("Helvetica", 7)
     c.drawCentredString(width / 2, 38, f"Document ID: {doc.get('document_id', 'N/A')}")
+    
+    if verification_hash:
+        c.setFont("Helvetica", 6)
+        c.setFillColor(colors.Color(0.6, 0.6, 0.6))
+        c.drawCentredString(width / 2, 28, f"Verification: {verification_hash[:32]}...")
     
     c.save()
     buffer.seek(0)
