@@ -316,22 +316,82 @@ const LicensePage = ({ user, api }) => {
             <CardTitle className="text-lg">License Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex flex-col items-center gap-2"
+                onClick={() => setShowRenewalDialog(true)}
+                data-testid="renew-license-btn"
+              >
                 <RefreshCw className="w-5 h-5" />
                 <span>Renew License</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex flex-col items-center gap-2"
+                onClick={() => setShowAppealDialog(true)}
+                data-testid="file-appeal-btn"
+              >
+                <Scale className="w-5 h-5" />
+                <span>File Appeal</span>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2">
                 <Download className="w-5 h-5" />
                 <span>Download PDF</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2">
+              <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2" onClick={() => navigate('/dashboard/history')}>
                 <FileText className="w-5 h-5" />
                 <span>View History</span>
               </Button>
             </div>
           </CardContent>
         </Card>
+        
+        {/* My Pending Requests */}
+        {myReviews.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">My Pending Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {myReviews.map((review) => (
+                  <div 
+                    key={review.review_id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        {review.item_type === 'license_renewal' ? (
+                          <RefreshCw className="w-4 h-4 text-primary" />
+                        ) : review.item_type === 'appeal' ? (
+                          <Scale className="w-4 h-4 text-primary" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm capitalize">
+                          {review.item_type?.replace(/_/g, ' ')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted: {new Date(review.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className={
+                      review.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      review.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }>
+                      {review.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Contact Information */}
         <Card>
