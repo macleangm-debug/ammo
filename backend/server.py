@@ -6981,6 +6981,390 @@ async def get_users_list(
         "role_counts": role_counts
     }
 
+# ============== TRIGGER SCHEDULER & EXECUTION ==============
+
+# Global scheduler state
+scheduler_running = False
+scheduler_task = None
+
+async def execute_trigger(trigger: dict, manual: bool = False) -> dict:
+    """Execute a single notification trigger and return results"""
+    execution = TriggerExecution(
+        trigger_id=trigger["trigger_id"],
+        trigger_name=trigger["name"],
+        event_type=trigger["event_type"]
+    )
+    
+    exec_doc = execution.model_dump()
+    exec_doc["started_at"] = exec_doc["started_at"].isoformat()
+    await db.trigger_executions.insert_one(exec_doc)
+    
+    try:
+        users_matched = []
+        event_type = trigger["event_type"]
+        conditions = trigger.get("conditions", {})
+        target_roles = trigger.get("target_roles", ["citizen"])
+        
+        # Evaluate conditions based on event type
+        if event_type == "license_expiring":
+            days_before = conditions.get("days_before", 30)
+            target_date = datetime.now(timezone.utc) + timedelta(days=days_before)
+            target_date_str = target_date.strftime("%Y-%m-%d")
+            
+            # Find users with licenses expiring within the threshold
+            for role in target_roles:
+                if role == "citizen":
+                    profiles = await db.citizen_profiles.find({
+                        "license_expiry": {"$lte": target_date_str, "$gte": datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+                    }, {"_id": 0}).to_list(1000)
+                    
+                    for profile in profiles:
+                        user = await db.users.find_one({"user_id": profile.get("user_id")}, {"_id": 0})
+                        if user:
+                            days_remaining = (datetime.strptime(profile.get("license_expiry", target_date_str), "%Y-%m-%d") - datetime.now(timezone.utc).replace(tzinfo=None)).days
+                            users_matched.append({
+                                "user_id": user["user_id"],
+                                "name": user.get("name", "User"),
+                                "email": user.get("email", ""),
+                                "days_remaining": max(0, days_remaining),
+                                "license_number": profile.get("license_number", "")
+                            })
+        
+        elif event_type == "training_incomplete":
+            min_hours = conditions.get("min_hours_required", 10)
+            
+            for role in target_roles:
+                if role == "citizen":
+                    profiles = await db.citizen_profiles.find({
+                        "$or": [
+                            {"training_hours": {"$lt": min_hours}},
+                            {"training_hours": {"$exists": False}}
+                        ]
+                    }, {"_id": 0}).to_list(1000)
+                    
+                    for profile in profiles:
+                        user = await db.users.find_one({"user_id": profile.get("user_id")}, {"_id": 0})
+                        if user:
+                            users_matched.append({
+                                "user_id": user["user_id"],
+                                "name": user.get("name", "User"),
+                                "email": user.get("email", ""),
+                                "current_hours": profile.get("training_hours", 0),
+                                "required_hours": min_hours
+                            })
+        
+        elif event_type == "compliance_warning":
+            min_score = conditions.get("min_ari_score", 50)
+            
+            for role in target_roles:
+                if role == "citizen":
+                    profiles = await db.citizen_profiles.find({
+                        "$or": [
+                            {"ari_score": {"$lt": min_score}},
+                            {"ari_score": {"$exists": False}}
+                        ]
+                    }, {"_id": 0}).to_list(1000)
+                    
+                    for profile in profiles:
+                        user = await db.users.find_one({"user_id": profile.get("user_id")}, {"_id": 0})
+                        if user:
+                            users_matched.append({
+                                "user_id": user["user_id"],
+                                "name": user.get("name", "User"),
+                                "email": user.get("email", ""),
+                                "current_score": profile.get("ari_score", 0)
+                            })
+        
+        elif event_type == "review_status_changed":
+            # This is typically event-driven, but we can check for pending reviews
+            hours_pending = conditions.get("hours_pending", 48)
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours_pending)
+            
+            reviews = await db.review_items.find({
+                "status": "pending",
+                "created_at": {"$lte": cutoff.isoformat()}
+            }, {"_id": 0}).to_list(100)
+            
+            for review in reviews:
+                if review.get("submitted_by"):
+                    user = await db.users.find_one({"user_id": review["submitted_by"]}, {"_id": 0})
+                    if user:
+                        users_matched.append({
+                            "user_id": user["user_id"],
+                            "name": user.get("name", "User"),
+                            "email": user.get("email", ""),
+                            "review_id": review.get("review_id"),
+                            "review_type": review.get("item_type")
+                        })
+        
+        elif event_type == "custom":
+            # For custom events, just get all users in target roles
+            for role in target_roles:
+                users = await db.users.find({"role": role}, {"_id": 0}).to_list(1000)
+                for user in users:
+                    users_matched.append({
+                        "user_id": user["user_id"],
+                        "name": user.get("name", "User"),
+                        "email": user.get("email", "")
+                    })
+        
+        # Send notifications to matched users
+        notifications_sent = 0
+        for user_data in users_matched:
+            # Replace placeholders in template
+            title = trigger["template_title"]
+            message = trigger["template_message"]
+            
+            title = title.replace("{{user_name}}", user_data.get("name", "User"))
+            message = message.replace("{{user_name}}", user_data.get("name", "User"))
+            message = message.replace("{{days_remaining}}", str(user_data.get("days_remaining", "")))
+            message = message.replace("{{license_number}}", str(user_data.get("license_number", "")))
+            message = message.replace("{{current_hours}}", str(user_data.get("current_hours", "")))
+            message = message.replace("{{required_hours}}", str(user_data.get("required_hours", "")))
+            message = message.replace("{{current_score}}", str(user_data.get("current_score", "")))
+            
+            # Check if we already sent this notification recently (within 24 hours)
+            recent_notif = await db.notifications.find_one({
+                "user_id": user_data["user_id"],
+                "title": title,
+                "created_at": {"$gte": (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()}
+            })
+            
+            if not recent_notif:
+                notif = {
+                    "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                    "user_id": user_data["user_id"],
+                    "title": title,
+                    "message": message,
+                    "type": trigger.get("notification_type", "reminder"),
+                    "category": trigger.get("notification_category", "system"),
+                    "priority": trigger.get("priority", "normal"),
+                    "sent_by": f"trigger:{trigger['trigger_id']}",
+                    "read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.notifications.insert_one(notif)
+                notifications_sent += 1
+        
+        # Update execution record
+        await db.trigger_executions.update_one(
+            {"execution_id": execution.execution_id},
+            {"$set": {
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "status": "completed",
+                "users_evaluated": len(users_matched),
+                "users_matched": len(users_matched),
+                "notifications_sent": notifications_sent,
+                "details": {
+                    "event_type": event_type,
+                    "conditions": conditions,
+                    "manual": manual
+                }
+            }}
+        )
+        
+        # Update trigger last execution info
+        await db.notification_triggers.update_one(
+            {"trigger_id": trigger["trigger_id"]},
+            {"$set": {
+                "last_executed_at": datetime.now(timezone.utc).isoformat(),
+                "execution_count": trigger.get("execution_count", 0) + 1,
+                "last_execution_result": {
+                    "status": "completed",
+                    "notifications_sent": notifications_sent,
+                    "users_matched": len(users_matched)
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "execution_id": execution.execution_id,
+            "status": "completed",
+            "users_matched": len(users_matched),
+            "notifications_sent": notifications_sent
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        await db.trigger_executions.update_one(
+            {"execution_id": execution.execution_id},
+            {"$set": {
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "status": "failed",
+                "error_message": error_msg
+            }}
+        )
+        
+        await db.notification_triggers.update_one(
+            {"trigger_id": trigger["trigger_id"]},
+            {"$set": {
+                "last_executed_at": datetime.now(timezone.utc).isoformat(),
+                "last_execution_result": {
+                    "status": "failed",
+                    "error": error_msg
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "execution_id": execution.execution_id,
+            "status": "failed",
+            "error": error_msg
+        }
+
+async def run_all_triggers():
+    """Run all enabled triggers"""
+    triggers = await db.notification_triggers.find({"enabled": True}, {"_id": 0}).to_list(100)
+    results = []
+    
+    for trigger in triggers:
+        # Check schedule interval
+        last_exec = trigger.get("last_executed_at")
+        interval = trigger.get("schedule_interval", "daily")
+        
+        should_run = True
+        if last_exec:
+            last_exec_dt = datetime.fromisoformat(last_exec.replace("Z", "+00:00")) if isinstance(last_exec, str) else last_exec
+            now = datetime.now(timezone.utc)
+            
+            if interval == "hourly" and (now - last_exec_dt).total_seconds() < 3600:
+                should_run = False
+            elif interval == "daily" and (now - last_exec_dt).total_seconds() < 86400:
+                should_run = False
+            elif interval == "weekly" and (now - last_exec_dt).total_seconds() < 604800:
+                should_run = False
+        
+        if should_run:
+            result = await execute_trigger(trigger)
+            results.append({
+                "trigger_id": trigger["trigger_id"],
+                "trigger_name": trigger["name"],
+                **result
+            })
+    
+    return results
+
+async def scheduler_loop():
+    """Background scheduler loop"""
+    global scheduler_running
+    while scheduler_running:
+        try:
+            logging.info("Trigger scheduler: Starting scheduled run...")
+            results = await run_all_triggers()
+            logging.info(f"Trigger scheduler: Completed. Executed {len(results)} triggers.")
+        except Exception as e:
+            logging.error(f"Trigger scheduler error: {e}")
+        
+        # Sleep for 1 hour before next check
+        await asyncio.sleep(3600)
+
+@api_router.post("/government/triggers/run-all")
+async def run_all_triggers_endpoint(user: dict = Depends(require_auth(["admin"]))):
+    """Manually run all enabled triggers"""
+    results = await run_all_triggers()
+    return {
+        "message": f"Executed {len(results)} triggers",
+        "results": results
+    }
+
+@api_router.post("/government/triggers/{trigger_id}/execute")
+async def execute_single_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Manually execute a single trigger"""
+    trigger = await db.notification_triggers.find_one({"trigger_id": trigger_id}, {"_id": 0})
+    
+    if not trigger:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    result = await execute_trigger(trigger, manual=True)
+    return result
+
+@api_router.get("/government/triggers/executions")
+async def get_trigger_executions(
+    trigger_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get trigger execution history"""
+    query = {}
+    if trigger_id:
+        query["trigger_id"] = trigger_id
+    if status:
+        query["status"] = status
+    
+    executions = await db.trigger_executions.find(query, {"_id": 0}).sort("started_at", -1).limit(limit).to_list(limit)
+    return {"executions": [serialize_doc(e) for e in executions]}
+
+@api_router.get("/government/triggers/scheduler-status")
+async def get_scheduler_status(user: dict = Depends(require_auth(["admin"]))):
+    """Get the current status of the trigger scheduler"""
+    global scheduler_running
+    
+    # Get last execution for each trigger
+    triggers = await db.notification_triggers.find({"enabled": True}, {"_id": 0, "trigger_id": 1, "name": 1, "last_executed_at": 1, "schedule_interval": 1, "last_execution_result": 1}).to_list(100)
+    
+    # Calculate next run times
+    for trigger in triggers:
+        last_exec = trigger.get("last_executed_at")
+        interval = trigger.get("schedule_interval", "daily")
+        
+        if last_exec:
+            last_exec_dt = datetime.fromisoformat(last_exec.replace("Z", "+00:00")) if isinstance(last_exec, str) else last_exec
+            
+            if interval == "hourly":
+                next_run = last_exec_dt + timedelta(hours=1)
+            elif interval == "daily":
+                next_run = last_exec_dt + timedelta(days=1)
+            elif interval == "weekly":
+                next_run = last_exec_dt + timedelta(weeks=1)
+            else:
+                next_run = last_exec_dt + timedelta(days=1)
+            
+            trigger["next_run_at"] = next_run.isoformat()
+        else:
+            trigger["next_run_at"] = "Pending first run"
+    
+    # Get recent executions
+    recent_executions = await db.trigger_executions.find({}, {"_id": 0}).sort("started_at", -1).limit(10).to_list(10)
+    
+    return {
+        "scheduler_running": scheduler_running,
+        "check_interval": "1 hour",
+        "enabled_triggers": len(triggers),
+        "triggers": [serialize_doc(t) for t in triggers],
+        "recent_executions": [serialize_doc(e) for e in recent_executions]
+    }
+
+@api_router.post("/government/triggers/scheduler/start")
+async def start_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Start the background trigger scheduler"""
+    global scheduler_running, scheduler_task
+    
+    if scheduler_running:
+        return {"message": "Scheduler is already running", "status": "running"}
+    
+    scheduler_running = True
+    scheduler_task = asyncio.create_task(scheduler_loop())
+    
+    return {"message": "Scheduler started", "status": "running"}
+
+@api_router.post("/government/triggers/scheduler/stop")
+async def stop_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Stop the background trigger scheduler"""
+    global scheduler_running, scheduler_task
+    
+    if not scheduler_running:
+        return {"message": "Scheduler is not running", "status": "stopped"}
+    
+    scheduler_running = False
+    if scheduler_task:
+        scheduler_task.cancel()
+        scheduler_task = None
+    
+    return {"message": "Scheduler stopped", "status": "stopped"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
