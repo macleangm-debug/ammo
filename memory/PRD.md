@@ -92,6 +92,28 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - Risk analytics
 - Compliance monitoring
 - Alert management with resolution workflow
+- **Pending Reviews Management** (Added Feb 19, 2026) - `/government/reviews`
+  - Count cards for all review types (License Apps, Renewals, Dealer Certs, Flagged Txns, Violations, Appeals)
+  - Filterable review list (by status, type, region, search)
+  - Review detail dialog with full application data
+  - Approve/Reject workflow with decision reason
+  - Add notes to reviews
+  - Audit trail for all review actions
+
+#### Review System (Added Feb 19, 2026)
+- **Public Application Forms** - Landing page "Apply or Report" section
+  - License Application form (name, email, address, license type, purpose, ID info, region)
+  - Dealer Certification form (business info, owner info, tax ID, compliance consent)
+  - Violation Report form (type, severity, description, location, anonymous or identified)
+- **Citizen Portal Actions**
+  - License Renewal request form (reason, address change, training status, incidents)
+  - Appeal form (decision type, grounds, evidence, requested outcome)
+  - "My Pending Requests" section shows citizen's submitted reviews
+- **Admin Review Management**
+  - View and filter all pending reviews
+  - Approve or reject with documented decision reason
+  - Add internal notes for collaboration
+  - Track review status through full lifecycle
 
 ### API Endpoints
 | Endpoint | Method | Description |
