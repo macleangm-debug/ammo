@@ -274,6 +274,134 @@ const CitizenDashboard = ({ user, api }) => {
           })}
         </div>
 
+        {/* Mobile-Optimized Charts Section */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* ARI Score Gauge */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">ARI Score</p>
+                <div className="relative w-24 h-24 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="70%"
+                      outerRadius="100%"
+                      data={ariGaugeData}
+                      startAngle={180}
+                      endAngle={0}
+                    >
+                      <RadialBar
+                        background
+                        dataKey="value"
+                        cornerRadius={10}
+                        fill={ariScore >= 85 ? COLORS.primary : ariScore >= 60 ? COLORS.success : COLORS.warning}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold">{ariScore}</span>
+                  </div>
+                </div>
+                <Badge className={`mt-2 text-[10px] ${ariScore >= 85 ? 'bg-primary/10 text-primary' : ariScore >= 60 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {ariScore >= 85 ? 'Elite Custodian' : ariScore >= 60 ? 'Guardian' : 'Sentinel'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Training Progress Ring */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Training</p>
+                <div className="relative w-24 h-24 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={trainingRingData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={40}
+                        startAngle={90}
+                        endAngle={-270}
+                        dataKey="value"
+                      >
+                        {trainingRingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold">{trainingHours}h</span>
+                    <span className="text-[10px] text-muted-foreground">of 20h</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {Math.round((trainingHours / 20) * 100)}% Complete
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Compliance Sparkline */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">30-Day Trend</p>
+                <div className="h-16">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={complianceTrend}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="score" 
+                        stroke={COLORS.success} 
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <TrendingUp className="w-3 h-3 text-green-500" />
+                  <span className="text-xs text-green-600 font-medium">+8%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Weekly Activity Heatmap */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">This Week</p>
+                <div className="flex justify-center gap-1">
+                  {weeklyActivity.map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-1">
+                      <div 
+                        className={`w-5 h-5 rounded-sm ${
+                          item.activity === 0 ? 'bg-gray-100' :
+                          item.activity === 1 ? 'bg-green-200' :
+                          item.activity === 2 ? 'bg-green-400' : 'bg-green-600'
+                        }`}
+                        title={`${item.day}: ${item.activity} activities`}
+                      />
+                      <span className="text-[8px] text-muted-foreground">{item.day.charAt(0)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  <Flame className="w-3 h-3 text-orange-500" />
+                  <span className="text-xs font-medium">{complianceStreak} day streak</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Charts Row 1 - Activity & Spending */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Activity Bar Chart */}
