@@ -24,6 +24,7 @@ import GovernmentTemplates from "./pages/GovernmentTemplates";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 import TrainingCourses from "./pages/TrainingCourses";
+import VerifyDocument from "./pages/VerifyDocument";
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
