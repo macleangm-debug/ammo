@@ -279,6 +279,14 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Created `/app/backend/utils/` directory with database.py and helpers.py
   - Created `/app/backend/routes/` directory structure
   - Documented refactoring plan in `/app/backend/REFACTORING.md`
+- [x] **Verified Certificate System with QR Code** (Feb 19, 2026):
+  - SHA-256 hashed verification for fraud prevention
+  - QR code embedded in certificate PDF
+  - Public verification page at `/verify/:documentId` (no login required)
+  - Issuing authority signature with name, designation, and organization
+  - Verification badge displayed on citizen's document view
+  - Hash verification endpoint `/api/verify/{document_id}`
+  - Government send dialog updated with signature authority fields
 
 ### P1 - High Priority
 - [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~8200 lines)
