@@ -17,6 +17,7 @@ import DealerInventory from "./pages/DealerInventory";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
 import AlertsDashboard from "./pages/AlertsDashboard";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
+import PendingReviews from "./pages/PendingReviews";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 import TrainingCourses from "./pages/TrainingCourses";
