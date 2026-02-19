@@ -82,6 +82,7 @@ const TEMPLATE_CATEGORIES = [
 ];
 
 const GovernmentTemplatesV2 = ({ user, api }) => {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [defaultTemplates, setDefaultTemplates] = useState({});
