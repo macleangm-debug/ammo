@@ -461,6 +461,156 @@ class ReorderAlert(BaseModel):
 # Region definitions
 REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
 
+# ============== REVIEW & APPLICATION SYSTEM MODELS ==============
+
+class ReviewItemType:
+    LICENSE_APPLICATION = "license_application"
+    LICENSE_RENEWAL = "license_renewal"
+    DEALER_CERTIFICATION = "dealer_certification"
+    FLAGGED_TRANSACTION = "flagged_transaction"
+    COMPLIANCE_VIOLATION = "compliance_violation"
+    APPEAL = "appeal"
+
+class ReviewItem(BaseModel):
+    """Generic review item that can track any type of review"""
+    model_config = ConfigDict(extra="ignore")
+    review_id: str = Field(default_factory=lambda: f"rev_{uuid.uuid4().hex[:12]}")
+    item_type: str  # license_application, license_renewal, dealer_certification, flagged_transaction, compliance_violation, appeal
+    status: str = "pending"  # pending, under_review, approved, rejected, escalated, withdrawn
+    priority: str = "normal"  # low, normal, high, urgent
+    submitted_by: Optional[str] = None  # user_id of submitter (null for anonymous)
+    submitter_name: Optional[str] = None
+    submitter_email: Optional[str] = None
+    assigned_to: Optional[str] = None  # admin user_id
+    data: dict = {}  # Type-specific form data
+    notes: list = []  # List of {author_id, author_name, text, timestamp}
+    decision_reason: Optional[str] = None
+    decided_by: Optional[str] = None
+    decided_at: Optional[datetime] = None
+    region: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LicenseApplication(BaseModel):
+    """Application for a new firearm/ammunition license"""
+    model_config = ConfigDict(extra="ignore")
+    application_id: str = Field(default_factory=lambda: f"app_{uuid.uuid4().hex[:12]}")
+    applicant_name: str
+    applicant_email: str
+    applicant_phone: Optional[str] = None
+    applicant_address: str
+    license_type: str  # firearm, ammunition, both
+    purpose: str  # personal_protection, sport, hunting, collection, professional
+    date_of_birth: str
+    id_type: str  # drivers_license, passport, state_id
+    id_number: str
+    has_previous_license: bool = False
+    previous_license_number: Optional[str] = None
+    has_criminal_record: bool = False
+    criminal_record_details: Optional[str] = None
+    training_completed: bool = False
+    training_certificate_number: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    additional_notes: Optional[str] = None
+    region: str
+    status: str = "pending"  # pending, under_review, approved, rejected, requires_additional_info
+    review_id: Optional[str] = None  # Link to review item
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DealerCertification(BaseModel):
+    """Application for dealer certification"""
+    model_config = ConfigDict(extra="ignore")
+    certification_id: str = Field(default_factory=lambda: f"cert_{uuid.uuid4().hex[:12]}")
+    business_name: str
+    owner_name: str
+    owner_email: str
+    owner_phone: str
+    business_address: str
+    business_type: str  # retail, wholesale, manufacturer, gunsmith, range
+    tax_id: str
+    business_license_number: str
+    years_in_business: int = 0
+    has_physical_location: bool = True
+    security_measures: list = []  # alarm_system, surveillance, safe_storage, armed_security
+    insurance_provider: Optional[str] = None
+    insurance_policy_number: Optional[str] = None
+    background_check_consent: bool = False
+    compliance_agreement: bool = False
+    region: str
+    status: str = "pending"
+    review_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ReportedViolation(BaseModel):
+    """Report of a compliance violation"""
+    model_config = ConfigDict(extra="ignore")
+    violation_id: str = Field(default_factory=lambda: f"viol_{uuid.uuid4().hex[:12]}")
+    violation_type: str  # illegal_sale, storage_violation, license_violation, safety_violation, documentation_issue, other
+    description: str
+    location: Optional[str] = None
+    date_observed: Optional[str] = None
+    reported_by_id: Optional[str] = None  # null for anonymous
+    reporter_name: Optional[str] = None  # Anonymous if not provided
+    reporter_email: Optional[str] = None
+    reporter_phone: Optional[str] = None
+    subject_type: str = "unknown"  # dealer, citizen, unknown
+    subject_id: Optional[str] = None  # dealer_id or user_id if known
+    subject_name: Optional[str] = None
+    evidence_links: list = []  # URLs or file references
+    evidence_description: Optional[str] = None
+    severity: str = "medium"  # low, medium, high, critical
+    region: Optional[str] = None
+    status: str = "pending"  # pending, investigating, verified, unfounded, resolved
+    review_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LicenseRenewal(BaseModel):
+    """License renewal request"""
+    model_config = ConfigDict(extra="ignore")
+    renewal_id: str = Field(default_factory=lambda: f"renew_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    user_name: str
+    user_email: str
+    current_license_number: str
+    license_type: str
+    expiry_date: str
+    reason_for_renewal: str = "standard"  # standard, early_renewal, expired
+    address_changed: bool = False
+    new_address: Optional[str] = None
+    training_current: bool = True
+    recent_training_certificate: Optional[str] = None
+    any_incidents: bool = False
+    incident_details: Optional[str] = None
+    region: str
+    status: str = "pending"
+    review_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Appeal(BaseModel):
+    """Appeal of a previous decision"""
+    model_config = ConfigDict(extra="ignore")
+    appeal_id: str = Field(default_factory=lambda: f"appeal_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    user_name: str
+    user_email: str
+    original_decision_type: str  # license_rejection, license_revocation, transaction_rejection, compliance_violation
+    original_decision_id: str  # ID of the original review/decision
+    original_decision_date: str
+    grounds_for_appeal: str
+    supporting_evidence: Optional[str] = None
+    evidence_links: list = []
+    requested_outcome: str
+    region: Optional[str] = None
+    status: str = "pending"  # pending, under_review, granted, denied, partial
+    review_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # ============== HELPER FUNCTIONS ==============
 
 def serialize_doc(doc: dict) -> dict:
