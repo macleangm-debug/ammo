@@ -48,13 +48,17 @@ const GovernmentNotifications = ({ user, api }) => {
   const [templates, setTemplates] = useState([]);
   const [sentNotifications, setSentNotifications] = useState([]);
   const [usersList, setUsersList] = useState({ users: [], role_counts: {} });
+  const [schedulerStatus, setSchedulerStatus] = useState({ scheduler_running: false, triggers: [], recent_executions: [] });
+  const [executions, setExecutions] = useState([]);
   
   // Dialog states
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showExecutionDialog, setShowExecutionDialog] = useState(false);
   const [editingTrigger, setEditingTrigger] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [executingTrigger, setExecutingTrigger] = useState(null);
   
   // Send notification form
   const [sendForm, setSendForm] = useState({
