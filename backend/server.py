@@ -622,6 +622,64 @@ class FormalDocument(BaseModel):
     
     # Priority for letters
     priority: str = "normal"  # low, normal, high, urgent
+    
+    # Certificate design options
+    certificate_design: str = "modern"  # modern, classic, corporate, minimalist
+    seal_style: str = "official"  # official, gold_ribbon, blue_badge, custom
+    signature_image_url: Optional[str] = None  # URL of uploaded signature image
+
+# ============== CERTIFICATE CONFIGURATION MODELS ==============
+
+class CertificateDesignConfig(BaseModel):
+    """Organization-wide certificate design configuration"""
+    model_config = ConfigDict(extra="ignore")
+    config_id: str = Field(default_factory=lambda: f"cert_config_{uuid.uuid4().hex[:12]}")
+    
+    # Design settings
+    default_design: str = "modern"  # modern, classic, corporate, minimalist
+    primary_color: str = "#3b5bdb"
+    secondary_color: str = "#d4a017"  # Gold accent
+    font_family: str = "helvetica"  # helvetica, times, courier
+    title_font_size: int = 28
+    body_font_size: int = 12
+    
+    # Seal settings
+    seal_style: str = "official"  # official, gold_ribbon, blue_badge, custom
+    seal_text: str = "OFFICIAL AMMO SEAL"
+    custom_seal_image_url: Optional[str] = None
+    
+    # Organization branding
+    organization_name: str = "AMMO Government Portal"
+    organization_logo_url: Optional[str] = None
+    
+    # Signature settings
+    authorized_signatory_name: str = ""
+    authorized_signatory_title: str = ""
+    signature_image_url: Optional[str] = None  # Uploaded or drawn signature
+    
+    # Timestamps
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: Optional[str] = None
+
+class SignatureUpload(BaseModel):
+    """Request model for signature upload"""
+    signatory_name: str
+    signatory_title: str
+    signature_data: str  # Base64 encoded image data
+    signature_type: str = "upload"  # upload or drawn
+
+class CertificateConfigUpdate(BaseModel):
+    """Request model for updating certificate configuration"""
+    default_design: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    font_family: Optional[str] = None
+    seal_style: Optional[str] = None
+    seal_text: Optional[str] = None
+    organization_name: Optional[str] = None
+    authorized_signatory_name: Optional[str] = None
+    authorized_signatory_title: Optional[str] = None
 
 # ============== REVIEW & APPLICATION SYSTEM MODELS ==============
 
