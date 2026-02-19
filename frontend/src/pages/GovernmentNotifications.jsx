@@ -84,6 +84,7 @@ const GovernmentNotifications = ({ user, api }) => {
     notification_category: "compliance",
     priority: "normal",
     target_roles: ["citizen"],
+    schedule_interval: "daily",
     enabled: true
   });
   
