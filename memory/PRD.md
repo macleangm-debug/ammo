@@ -158,6 +158,12 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/government/notification-templates` | GET/POST | List/create notification templates |
 | `/api/government/notification-templates/{id}` | DELETE | Delete notification template |
 | `/api/government/users-list` | GET | Get list of users for targeting |
+| `/api/government/triggers/scheduler-status` | GET | Get scheduler running status and trigger info |
+| `/api/government/triggers/scheduler/start` | POST | Start the background trigger scheduler |
+| `/api/government/triggers/scheduler/stop` | POST | Stop the background trigger scheduler |
+| `/api/government/triggers/run-all` | POST | Manually run all enabled triggers |
+| `/api/government/triggers/{id}/execute` | POST | Execute single trigger manually |
+| `/api/government/triggers/executions` | GET | Get trigger execution history |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
