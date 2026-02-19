@@ -24,7 +24,8 @@ const DashboardLayout = ({
   navItems = [], 
   title = "Dashboard",
   subtitle = "",
-  onLogout 
+  onLogout,
+  unreadNotifications = 0
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,6 +59,11 @@ const DashboardLayout = ({
       await onLogout();
     }
     navigate("/", { replace: true });
+  };
+
+  const goToNotifications = () => {
+    navigate("/dashboard/notifications");
+    setSidebarOpen(false);
   };
 
   return (
