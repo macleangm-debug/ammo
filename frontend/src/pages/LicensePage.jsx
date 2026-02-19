@@ -76,6 +76,7 @@ const LicensePage = ({ user, api }) => {
 
   useEffect(() => {
     fetchProfile();
+    fetchMyReviews();
   }, []);
 
   const fetchProfile = async () => {
@@ -87,6 +88,60 @@ const LicensePage = ({ user, api }) => {
       toast.error("Failed to load license information");
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchMyReviews = async () => {
+    try {
+      const response = await api.get("/citizen/my-reviews");
+      setMyReviews(response.data.reviews || []);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+  
+  const handleSubmitRenewal = async () => {
+    setSubmitting(true);
+    try {
+      await api.post("/citizen/license-renewal", {
+        ...renewalForm,
+        expiry_date: profile?.license_expiry || ""
+      });
+      toast.success("License renewal request submitted successfully!");
+      setShowRenewalDialog(false);
+      setRenewalForm({
+        reason_for_renewal: "standard", address_changed: false, new_address: "",
+        training_current: true, recent_training_certificate: "", any_incidents: false,
+        incident_details: "", region: "northeast"
+      });
+      fetchMyReviews();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to submit renewal request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const handleSubmitAppeal = async () => {
+    if (!appealForm.grounds_for_appeal || !appealForm.requested_outcome) {
+      toast.error("Please provide grounds for appeal and requested outcome");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/citizen/appeal", appealForm);
+      toast.success("Appeal submitted successfully!");
+      setShowAppealDialog(false);
+      setAppealForm({
+        original_decision_type: "license_rejection", original_decision_id: "",
+        original_decision_date: "", grounds_for_appeal: "", supporting_evidence: "",
+        requested_outcome: "", region: "northeast"
+      });
+      fetchMyReviews();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to submit appeal");
+    } finally {
+      setSubmitting(false);
     }
   };
 
