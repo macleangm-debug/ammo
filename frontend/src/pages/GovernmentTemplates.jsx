@@ -898,7 +898,7 @@ const GovernmentTemplates = ({ user, api }) => {
 
       {/* Send Document Dialog */}
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Send Document: {selectedTemplate?.name}</DialogTitle>
           </DialogHeader>
@@ -949,6 +949,54 @@ const GovernmentTemplates = ({ user, api }) => {
                 <p className="text-xs text-slate-500 mt-1">
                   {sendFormData.recipients.length} selected
                 </p>
+              </div>
+            )}
+            
+            {/* Signature Authority Section - For Certificates */}
+            {selectedTemplate?.template_type?.includes("certificate") && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="w-4 h-4 text-indigo-600" />
+                  <Label className="text-indigo-700 font-semibold">Issuing Authority (for Verified Certificate)</Label>
+                </div>
+                
+                <div className="space-y-3 bg-indigo-50 p-3 rounded-lg">
+                  <div>
+                    <Label className="text-sm">Signatory Name *</Label>
+                    <Input
+                      value={sendFormData.issuer_signature_name}
+                      onChange={(e) => setSendFormData({...sendFormData, issuer_signature_name: e.target.value})}
+                      placeholder="e.g., Dr. James Smith"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Name that will appear on the certificate signature</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm">Designation/Title</Label>
+                    <Input
+                      value={sendFormData.issuer_designation}
+                      onChange={(e) => setSendFormData({...sendFormData, issuer_designation: e.target.value})}
+                      placeholder="e.g., Chief Training Officer"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm">Organization</Label>
+                    <Input
+                      value={sendFormData.organization_name}
+                      onChange={(e) => setSendFormData({...sendFormData, organization_name: e.target.value})}
+                      placeholder="e.g., AMMO Government Portal"
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs text-indigo-600 bg-indigo-100 p-2 rounded">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>A QR code for verification will be embedded in the certificate PDF</span>
+                  </div>
+                </div>
               </div>
             )}
             
