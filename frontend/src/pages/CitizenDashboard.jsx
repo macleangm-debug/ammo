@@ -224,6 +224,7 @@ const CitizenDashboard = ({ user, api }) => {
         title="Dashboard"
         subtitle="Member Portal"
         onLogout={handleLogout}
+        unreadNotifications={unreadNotifications}
       >
         <div className="flex items-center justify-center h-64">
           <Shield className="w-12 h-12 text-primary animate-pulse" />
@@ -239,6 +240,7 @@ const CitizenDashboard = ({ user, api }) => {
       title="Dashboard"
       subtitle="Member Portal"
       onLogout={handleLogout}
+      unreadNotifications={unreadNotifications}
     >
       <div className="space-y-6" data-testid="citizen-analytics">
         {/* Welcome Banner */}
