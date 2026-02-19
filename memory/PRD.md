@@ -241,6 +241,25 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
     - Execute single trigger manually
     - Execution history with sent/matched counts
     - Scheduler status dashboard with enabled triggers and next run times
+- [x] Citizen Notifications Page with stats, filters, priority badges, source badges
+- [x] **Formal Documents & Certificates System** (Added Feb 19, 2026):
+  - Government Templates Management (`/government/templates`):
+    - 5 standard templates (Warning Letter, License Certificate, Training Certificate, Achievement Certificate, Formal Notice)
+    - Custom template creation with colors, logos, seals, watermarks
+    - Template preview with PDF generation
+    - Send to individuals or broadcast to roles
+    - Automation triggers (on training completion, license renewal, etc.)
+    - Sent Documents tracking
+  - Citizen Documents Inbox (`/dashboard/documents`):
+    - Formal letters and certificates inbox (envelope icon in nav)
+    - Stats cards: Total, Unread, Certificates, Warnings
+    - Filter by status (All/Unread/Read/Archived) and type
+    - View dialog with full document content
+    - Download PDF with official seal and watermark
+    - Archive functionality
+    - Execute single trigger manually
+    - Execution history with sent/matched counts
+    - Scheduler status dashboard with enabled triggers and next run times
 
 ### P1 - High Priority
 - [ ] Backend modularization (CRITICAL - server.py ~7400 lines needs refactoring into routes/)
