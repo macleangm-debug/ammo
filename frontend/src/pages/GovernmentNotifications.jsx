@@ -271,7 +271,7 @@ const GovernmentNotifications = ({ user, api }) => {
     }
   };
 
-  const useTemplate = (template) => {
+  const applyTemplate = (template) => {
     setSendForm({
       ...sendForm,
       title: template.title,
