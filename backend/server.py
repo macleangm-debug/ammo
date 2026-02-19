@@ -7833,15 +7833,44 @@ def generate_formal_document_pdf(doc: dict, base_url: str = None) -> io.BytesIO:
         
         y_position -= line_height
     
-    # Signature section - enhanced with issuer name
+    # Signature section - enhanced with issuer name and signature image
     sig_y = 130 if is_certificate else 120
     
-    # Issuer signature name (handwritten style)
-    issuer_sig_name = doc.get("issuer_signature_name") or doc.get("issued_by_name", "")
-    if issuer_sig_name:
-        c.setFont("Helvetica-Oblique", 14)
-        c.setFillColor(colors.Color(0.2, 0.2, 0.4))
-        c.drawCentredString(width / 2, sig_y + 5, issuer_sig_name)
+    # Check for signature image
+    signature_image_url = doc.get("signature_image_url")
+    if signature_image_url and signature_image_url.startswith("data:image"):
+        try:
+            # Decode base64 signature image
+            import base64
+            # Extract base64 data from data URL
+            base64_data = signature_image_url.split(",")[1] if "," in signature_image_url else signature_image_url
+            signature_bytes = base64.b64decode(base64_data)
+            sig_buffer = io.BytesIO(signature_bytes)
+            
+            from reportlab.lib.utils import ImageReader
+            sig_img = ImageReader(sig_buffer)
+            
+            # Draw signature image centered
+            sig_img_width = 120
+            sig_img_height = 40
+            c.drawImage(sig_img, width/2 - sig_img_width/2, sig_y - 5, 
+                       width=sig_img_width, height=sig_img_height, mask='auto')
+            sig_y = sig_y - 45  # Adjust position after signature image
+        except Exception as e:
+            logging.error(f"Error drawing signature image: {e}")
+            # Fall back to text signature
+            issuer_sig_name = doc.get("issuer_signature_name") or doc.get("issued_by_name", "")
+            if issuer_sig_name:
+                c.setFont("Helvetica-Oblique", 14)
+                c.setFillColor(colors.Color(0.2, 0.2, 0.4))
+                c.drawCentredString(width / 2, sig_y + 5, issuer_sig_name)
+    else:
+        # Issuer signature name (handwritten style) - fallback if no image
+        issuer_sig_name = doc.get("issuer_signature_name") or doc.get("issued_by_name", "")
+        if issuer_sig_name:
+            c.setFont("Helvetica-Oblique", 14)
+            c.setFillColor(colors.Color(0.2, 0.2, 0.4))
+            c.drawCentredString(width / 2, sig_y + 5, issuer_sig_name)
     
     # Signature line
     c.setStrokeColor(colors.Color(0.3, 0.3, 0.3))
