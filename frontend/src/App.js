@@ -300,6 +300,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/certificate-config"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <CertificateConfig user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/marketplace"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
