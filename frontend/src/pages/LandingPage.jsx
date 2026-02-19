@@ -31,6 +31,63 @@ const LandingPage = ({ api }) => {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
+  
+  // Dialog states
+  const [showLicenseDialog, setShowLicenseDialog] = useState(false);
+  const [showDealerDialog, setShowDealerDialog] = useState(false);
+  const [showViolationDialog, setShowViolationDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // License Application form
+  const [licenseForm, setLicenseForm] = useState({
+    applicant_name: "",
+    applicant_email: "",
+    applicant_phone: "",
+    applicant_address: "",
+    license_type: "firearm",
+    purpose: "personal_protection",
+    date_of_birth: "",
+    id_type: "drivers_license",
+    id_number: "",
+    has_previous_license: false,
+    training_completed: false,
+    training_certificate_number: "",
+    region: "northeast"
+  });
+  
+  // Dealer Certification form
+  const [dealerForm, setDealerForm] = useState({
+    business_name: "",
+    owner_name: "",
+    owner_email: "",
+    owner_phone: "",
+    business_address: "",
+    business_type: "retail",
+    tax_id: "",
+    business_license_number: "",
+    years_in_business: 0,
+    has_physical_location: true,
+    security_measures: [],
+    insurance_provider: "",
+    insurance_policy_number: "",
+    background_check_consent: false,
+    compliance_agreement: false,
+    region: "northeast"
+  });
+  
+  // Violation Report form
+  const [violationForm, setViolationForm] = useState({
+    violation_type: "storage_violation",
+    description: "",
+    location: "",
+    date_observed: "",
+    reporter_name: "",
+    reporter_email: "",
+    severity: "medium",
+    subject_name: "",
+    evidence_description: "",
+    region: "northeast"
+  });
 
   useEffect(() => {
     setMounted(true);
