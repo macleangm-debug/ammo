@@ -287,7 +287,10 @@ const GovernmentTemplates = ({ user, api }) => {
       recipients: [],
       recipient_type: "individual",
       placeholder_values: {},
-      priority: "normal"
+      priority: "normal",
+      issuer_signature_name: user?.name || "",
+      issuer_designation: template.signature_title || "Government Administrator",
+      organization_name: "AMMO Government Portal"
     });
     setSendDialogOpen(true);
   };
@@ -295,6 +298,13 @@ const GovernmentTemplates = ({ user, api }) => {
   const sendDocument = async () => {
     if (sendFormData.recipients.length === 0 && sendFormData.recipient_type === "individual") {
       toast.error("Please select at least one recipient");
+      return;
+    }
+    
+    // Validate signature for certificates
+    const isCertificate = selectedTemplate?.template_type?.includes("certificate");
+    if (isCertificate && !sendFormData.issuer_signature_name) {
+      toast.error("Please enter the issuer's signature name for certificates");
       return;
     }
     
@@ -312,7 +322,10 @@ const GovernmentTemplates = ({ user, api }) => {
         template_id: selectedTemplate.template_id,
         recipients: recipients,
         placeholder_values: sendFormData.placeholder_values,
-        priority: sendFormData.priority
+        priority: sendFormData.priority,
+        issuer_signature_name: sendFormData.issuer_signature_name,
+        issuer_designation: sendFormData.issuer_designation,
+        organization_name: sendFormData.organization_name
       });
       
       toast.success(response.data?.message || "Document sent successfully");
