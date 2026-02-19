@@ -325,6 +325,9 @@ function AppRouter() {
         }
       />
       
+      {/* Public verification page - no auth required */}
+      <Route path="/verify/:documentId" element={<VerifyDocument />} />
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
