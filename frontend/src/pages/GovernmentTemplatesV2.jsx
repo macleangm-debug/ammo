@@ -21,6 +21,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "warning",
     name: "Warning Letters",
+    singularName: "Warning Letter",
     icon: AlertTriangle,
     color: "text-red-600",
     bgColor: "bg-red-50",
@@ -30,6 +31,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "license",
     name: "License Certificates",
+    singularName: "License Certificate",
     icon: FileText,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -39,6 +41,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "training",
     name: "Training Certificates",
+    singularName: "Training Certificate",
     icon: GraduationCap,
     color: "text-green-600",
     bgColor: "bg-green-50",
@@ -48,6 +51,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "achievement",
     name: "Achievement Certificates",
+    singularName: "Achievement Certificate",
     icon: Award,
     color: "text-amber-600",
     bgColor: "bg-amber-50",
@@ -57,6 +61,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "compliance",
     name: "Compliance Certificates",
+    singularName: "Compliance Certificate",
     icon: Shield,
     color: "text-cyan-600",
     bgColor: "bg-cyan-50",
@@ -66,6 +71,7 @@ const TEMPLATE_CATEGORIES = [
   {
     id: "notice",
     name: "Formal Notices",
+    singularName: "Formal Notice",
     icon: Bell,
     color: "text-indigo-600",
     bgColor: "bg-indigo-50",
