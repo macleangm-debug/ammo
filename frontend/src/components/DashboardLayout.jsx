@@ -124,8 +124,63 @@ const DashboardLayout = ({
   };
 
   const goToNotifications = () => {
+    setNotifDropdownOpen(false);
     navigate("/dashboard/notifications");
     setSidebarOpen(false);
+  };
+
+  const goToDocuments = () => {
+    setDocsDropdownOpen(false);
+    navigate("/dashboard/documents");
+    setSidebarOpen(false);
+  };
+
+  const toggleNotifDropdown = () => {
+    setNotifDropdownOpen(!notifDropdownOpen);
+    setDocsDropdownOpen(false);
+  };
+
+  const toggleDocsDropdown = () => {
+    setDocsDropdownOpen(!docsDropdownOpen);
+    setNotifDropdownOpen(false);
+  };
+
+  // Helper to format time ago
+  const formatTimeAgo = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Get notification icon based on category/type
+  const getNotifIcon = (notif) => {
+    const category = notif.category || notif.type;
+    if (notif.priority === "urgent" || notif.priority === "high") {
+      return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+    }
+    if (category === "document") return <FileText className="w-4 h-4 text-indigo-500" />;
+    if (category === "training") return <GraduationCap className="w-4 h-4 text-blue-500" />;
+    if (category === "compliance") return <Shield className="w-4 h-4 text-amber-500" />;
+    return <Bell className="w-4 h-4 text-slate-500" />;
+  };
+
+  // Get document icon based on type
+  const getDocIcon = (doc) => {
+    const type = doc.document_type;
+    if (type === "warning_letter") return <AlertTriangle className="w-4 h-4 text-red-500" />;
+    if (type === "license_certificate") return <CreditCard className="w-4 h-4 text-purple-500" />;
+    if (type === "training_certificate") return <GraduationCap className="w-4 h-4 text-emerald-500" />;
+    if (type === "achievement_certificate") return <Award className="w-4 h-4 text-amber-500" />;
+    return <FileText className="w-4 h-4 text-indigo-500" />;
   };
 
   return (
