@@ -239,9 +239,15 @@ const DashboardLayout = ({
                 variant="ghost"
                 size="icon"
                 className="rounded-full w-10 h-10 relative"
+                onClick={goToNotifications}
+                data-testid="desktop-notifications-btn"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-destructive rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
               </Button>
 
               {/* User Profile */}
