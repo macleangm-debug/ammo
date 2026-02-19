@@ -121,6 +121,20 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Approve/Reject workflow with decision reason
   - Add notes to reviews
   - Audit trail for all review actions
+- **Document Templates Management** (Added Feb 19, 2026) - `/government/templates`
+  - 5 standard templates: Warning Letter, License Certificate, Training Certificate, Achievement Certificate, Formal Notice
+  - Create custom templates with:
+    - Custom colors (primary/secondary)
+    - Logo upload option
+    - Official seal toggle
+    - Watermark toggle
+    - Header, body template with {{placeholders}}, footer
+    - Signature title
+    - Automation triggers (on training completion, license renewal, etc.)
+  - Template preview with PDF generation
+  - Send documents to individual users or broadcast to roles
+  - Sent Documents tab with delivery tracking
+  - Stats: Total Templates, Documents Sent, Read, Pending
 
 #### Review System (Added Feb 19, 2026)
 - **Public Application Forms** - Landing page "Apply or Report" section
