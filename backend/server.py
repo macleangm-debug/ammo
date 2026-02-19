@@ -191,12 +191,52 @@ class AuditLog(BaseModel):
 class Notification(BaseModel):
     model_config = ConfigDict(extra="ignore")
     notification_id: str = Field(default_factory=lambda: f"notif_{uuid.uuid4().hex[:12]}")
-    user_id: str
+    user_id: str  # "all" for broadcast, "role:citizen" for role-based, or specific user_id
     title: str
     message: str
-    type: str  # verification_request, approved, rejected, alert, system
+    type: str  # verification_request, approved, rejected, alert, system, announcement, compliance, reminder
+    category: str = "general"  # general, compliance, training, license, transaction, system
+    priority: str = "normal"  # low, normal, high, urgent
     transaction_id: Optional[str] = None
+    action_url: Optional[str] = None  # Link to relevant page
+    action_label: Optional[str] = None  # Button text for action
+    expires_at: Optional[datetime] = None
+    sent_by: Optional[str] = None  # admin user_id who sent it
     read: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class NotificationTrigger(BaseModel):
+    """Automated notification trigger configuration"""
+    model_config = ConfigDict(extra="ignore")
+    trigger_id: str = Field(default_factory=lambda: f"trig_{uuid.uuid4().hex[:12]}")
+    name: str
+    description: str
+    event_type: str  # license_expiring, training_incomplete, compliance_warning, transaction_flagged, review_status_changed
+    conditions: dict = {}  # e.g., {"days_until_expiry": 30}
+    template_title: str
+    template_message: str  # Can include {{placeholders}}
+    notification_type: str = "reminder"
+    notification_category: str = "system"
+    priority: str = "normal"
+    target_roles: list = ["citizen"]  # Which roles receive this notification
+    enabled: bool = True
+    created_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class NotificationTemplate(BaseModel):
+    """Reusable notification templates for manual sending"""
+    model_config = ConfigDict(extra="ignore")
+    template_id: str = Field(default_factory=lambda: f"tmpl_{uuid.uuid4().hex[:12]}")
+    name: str
+    title: str
+    message: str
+    type: str = "announcement"
+    category: str = "general"
+    priority: str = "normal"
+    action_url: Optional[str] = None
+    action_label: Optional[str] = None
+    created_by: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Challenge(BaseModel):
