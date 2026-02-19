@@ -210,7 +210,7 @@ const PendingReviews = ({ user, api }) => {
       <div className="space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => { setStatusFilter("pending"); setTypeFilter(""); }}>
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => { setStatusFilter("pending"); setTypeFilter("all"); }}>
             <CardContent className="pt-4 pb-3">
               <div className="text-2xl font-bold text-primary">{counts.total || 0}</div>
               <div className="text-xs text-muted-foreground">Total Pending</div>
