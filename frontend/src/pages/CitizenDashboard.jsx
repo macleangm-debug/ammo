@@ -241,6 +241,7 @@ const CitizenDashboard = ({ user, api }) => {
       subtitle="Member Portal"
       onLogout={handleLogout}
       unreadNotifications={unreadNotifications}
+      api={api}
     >
       <div className="space-y-6" data-testid="citizen-analytics">
         {/* Welcome Banner */}
