@@ -145,12 +145,25 @@ const DocumentsPage = ({ user, api }) => {
   const copyToClipboard = async (doc) => {
     const text = `AMMO Official Document\n\n${doc.title}\n\nIssued: ${formatDate(doc.issued_at)}\nFrom: ${doc.issued_by_name}\n\n${doc.body_content}\n\nDocument ID: ${doc.document_id}`;
     try {
-      await navigator.clipboard.writeText(text);
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
       toast.success("Copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error("Failed to copy");
+      toast.error("Failed to copy - please try selecting and copying manually");
     }
   };
 
