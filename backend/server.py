@@ -7667,6 +7667,11 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
     related_entity_type = body.get("related_entity_type")
     related_entity_id = body.get("related_entity_id")
     
+    # Signature authority info
+    issuer_signature_name = body.get("issuer_signature_name")
+    issuer_designation = body.get("issuer_designation")
+    organization_name = body.get("organization_name", "AMMO Government Portal")
+    
     # Get template
     template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
     if not template:
@@ -7716,8 +7721,23 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
         for key, value in user_values.items():
             body_content = body_content.replace(f"{{{{{key}}}}}", str(value))
         
+        # Create document with initial timestamp
+        issued_at = datetime.now(timezone.utc)
+        document_id = f"doc_{uuid.uuid4().hex[:12]}"
+        
+        # Generate verification hash for certificates
+        is_certificate = "certificate" in template.get("template_type", "")
+        verification_hash = None
+        if is_certificate:
+            verification_hash = generate_verification_hash(
+                document_id, 
+                target_user["user_id"], 
+                issued_at.isoformat()
+            )
+        
         # Create document
         document = FormalDocument(
+            document_id=document_id,
             template_id=template_id,
             template_name=template.get("name", "Unknown"),
             document_type=template.get("template_type", "formal_notice"),
@@ -7736,8 +7756,13 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
             header_text=template.get("header_text", "AMMO - Government Portal"),
             footer_text=template.get("footer_text", ""),
             signature_title=template.get("signature_title", "Government Administrator"),
+            verification_hash=verification_hash,
+            issuer_signature_name=issuer_signature_name or sender_name,
+            issuer_designation=issuer_designation or template.get("signature_title", "Government Administrator"),
+            organization_name=organization_name,
             issued_by=user["user_id"],
             issued_by_name=sender_name,
+            issued_at=issued_at,
             related_entity_type=related_entity_type,
             related_entity_id=related_entity_id,
             priority=priority
