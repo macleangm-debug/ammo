@@ -312,6 +312,156 @@ const GovernmentDashboard = ({ user, api }) => {
           ))}
         </div>
 
+        {/* Mobile-Optimized Charts */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Review Queue by Priority */}
+          <Card className="overflow-hidden col-span-2 lg:col-span-1">
+            <CardContent className="pt-4 pb-2 px-3">
+              <p className="text-xs text-muted-foreground mb-2 text-center">Review Queue by Priority</p>
+              <div className="h-24">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={reviewQueueData} layout="vertical">
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={45} />
+                    <Tooltip contentStyle={{ fontSize: '11px' }} />
+                    <Bar dataKey="license" stackId="a" fill={COLORS.primary} name="License" />
+                    <Bar dataKey="dealer" stackId="a" fill={COLORS.success} name="Dealer" />
+                    <Bar dataKey="violation" stackId="a" fill={COLORS.warning} name="Violation" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center gap-2 mt-1 text-[9px]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded" style={{backgroundColor: COLORS.primary}}></span>License</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded" style={{backgroundColor: COLORS.success}}></span>Dealer</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded" style={{backgroundColor: COLORS.warning}}></span>Violation</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Time Trend */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Avg. Processing</p>
+                <div className="h-16">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={processingTrend}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="hours" 
+                        stroke={COLORS.primary} 
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">~24h avg</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Escalation Rate */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Escalation Rate</p>
+                <div className="relative w-20 h-20 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={escalationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={22}
+                        outerRadius={35}
+                        dataKey="value"
+                      >
+                        {escalationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-sm font-bold">{escalationRate.toFixed(0)}%</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {escalated} of {totalResolved} escalated
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Regional Compliance Mini */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <p className="text-xs text-muted-foreground mb-2 text-center">Regional Compliance</p>
+              <div className="space-y-1">
+                {regionalData.map((region, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-[9px] text-muted-foreground w-14 truncate">{region.name}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full"
+                        style={{ 
+                          width: `${region.compliant}%`,
+                          backgroundColor: region.compliant >= 90 ? COLORS.success : region.compliant >= 80 ? COLORS.warning : COLORS.danger
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-medium w-6">{region.compliant}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Review Type Breakdown */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Pending Reviews by Type</CardTitle>
+              <Button variant="link" size="sm" className="text-xs" onClick={() => navigate('/government/reviews')}>
+                View All <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              {[
+                { key: 'license_applications', label: 'License Apps', icon: FileText, color: COLORS.primary },
+                { key: 'license_renewals', label: 'Renewals', icon: RefreshCw, color: COLORS.success },
+                { key: 'dealer_certifications', label: 'Dealer Certs', icon: Building, color: COLORS.warning },
+                { key: 'flagged_transactions', label: 'Flagged', icon: AlertTriangle, color: COLORS.danger },
+                { key: 'compliance_violations', label: 'Violations', icon: XCircle, color: COLORS.purple },
+                { key: 'appeals', label: 'Appeals', icon: Scale, color: COLORS.cyan }
+              ].map((item) => {
+                const Icon = item.icon;
+                const count = reviewBreakdown[item.key] || 0;
+                return (
+                  <div 
+                    key={item.key}
+                    className="flex flex-col items-center p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                    onClick={() => navigate('/government/reviews')}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: `${item.color}20` }}>
+                      <Icon className="w-4 h-4" style={{ color: item.color }} />
+                    </div>
+                    <span className="text-lg font-bold">{count}</span>
+                    <span className="text-[10px] text-muted-foreground text-center">{item.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Charts Row 1 - Registrations & Compliance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Registrations Bar Chart */}
