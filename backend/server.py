@@ -8324,7 +8324,7 @@ async def get_font_options(user: dict = Depends(require_auth(["admin"]))):
     ]
     return {"fonts": fonts}
 
-
+@api_router.post("/government/formal-documents/send")
 async def send_formal_document(request: Request, user: dict = Depends(require_auth(["admin"]))):
     """Send a formal document to one or more recipients"""
     body = await request.json()
