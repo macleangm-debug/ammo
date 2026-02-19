@@ -258,6 +258,42 @@ const DealerPortal = ({ user, api }) => {
     { name: 'Illinois', time: 8, status: 'slow' }
   ];
 
+  // Mobile-optimized chart data
+  const inventoryStockData = inventory.slice(0, 5).map(item => ({
+    name: item.name?.substring(0, 12) || 'Item',
+    current: item.quantity || 0,
+    min: item.min_stock_level || 10,
+    fill: (item.quantity || 0) <= (item.min_stock_level || 10) ? COLORS.danger : 
+          (item.quantity || 0) <= (item.min_stock_level || 10) * 1.5 ? COLORS.warning : COLORS.success
+  }));
+
+  // Top 5 selling items
+  const topSellingItems = [
+    { name: '9mm Ammo', sales: 450 },
+    { name: 'AR-15 Mags', sales: 320 },
+    { name: 'Glock 19', sales: 180 },
+    { name: 'Holsters', sales: 145 },
+    { name: 'Cleaning Kit', sales: 120 }
+  ];
+
+  // Sales velocity (daily)
+  const salesVelocity = Array.from({ length: 7 }, (_, i) => ({
+    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+    sales: Math.floor(Math.random() * 30) + 10
+  }));
+
+  // Monthly revenue goal
+  const monthlyGoal = 50000;
+  const currentRevenue = analyticsData.revenue || 31300;
+  const goalProgress = Math.min(100, (currentRevenue / monthlyGoal) * 100);
+  const revenueGoalData = [{ name: 'Progress', value: goalProgress, fill: COLORS.primary }];
+
+  // Verification success rate
+  const verificationData = [
+    { name: 'Approved', value: analyticsData.completedTransactions || 85, fill: COLORS.success },
+    { name: 'Rejected', value: analyticsData.rejectedTransactions || 15, fill: COLORS.danger }
+  ];
+
   if (loading) {
     return (
       <DashboardLayout 
