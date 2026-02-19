@@ -263,8 +263,25 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
     - Execution history with sent/matched counts
     - Scheduler status dashboard with enabled triggers and next run times
 
+### P0 - Completed (Feb 19, 2026 - Session 2)
+- [x] **Document Inline Viewer with Social Sharing** (Tested Feb 19, 2026):
+  - Inline document detail view (not modal) with full content display
+  - Share to WhatsApp button (opens WhatsApp with formatted text)
+  - Share to Telegram button (opens Telegram share URL)
+  - Copy to clipboard with fallback for older browsers
+  - Download PDF button
+  - Archive functionality
+  - Back to Documents navigation
+  - Official seal indicator and signature info
+- [x] **Sidebar Navigation Restored**: Documents and Notifications links in citizen sidebar
+- [x] **Backend Modularization Foundation** (Feb 19, 2026):
+  - Created `/app/backend/models/` directory with separated Pydantic models
+  - Created `/app/backend/utils/` directory with database.py and helpers.py
+  - Created `/app/backend/routes/` directory structure
+  - Documented refactoring plan in `/app/backend/REFACTORING.md`
+
 ### P1 - High Priority
-- [ ] Backend modularization (CRITICAL - server.py ~7400 lines needs refactoring into routes/)
+- [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~8200 lines)
 - [ ] Smart Safe IoT Integration
 - [ ] Insurance Partner API Integration
 - [ ] Flagged transaction auto-detection logic (partially implemented, needs rule engine)
