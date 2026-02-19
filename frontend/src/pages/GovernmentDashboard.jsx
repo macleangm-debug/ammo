@@ -189,6 +189,38 @@ const GovernmentDashboard = ({ user, api }) => {
     { name: 'Low', value: alertsData?.alerts?.filter(a => a.severity === 'low').length || 45, color: COLORS.success }
   ];
 
+  // Mobile chart data
+  const reviewQueueData = [
+    { name: 'Urgent', license: 12, dealer: 5, violation: 8, fill: COLORS.danger },
+    { name: 'High', license: 45, dealer: 20, violation: 15, fill: COLORS.warning },
+    { name: 'Normal', license: 180, dealer: 65, violation: 30, fill: COLORS.primary }
+  ];
+
+  // Processing time trend (last 7 days average)
+  const processingTrend = Array.from({ length: 7 }, (_, i) => ({
+    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+    hours: Math.floor(Math.random() * 20) + 15
+  }));
+
+  // Escalation rate
+  const totalResolved = 450;
+  const escalated = 45;
+  const escalationRate = (escalated / totalResolved) * 100;
+  const escalationData = [
+    { name: 'Resolved', value: totalResolved - escalated, fill: COLORS.success },
+    { name: 'Escalated', value: escalated, fill: COLORS.warning }
+  ];
+
+  // Review type breakdown for the pending queue
+  const reviewBreakdown = dashboardSummary?.pending_reviews_breakdown || {
+    license_applications: 85,
+    license_renewals: 42,
+    dealer_certifications: 28,
+    flagged_transactions: 15,
+    compliance_violations: 12,
+    appeals: 8
+  };
+
   // Stats data
   const totalLicenses = dashboardSummary?.total_licenses || 2400000;
   const activeDealers = dashboardSummary?.active_dealers || 15800;
