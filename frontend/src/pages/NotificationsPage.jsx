@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, CreditCard, GraduationCap, ShoppingBag, 
   History, Bell, Settings, CheckCircle, AlertTriangle,
-  Info, Trash2, Check, BellOff
+  Info, Trash2, Check, BellOff, Shield, BookOpen, FileText,
+  Zap, MessageSquare, Filter, RefreshCw, ExternalLink
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { toast } from "sonner";
@@ -15,6 +16,8 @@ const NotificationsPage = ({ user, api }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all"); // all, unread, by category
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,38 +34,14 @@ const NotificationsPage = ({ user, api }) => {
   }, []);
 
   const fetchNotifications = async () => {
+    setLoading(true);
     try {
       const response = await api.get("/citizen/notifications");
       setNotifications(response.data || []);
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      // Generate sample notifications for demo
-      setNotifications([
-        {
-          id: '1',
-          type: 'success',
-          title: 'License Approved',
-          message: 'Your license renewal has been approved.',
-          timestamp: new Date().toISOString(),
-          read: false
-        },
-        {
-          id: '2',
-          type: 'warning',
-          title: 'Training Reminder',
-          message: 'You have 2 courses pending completion.',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          read: false
-        },
-        {
-          id: '3',
-          type: 'info',
-          title: 'New Course Available',
-          message: 'Advanced Safety Training is now available.',
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          read: true
-        },
-      ]);
+      toast.error("Failed to load notifications");
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -76,44 +55,157 @@ const NotificationsPage = ({ user, api }) => {
     }
   };
 
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-    toast.success("Marked as read");
+  const markAsRead = async (notificationId) => {
+    try {
+      await api.post(`/citizen/notifications/${notificationId}/read`);
+      setNotifications(notifications.map(n => 
+        n.notification_id === notificationId ? { ...n, read: true } : n
+      ));
+      toast.success("Marked as read");
+    } catch (error) {
+      console.error("Error marking as read:", error);
+      toast.error("Failed to mark as read");
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    toast.success("All notifications marked as read");
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      await Promise.all(
+        unreadNotifications.map(n => 
+          api.post(`/citizen/notifications/${n.notification_id}/read`)
+        )
+      );
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+      toast.error("Failed to mark all as read");
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    toast.success("Notification deleted");
-  };
-
-  const getTypeIcon = (type) => {
-    const icons = {
-      success: <CheckCircle className="w-5 h-5 text-success" />,
-      warning: <AlertTriangle className="w-5 h-5 text-warning" />,
-      info: <Info className="w-5 h-5 text-info" />,
-      error: <AlertTriangle className="w-5 h-5 text-danger" />,
+  // Map notification types to icons and styles
+  const getTypeConfig = (type, category, priority) => {
+    // Priority-based styling
+    if (priority === "urgent") {
+      return {
+        icon: <AlertTriangle className="w-5 h-5" />,
+        bg: "bg-red-100",
+        iconColor: "text-red-600",
+        borderColor: "border-red-200"
+      };
+    }
+    
+    // Category-based icons
+    const categoryConfigs = {
+      compliance: {
+        icon: <Shield className="w-5 h-5" />,
+        bg: "bg-amber-100",
+        iconColor: "text-amber-600",
+        borderColor: "border-amber-200"
+      },
+      training: {
+        icon: <BookOpen className="w-5 h-5" />,
+        bg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        borderColor: "border-blue-200"
+      },
+      license: {
+        icon: <CreditCard className="w-5 h-5" />,
+        bg: "bg-purple-100",
+        iconColor: "text-purple-600",
+        borderColor: "border-purple-200"
+      },
+      system: {
+        icon: <Zap className="w-5 h-5" />,
+        bg: "bg-slate-100",
+        iconColor: "text-slate-600",
+        borderColor: "border-slate-200"
+      },
+      general: {
+        icon: <MessageSquare className="w-5 h-5" />,
+        bg: "bg-indigo-100",
+        iconColor: "text-indigo-600",
+        borderColor: "border-indigo-200"
+      }
     };
-    return icons[type] || icons.info;
+    
+    // Type-based fallbacks
+    const typeConfigs = {
+      alert: {
+        icon: <AlertTriangle className="w-5 h-5" />,
+        bg: "bg-amber-100",
+        iconColor: "text-amber-600",
+        borderColor: "border-amber-200"
+      },
+      reminder: {
+        icon: <Bell className="w-5 h-5" />,
+        bg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        borderColor: "border-blue-200"
+      },
+      announcement: {
+        icon: <FileText className="w-5 h-5" />,
+        bg: "bg-green-100",
+        iconColor: "text-green-600",
+        borderColor: "border-green-200"
+      },
+      success: {
+        icon: <CheckCircle className="w-5 h-5" />,
+        bg: "bg-emerald-100",
+        iconColor: "text-emerald-600",
+        borderColor: "border-emerald-200"
+      }
+    };
+    
+    return categoryConfigs[category] || typeConfigs[type] || {
+      icon: <Info className="w-5 h-5" />,
+      bg: "bg-slate-100",
+      iconColor: "text-slate-600",
+      borderColor: "border-slate-200"
+    };
   };
 
-  const getTypeBg = (type) => {
-    const bgs = {
-      success: 'bg-success/10',
-      warning: 'bg-warning/10',
-      info: 'bg-info/10',
-      error: 'bg-danger/10',
+  const getPriorityBadge = (priority) => {
+    const configs = {
+      urgent: { label: "Urgent", className: "bg-red-500 text-white" },
+      high: { label: "High", className: "bg-amber-500 text-white" },
+      normal: { label: "Normal", className: "bg-slate-200 text-slate-700" },
+      low: { label: "Low", className: "bg-slate-100 text-slate-500" }
     };
-    return bgs[type] || bgs.info;
+    return configs[priority] || configs.normal;
   };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getSenderLabel = (sentBy) => {
+    if (!sentBy) return null;
+    if (sentBy.startsWith("trigger:")) return "Automated";
+    return "Government";
+  };
+
+  // Filter notifications
+  const filteredNotifications = notifications.filter(n => {
+    if (filter === "unread" && n.read) return false;
+    if (categoryFilter !== "all" && n.category !== categoryFilter) return false;
+    return true;
+  });
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  const categories = [...new Set(notifications.map(n => n.category).filter(Boolean))];
 
   if (loading) {
     return (
