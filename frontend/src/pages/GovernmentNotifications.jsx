@@ -1135,6 +1135,21 @@ const GovernmentNotifications = ({ user, api }) => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Schedule Interval</Label>
+              <Select value={triggerForm.schedule_interval} onValueChange={(v) => setTriggerForm({...triggerForm, schedule_interval: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">How often the scheduler should check and run this trigger</p>
+            </div>
+
             <div className="flex items-center gap-2">
               <input 
                 type="checkbox"
