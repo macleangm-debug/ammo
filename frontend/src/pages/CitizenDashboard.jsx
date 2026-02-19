@@ -225,6 +225,7 @@ const CitizenDashboard = ({ user, api }) => {
         subtitle="Member Portal"
         onLogout={handleLogout}
         unreadNotifications={unreadNotifications}
+        api={api}
       >
         <div className="flex items-center justify-center h-64">
           <Shield className="w-12 h-12 text-primary animate-pulse" />
