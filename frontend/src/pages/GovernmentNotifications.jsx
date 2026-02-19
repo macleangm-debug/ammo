@@ -138,12 +138,14 @@ const GovernmentNotifications = ({ user, api }) => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [statsRes, triggersRes, templatesRes, notificationsRes, usersRes] = await Promise.all([
+      const [statsRes, triggersRes, templatesRes, notificationsRes, usersRes, schedulerRes, executionsRes] = await Promise.all([
         api.get("/government/notification-stats").catch(() => ({ data: {} })),
         api.get("/government/notification-triggers").catch(() => ({ data: { triggers: [] } })),
         api.get("/government/notification-templates").catch(() => ({ data: { templates: [] } })),
         api.get("/government/notifications?limit=20").catch(() => ({ data: { notifications: [] } })),
-        api.get("/government/users-list").catch(() => ({ data: { users: [], role_counts: {} } }))
+        api.get("/government/users-list").catch(() => ({ data: { users: [], role_counts: {} } })),
+        api.get("/government/triggers/scheduler-status").catch(() => ({ data: { scheduler_running: false, triggers: [], recent_executions: [] } })),
+        api.get("/government/triggers/executions?limit=20").catch(() => ({ data: { executions: [] } }))
       ]);
       
       setStats(statsRes.data);
@@ -151,10 +153,56 @@ const GovernmentNotifications = ({ user, api }) => {
       setTemplates(templatesRes.data.templates || []);
       setSentNotifications(notificationsRes.data.notifications || []);
       setUsersList(usersRes.data);
+      setSchedulerStatus(schedulerRes.data);
+      setExecutions(executionsRes.data.executions || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExecuteTrigger = async (triggerId) => {
+    setExecutingTrigger(triggerId);
+    try {
+      const response = await api.post(`/government/triggers/${triggerId}/execute`);
+      toast.success(`Trigger executed: ${response.data.notifications_sent} notifications sent`);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to execute trigger");
+    } finally {
+      setExecutingTrigger(null);
+    }
+  };
+
+  const handleRunAllTriggers = async () => {
+    setSubmitting(true);
+    try {
+      const response = await api.post("/government/triggers/run-all");
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to run triggers");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleToggleScheduler = async () => {
+    setSubmitting(true);
+    try {
+      if (schedulerStatus.scheduler_running) {
+        await api.post("/government/triggers/scheduler/stop");
+        toast.success("Scheduler stopped");
+      } else {
+        await api.post("/government/triggers/scheduler/start");
+        toast.success("Scheduler started");
+      }
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to toggle scheduler");
+    } finally {
+      setSubmitting(false);
     }
   };
 
