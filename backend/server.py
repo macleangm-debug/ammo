@@ -8432,8 +8432,8 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
             recipient_role=target_user.get("role", "citizen"),
             title=template.get("title", "Official Document"),
             body_content=body_content,
-            primary_color=template.get("primary_color", "#3b5bdb"),
-            secondary_color=template.get("secondary_color", "#8b5cf6"),
+            primary_color=cert_config.get("primary_color", template.get("primary_color", "#3b5bdb")) if cert_config else template.get("primary_color", "#3b5bdb"),
+            secondary_color=cert_config.get("secondary_color", template.get("secondary_color", "#8b5cf6")) if cert_config else template.get("secondary_color", "#8b5cf6"),
             logo_url=template.get("logo_url"),
             seal_enabled=template.get("seal_enabled", True),
             watermark_enabled=template.get("watermark_enabled", True),
@@ -8449,7 +8449,8 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
             issued_at=issued_at,
             related_entity_type=related_entity_type,
             related_entity_id=related_entity_id,
-            priority=priority
+            priority=priority,
+            signature_image_url=signature_image_url
         )
         
         doc_dict = document.model_dump()
