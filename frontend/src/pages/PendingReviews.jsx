@@ -287,7 +287,7 @@ const PendingReviews = ({ user, api }) => {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="license_application">License Application</SelectItem>
                   <SelectItem value="license_renewal">License Renewal</SelectItem>
                   <SelectItem value="dealer_certification">Dealer Certification</SelectItem>
@@ -301,7 +301,7 @@ const PendingReviews = ({ user, api }) => {
                   <SelectValue placeholder="All Regions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Regions</SelectItem>
+                  <SelectItem value="all">All Regions</SelectItem>
                   <SelectItem value="northeast">Northeast</SelectItem>
                   <SelectItem value="southeast">Southeast</SelectItem>
                   <SelectItem value="midwest">Midwest</SelectItem>
@@ -309,7 +309,7 @@ const PendingReviews = ({ user, api }) => {
                   <SelectItem value="west">West</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={() => { setStatusFilter("pending"); setTypeFilter(""); setRegionFilter(""); setSearchQuery(""); }}>
+              <Button variant="outline" onClick={() => { setStatusFilter("pending"); setTypeFilter("all"); setRegionFilter("all"); setSearchQuery(""); }}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
