@@ -164,6 +164,10 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - [x] Public application forms on landing page
 - [x] Citizen renewal and appeal forms in portal
 - [x] Government pending reviews management page
+- [x] Mobile-optimized charts for all three portals:
+  - Citizen: ARI Score Gauge, Training Progress Ring, 30-Day Trend Sparkline, Weekly Activity Heatmap
+  - Dealer: Revenue Goal Progress, Verification Rate Donut, Sales Velocity Bar, Top Sellers, Stock Level Indicators
+  - Government: Review Queue by Priority, Processing Time Trend, Escalation Rate, Regional Compliance, Review Type Breakdown
 
 ### P1 - High Priority
 - [ ] Smart Safe IoT Integration
