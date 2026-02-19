@@ -41,6 +41,7 @@ const CitizenDashboard = ({ user, api }) => {
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState([]);
   const [activeTimeRange, setActiveTimeRange] = useState("month");
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Color palette
   const COLORS = {
@@ -66,11 +67,12 @@ const CitizenDashboard = ({ user, api }) => {
 
   const fetchData = async () => {
     try {
-      const [profileRes, transactionsRes, responsibilityRes, enrollmentsRes] = await Promise.all([
+      const [profileRes, transactionsRes, responsibilityRes, enrollmentsRes, notificationsRes] = await Promise.all([
         api.get("/citizen/profile"),
         api.get("/citizen/transactions"),
         api.get("/citizen/responsibility-index").catch(() => ({ data: {} })),
-        api.get("/members/enrollments").catch(() => ({ data: { enrollments: [] } }))
+        api.get("/members/enrollments").catch(() => ({ data: { enrollments: [] } })),
+        api.get("/citizen/notifications").catch(() => ({ data: [] }))
       ]);
 
       setProfile(profileRes.data);
@@ -78,6 +80,10 @@ const CitizenDashboard = ({ user, api }) => {
       setResponsibility(responsibilityRes.data);
       const enrollData = enrollmentsRes.data?.enrollments || enrollmentsRes.data || [];
       setEnrollments(Array.isArray(enrollData) ? enrollData : []);
+      
+      // Count unread notifications
+      const notifications = notificationsRes.data || [];
+      setUnreadNotifications(notifications.filter(n => !n.read).length);
     } catch (error) {
       console.error("Error fetching citizen data:", error);
     } finally {
