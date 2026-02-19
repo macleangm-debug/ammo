@@ -215,6 +215,7 @@ const NotificationsPage = ({ user, api }) => {
         title="Notifications"
         subtitle="Member Portal"
         onLogout={handleLogout}
+        unreadNotifications={unreadCount}
       >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -233,6 +234,7 @@ const NotificationsPage = ({ user, api }) => {
       title="Notifications"
       subtitle="Member Portal"
       onLogout={handleLogout}
+      unreadNotifications={unreadCount}
     >
       <div className="space-y-6" data-testid="notifications-page">
         {/* Stats Summary */}
