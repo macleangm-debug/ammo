@@ -3,14 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, CreditCard, GraduationCap, ShoppingBag, 
   History, Bell, Settings, Mail, FileText, Award, AlertTriangle,
-  Shield, Download, Eye, Archive, Filter, RefreshCw, Search,
-  ChevronRight, Calendar, User, CheckCircle, Clock
+  Shield, Download, Archive, RefreshCw, Search, ArrowLeft,
+  Calendar, User, Clock, Share2, MessageCircle, Send, Copy, Check
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -22,8 +21,8 @@ const DocumentsPage = ({ user, api }) => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -76,7 +75,6 @@ const DocumentsPage = ({ user, api }) => {
     try {
       const response = await api.get(`/citizen/documents/${doc.document_id}`);
       setSelectedDocument(response.data);
-      setViewDialogOpen(true);
       
       // Update local state if it was unread
       if (doc.status === "sent") {
@@ -119,10 +117,58 @@ const DocumentsPage = ({ user, api }) => {
       setDocuments(documents.map(d => 
         d.document_id === doc.document_id ? { ...d, status: "archived" } : d
       ));
+      if (selectedDocument?.document_id === doc.document_id) {
+        setSelectedDocument({ ...selectedDocument, status: "archived" });
+      }
       toast.success("Document archived");
     } catch (error) {
       console.error("Error archiving document:", error);
       toast.error("Failed to archive document");
+    }
+  };
+
+  // Share functions
+  const shareToWhatsApp = (doc) => {
+    const text = `Check out this official document from AMMO:\n\n${doc.title}\n\nIssued on: ${formatDate(doc.issued_at)}\nFrom: ${doc.issued_by_name}\n\n${doc.body_content?.substring(0, 200)}...`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    toast.success("Opening WhatsApp...");
+  };
+
+  const shareToTelegram = (doc) => {
+    const text = `Check out this official document from AMMO:\n\n${doc.title}\n\nIssued on: ${formatDate(doc.issued_at)}\n\n${doc.body_content?.substring(0, 200)}...`;
+    const url = `https://t.me/share/url?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    toast.success("Opening Telegram...");
+  };
+
+  const copyToClipboard = async (doc) => {
+    const text = `AMMO Official Document\n\n${doc.title}\n\nIssued: ${formatDate(doc.issued_at)}\nFrom: ${doc.issued_by_name}\n\n${doc.body_content}\n\nDocument ID: ${doc.document_id}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error("Failed to copy");
+    }
+  };
+
+  const shareNative = async (doc) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: doc.title,
+          text: `Official document from AMMO: ${doc.title}`,
+          url: window.location.href
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          toast.error("Failed to share");
+        }
+      }
+    } else {
+      copyToClipboard(doc);
     }
   };
 
@@ -133,42 +179,48 @@ const DocumentsPage = ({ user, api }) => {
         bg: "bg-red-100",
         iconColor: "text-red-600",
         borderColor: "border-red-300",
-        label: "Warning Letter"
+        label: "Warning Letter",
+        headerBg: "bg-gradient-to-r from-red-500 to-red-600"
       },
       formal_notice: {
         icon: <FileText className="w-5 h-5" />,
         bg: "bg-indigo-100",
         iconColor: "text-indigo-600",
         borderColor: "border-indigo-300",
-        label: "Formal Notice"
+        label: "Formal Notice",
+        headerBg: "bg-gradient-to-r from-indigo-500 to-indigo-600"
       },
       achievement_certificate: {
         icon: <Award className="w-5 h-5" />,
         bg: "bg-amber-100",
         iconColor: "text-amber-600",
         borderColor: "border-amber-300",
-        label: "Achievement"
+        label: "Achievement Certificate",
+        headerBg: "bg-gradient-to-r from-amber-500 to-amber-600"
       },
       license_certificate: {
         icon: <CreditCard className="w-5 h-5" />,
         bg: "bg-purple-100",
         iconColor: "text-purple-600",
         borderColor: "border-purple-300",
-        label: "License Certificate"
+        label: "License Certificate",
+        headerBg: "bg-gradient-to-r from-purple-500 to-purple-600"
       },
       training_certificate: {
         icon: <GraduationCap className="w-5 h-5" />,
         bg: "bg-emerald-100",
         iconColor: "text-emerald-600",
         borderColor: "border-emerald-300",
-        label: "Training Certificate"
+        label: "Training Certificate",
+        headerBg: "bg-gradient-to-r from-emerald-500 to-emerald-600"
       },
       compliance_certificate: {
         icon: <Shield className="w-5 h-5" />,
         bg: "bg-blue-100",
         iconColor: "text-blue-600",
         borderColor: "border-blue-300",
-        label: "Compliance Certificate"
+        label: "Compliance Certificate",
+        headerBg: "bg-gradient-to-r from-blue-500 to-blue-600"
       }
     };
     return configs[type] || {
@@ -176,7 +228,8 @@ const DocumentsPage = ({ user, api }) => {
       bg: "bg-slate-100",
       iconColor: "text-slate-600",
       borderColor: "border-slate-300",
-      label: "Document"
+      label: "Document",
+      headerBg: "bg-gradient-to-r from-slate-500 to-slate-600"
     };
   };
 
@@ -194,8 +247,19 @@ const DocumentsPage = ({ user, api }) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
-      month: 'short', 
+      month: 'long', 
       day: 'numeric' 
+    });
+  };
+
+  const formatDateTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -233,6 +297,190 @@ const DocumentsPage = ({ user, api }) => {
     );
   }
 
+  // Document Detail View (Inline)
+  if (selectedDocument) {
+    const config = getTypeConfig(selectedDocument.document_type);
+    const priorityBadge = getPriorityBadge(selectedDocument.priority);
+
+    return (
+      <DashboardLayout 
+        user={user} 
+        navItems={navItems} 
+        title="Document"
+        subtitle="Member Portal"
+        onLogout={handleLogout}
+        unreadNotifications={unreadNotifications}
+        api={api}
+      >
+        <div className="space-y-6" data-testid="document-detail">
+          {/* Back Button */}
+          <Button 
+            variant="ghost" 
+            onClick={() => setSelectedDocument(null)}
+            className="gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Documents
+          </Button>
+
+          {/* Document Card */}
+          <Card className="overflow-hidden border-0 shadow-lg">
+            {/* Header */}
+            <div className={`${config.headerBg} p-6 text-white`}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                    {config.icon}
+                  </div>
+                  <div>
+                    <p className="text-white/80 text-sm font-medium">{config.label}</p>
+                    <h1 className="text-2xl font-bold">{selectedDocument.title}</h1>
+                  </div>
+                </div>
+                <Badge className={`${priorityBadge.className} shadow-md`}>
+                  {priorityBadge.label}
+                </Badge>
+              </div>
+              
+              {/* Metadata */}
+              <div className="flex flex-wrap gap-6 mt-6 text-white/90 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Issued: {formatDate(selectedDocument.issued_at)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  <span>From: {selectedDocument.issued_by_name}</span>
+                </div>
+                {selectedDocument.read_at && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Read: {formatDateTime(selectedDocument.read_at)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Content */}
+            <CardContent className="p-6 lg:p-8">
+              {/* Official Seal Indicator */}
+              {selectedDocument.seal_enabled && (
+                <div className="flex items-center gap-2 mb-6 text-sm text-slate-500">
+                  <Shield className="w-4 h-4" />
+                  <span>This document contains an official AMMO seal</span>
+                </div>
+              )}
+
+              {/* Document Body */}
+              <div 
+                className="prose prose-slate max-w-none whitespace-pre-wrap leading-relaxed text-slate-700"
+                style={{ 
+                  borderLeft: `4px solid ${selectedDocument.primary_color || '#3b5bdb'}`,
+                  paddingLeft: '1.5rem',
+                  marginLeft: '0'
+                }}
+              >
+                {selectedDocument.body_content}
+              </div>
+
+              {/* Footer Text */}
+              {selectedDocument.footer_text && (
+                <div className="mt-8 pt-6 border-t border-dashed border-slate-200">
+                  <p className="text-sm text-slate-500 italic">{selectedDocument.footer_text}</p>
+                </div>
+              )}
+
+              {/* Document Info */}
+              <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                <p className="text-xs text-slate-400">
+                  Document ID: <span className="font-mono">{selectedDocument.document_id}</span>
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Signed by: {selectedDocument.signature_title || "Government Administrator"}
+                </p>
+              </div>
+            </CardContent>
+
+            {/* Actions Footer */}
+            <div className="border-t bg-slate-50 p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                {/* Share Options */}
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                    <Share2 className="w-4 h-4" />
+                    Share this document
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => shareToWhatsApp(selectedDocument)}
+                      className="gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => shareToTelegram(selectedDocument)}
+                      className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Send className="w-4 h-4" />
+                      Telegram
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => copyToClipboard(selectedDocument)}
+                      className="gap-2"
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copied ? "Copied!" : "Copy"}
+                    </Button>
+                    {navigator.share && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => shareNative(selectedDocument)}
+                        className="gap-2"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        More
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Download & Archive */}
+                <div className="flex items-center gap-2">
+                  {selectedDocument.status !== "archived" && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => archiveDocument(selectedDocument)}
+                      className="gap-2"
+                    >
+                      <Archive className="w-4 h-4" />
+                      Archive
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => downloadDocument(selectedDocument)}
+                    className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download PDF
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Documents List View
   return (
     <DashboardLayout 
       user={user} 
@@ -276,7 +524,7 @@ const DocumentsPage = ({ user, api }) => {
                 <div>
                   <p className="text-sm text-emerald-600 font-medium">Certificates</p>
                   <p className="text-2xl font-bold text-emerald-700">
-                    {documents.filter(d => d.document_type.includes('certificate')).length}
+                    {documents.filter(d => d.document_type?.includes('certificate')).length}
                   </p>
                 </div>
                 <Award className="w-8 h-8 text-emerald-400" />
@@ -463,77 +711,6 @@ const DocumentsPage = ({ user, api }) => {
           )}
         </div>
       </div>
-
-      {/* Document View Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedDocument && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg ${getTypeConfig(selectedDocument.document_type).bg} flex items-center justify-center ${getTypeConfig(selectedDocument.document_type).iconColor}`}>
-                    {getTypeConfig(selectedDocument.document_type).icon}
-                  </div>
-                  <div>
-                    <span className="block">{selectedDocument.title}</span>
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {getTypeConfig(selectedDocument.document_type).label}
-                    </span>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-4 mt-4">
-                {/* Document metadata */}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground border-b pb-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    Issued: {formatDate(selectedDocument.issued_at)}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    From: {selectedDocument.issued_by_name}
-                  </div>
-                  <Badge className={getPriorityBadge(selectedDocument.priority).className}>
-                    {getPriorityBadge(selectedDocument.priority).label}
-                  </Badge>
-                </div>
-                
-                {/* Document content */}
-                <div 
-                  className="prose prose-slate max-w-none whitespace-pre-wrap text-sm leading-relaxed"
-                  style={{ 
-                    borderLeft: `4px solid ${selectedDocument.primary_color}`,
-                    paddingLeft: '1rem'
-                  }}
-                >
-                  {selectedDocument.body_content}
-                </div>
-                
-                {/* Document footer */}
-                <div className="text-xs text-muted-foreground border-t pt-4">
-                  <p>{selectedDocument.footer_text}</p>
-                  <p className="mt-2">Document ID: {selectedDocument.document_id}</p>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button 
-                    variant="outline"
-                    onClick={() => downloadDocument(selectedDocument)}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
-                  </Button>
-                  <Button onClick={() => setViewDialogOpen(false)}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 };
