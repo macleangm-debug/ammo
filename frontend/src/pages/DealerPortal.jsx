@@ -345,6 +345,166 @@ const DealerPortal = ({ user, api }) => {
           ))}
         </div>
 
+        {/* Mobile-Optimized Charts */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Revenue Goal Progress */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Monthly Goal</p>
+                <div className="relative w-24 h-24 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="70%"
+                      outerRadius="100%"
+                      data={revenueGoalData}
+                      startAngle={180}
+                      endAngle={-180}
+                    >
+                      <RadialBar
+                        background
+                        dataKey="value"
+                        cornerRadius={10}
+                        fill={COLORS.primary}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold">{Math.round(goalProgress)}%</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {formatCurrency(currentRevenue)} / {formatCurrency(monthlyGoal)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Verification Rate Donut */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Verification Rate</p>
+                <div className="relative w-24 h-24 mx-auto">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={verificationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={25}
+                        outerRadius={40}
+                        dataKey="value"
+                      >
+                        {verificationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold text-green-600">
+                      {analyticsData.totalTransactions > 0 
+                        ? Math.round((analyticsData.completedTransactions / analyticsData.totalTransactions) * 100)
+                        : 85}%
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-center gap-2 mt-1">
+                  <span className="text-[9px] flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>Pass
+                  </span>
+                  <span className="text-[9px] flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>Fail
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Daily Sales Velocity */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Sales This Week</p>
+                <div className="h-16">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesVelocity}>
+                      <Bar dataKey="sales" fill={COLORS.primary} radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-1 text-[8px] text-muted-foreground mt-1">
+                  {salesVelocity.map((d, i) => (
+                    <span key={i} className="w-5 text-center">{d.day.charAt(0)}</span>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Sellers Mini Bar */}
+          <Card className="overflow-hidden">
+            <CardContent className="pt-4 pb-2 px-3">
+              <p className="text-xs text-muted-foreground mb-2 text-center">Top Sellers</p>
+              <div className="space-y-1">
+                {topSellingItems.slice(0, 4).map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-[9px] text-muted-foreground w-16 truncate">{item.name}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full"
+                        style={{ 
+                          width: `${(item.sales / topSellingItems[0].sales) * 100}%`,
+                          backgroundColor: COLORS.categories[idx]
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Inventory Stock Levels (Mobile-friendly horizontal bars) */}
+        {inventoryStockData.length > 0 && (
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Stock Levels vs. Minimum</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {inventoryStockData.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-24 truncate">{item.name}</span>
+                    <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden relative">
+                      <div 
+                        className="h-full rounded-full transition-all"
+                        style={{ 
+                          width: `${Math.min(100, (item.current / (item.min * 3)) * 100)}%`,
+                          backgroundColor: item.fill
+                        }}
+                      />
+                      <div 
+                        className="absolute top-0 w-0.5 h-full bg-gray-400"
+                        style={{ left: `${(item.min / (item.min * 3)) * 100}%` }}
+                        title={`Min: ${item.min}`}
+                      />
+                    </div>
+                    <span className="text-xs font-medium w-8 text-right">{item.current}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                Gray line = minimum stock level
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Charts Row 1 - Transactions & Sales */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Transactions Bar Chart */}
