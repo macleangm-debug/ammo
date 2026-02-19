@@ -260,10 +260,22 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
       <div className="p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Certificate & Document Templates</h1>
-          <p className="text-slate-500 mt-1">
-            Select a category and send official documents using pre-configured templates
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Certificate & Document Templates</h1>
+              <p className="text-slate-500 mt-1">
+                Select a category and send official documents using pre-configured templates
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/government/certificate-config")}
+              className="flex items-center gap-2"
+            >
+              <Palette className="w-4 h-4" />
+              Certificate Settings
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
