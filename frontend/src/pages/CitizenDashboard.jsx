@@ -5,7 +5,7 @@ import {
   CreditCard, GraduationCap, Target, CheckCircle, Clock,
   TrendingUp, TrendingDown, Calendar, ChevronRight, ShoppingBag,
   ArrowUpRight, Plus, Scan, FileText, Package, DollarSign,
-  AlertTriangle, MapPin
+  AlertTriangle, MapPin, Flame, Zap
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -25,8 +25,13 @@ import {
   Pie,
   Cell,
   Area,
-  AreaChart
+  AreaChart,
+  RadialBarChart,
+  RadialBar,
+  LineChart,
+  Line
 } from 'recharts';
+
 
 const CitizenDashboard = ({ user, api }) => {
   const navigate = useNavigate();
