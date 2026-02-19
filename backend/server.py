@@ -7939,6 +7939,77 @@ async def archive_document(document_id: str, user: dict = Depends(require_auth([
     
     return {"message": "Document archived"}
 
+# ============== PUBLIC DOCUMENT VERIFICATION ==============
+
+@api_router.get("/verify/{document_id}")
+async def verify_document(document_id: str, h: str = None):
+    """
+    Public endpoint to verify document authenticity.
+    No authentication required - anyone with a camera can verify.
+    """
+    # Find the document
+    document = await db.formal_documents.find_one({"document_id": document_id}, {"_id": 0})
+    
+    if not document:
+        return {
+            "valid": False,
+            "error": "Document not found",
+            "message": "This document ID does not exist in our system."
+        }
+    
+    # Check if document has verification hash (certificates only)
+    stored_hash = document.get("verification_hash")
+    if not stored_hash:
+        return {
+            "valid": False,
+            "error": "Not a verified document",
+            "message": "This document type does not support verification."
+        }
+    
+    # Verify the hash
+    if h:
+        # Partial hash verification (from QR code)
+        if not stored_hash.startswith(h):
+            return {
+                "valid": False,
+                "error": "Invalid verification code",
+                "message": "The verification code does not match. This document may be fraudulent."
+            }
+    
+    # Full verification
+    expected_hash = generate_verification_hash(
+        document_id,
+        document.get("recipient_id", ""),
+        document.get("issued_at", "")
+    )
+    
+    if expected_hash != stored_hash:
+        return {
+            "valid": False,
+            "error": "Tampered document",
+            "message": "This document has been modified and is no longer valid."
+        }
+    
+    # Document is valid - return public info
+    return {
+        "valid": True,
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "document": {
+            "document_id": document_id,
+            "title": document.get("title"),
+            "document_type": document.get("document_type"),
+            "category": document.get("category"),
+            "recipient_name": document.get("recipient_name"),
+            "issued_at": document.get("issued_at"),
+            "issuer_signature_name": document.get("issuer_signature_name"),
+            "issuer_designation": document.get("issuer_designation"),
+            "organization_name": document.get("organization_name", "AMMO Government Portal"),
+            "status": document.get("status")
+        },
+        "verification_hash": stored_hash[:16] + "..." + stored_hash[-8:],
+        "message": "This is a valid and authentic document issued by AMMO Government Portal."
+    }
+
 # ============== TRIGGER SCHEDULER & EXECUTION ==============
 
 # Global scheduler state
