@@ -184,9 +184,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 ### Pages with Sidebar Navigation
 All member portal pages now have consistent sidebar:
 - Dashboard (`/dashboard`)
-- My License (`/dashboard/license`)
+- My License (`/dashboard/license`) - includes Renewal & Appeal forms
 - Training (`/training`)
 - Marketplace (`/marketplace`)
 - History (`/dashboard/history`)
 - Notifications (`/dashboard/notifications`)
 - Settings (`/dashboard/settings`)
+
+Government portal pages:
+- Dashboard (`/government`)
+- Reviews (`/government/reviews`) - Pending reviews management
+- Alerts (`/government/alerts-dashboard`)
+- Predictive (`/government/predictive`)
+- Settings (`/government/settings`)
