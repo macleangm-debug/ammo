@@ -200,6 +200,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/government/triggers/run-all` | POST | Manually run all enabled triggers |
 | `/api/government/triggers/{id}/execute` | POST | Execute single trigger manually |
 | `/api/government/triggers/executions` | GET | Get trigger execution history |
+| `/api/government/document-templates` | GET/POST | List/create document templates |
+| `/api/government/document-templates/{id}` | PUT/DELETE | Update/delete document template |
+| `/api/government/document-templates/{id}/preview` | POST | Generate PDF preview |
+| `/api/government/formal-documents/send` | POST | Send document to recipients |
+| `/api/government/formal-documents` | GET | List all sent documents (admin) |
+| `/api/government/formal-documents/stats` | GET | Get document statistics |
+| `/api/citizen/documents` | GET | Get citizen's received documents |
+| `/api/citizen/documents/{id}` | GET | View document (marks as read) |
+| `/api/citizen/documents/{id}/pdf` | GET | Download document as PDF |
+| `/api/citizen/documents/{id}/archive` | POST | Archive a document |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
