@@ -6661,6 +6661,304 @@ async def get_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
         "compliance_rate": 94.2
     }
 
+# ============== GOVERNMENT NOTIFICATION MANAGEMENT ==============
+
+@api_router.get("/government/notifications")
+async def get_all_notifications(
+    limit: int = 50,
+    skip: int = 0,
+    category: Optional[str] = None,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get all notifications sent by government (admin view)"""
+    query = {"sent_by": {"$exists": True}}
+    if category:
+        query["category"] = category
+    
+    notifications = await db.notifications.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.notifications.count_documents(query)
+    
+    return {
+        "notifications": [serialize_doc(n) for n in notifications],
+        "total": total
+    }
+
+@api_router.post("/government/notifications/send")
+async def send_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Send a notification to users (manual)"""
+    body = await request.json()
+    
+    target = body.get("target", "all")  # "all", "role:citizen", "role:dealer", or specific user_id
+    title = body.get("title")
+    message = body.get("message")
+    notification_type = body.get("type", "announcement")
+    category = body.get("category", "general")
+    priority = body.get("priority", "normal")
+    action_url = body.get("action_url")
+    action_label = body.get("action_label")
+    
+    if not title or not message:
+        raise HTTPException(status_code=400, detail="Title and message are required")
+    
+    notifications_created = []
+    
+    if target == "all":
+        # Get all users
+        users = await db.users.find({}, {"_id": 0, "user_id": 1}).to_list(1000)
+        for u in users:
+            notif = {
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": u["user_id"],
+                "title": title,
+                "message": message,
+                "type": notification_type,
+                "category": category,
+                "priority": priority,
+                "action_url": action_url,
+                "action_label": action_label,
+                "sent_by": user["user_id"],
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.notifications.insert_one(notif)
+            notifications_created.append(notif["notification_id"])
+    
+    elif target.startswith("role:"):
+        role = target.replace("role:", "")
+        users = await db.users.find({"role": role}, {"_id": 0, "user_id": 1}).to_list(1000)
+        for u in users:
+            notif = {
+                "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                "user_id": u["user_id"],
+                "title": title,
+                "message": message,
+                "type": notification_type,
+                "category": category,
+                "priority": priority,
+                "action_url": action_url,
+                "action_label": action_label,
+                "sent_by": user["user_id"],
+                "read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.notifications.insert_one(notif)
+            notifications_created.append(notif["notification_id"])
+    
+    else:
+        # Specific user
+        notif = {
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": target,
+            "title": title,
+            "message": message,
+            "type": notification_type,
+            "category": category,
+            "priority": priority,
+            "action_url": action_url,
+            "action_label": action_label,
+            "sent_by": user["user_id"],
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notif)
+        notifications_created.append(notif["notification_id"])
+    
+    await create_audit_log("notification_sent", user["user_id"], "admin", None, {
+        "target": target,
+        "title": title,
+        "count": len(notifications_created)
+    })
+    
+    return {
+        "message": f"Notification sent to {len(notifications_created)} users",
+        "notification_ids": notifications_created
+    }
+
+@api_router.get("/government/notification-triggers")
+async def get_notification_triggers(user: dict = Depends(require_auth(["admin"]))):
+    """Get all notification triggers"""
+    triggers = await db.notification_triggers.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"triggers": [serialize_doc(t) for t in triggers]}
+
+@api_router.post("/government/notification-triggers")
+async def create_notification_trigger(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new notification trigger"""
+    body = await request.json()
+    
+    trigger = NotificationTrigger(
+        name=body.get("name"),
+        description=body.get("description", ""),
+        event_type=body.get("event_type"),
+        conditions=body.get("conditions", {}),
+        template_title=body.get("template_title"),
+        template_message=body.get("template_message"),
+        notification_type=body.get("notification_type", "reminder"),
+        notification_category=body.get("notification_category", "system"),
+        priority=body.get("priority", "normal"),
+        target_roles=body.get("target_roles", ["citizen"]),
+        enabled=body.get("enabled", True),
+        created_by=user["user_id"]
+    )
+    
+    trigger_doc = trigger.model_dump()
+    trigger_doc["created_at"] = trigger_doc["created_at"].isoformat()
+    trigger_doc["updated_at"] = trigger_doc["updated_at"].isoformat()
+    await db.notification_triggers.insert_one(trigger_doc)
+    
+    return {"trigger_id": trigger.trigger_id, "message": "Trigger created successfully"}
+
+@api_router.put("/government/notification-triggers/{trigger_id}")
+async def update_notification_trigger(trigger_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a notification trigger"""
+    body = await request.json()
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    allowed_fields = ["name", "description", "conditions", "template_title", "template_message", 
+                      "notification_type", "notification_category", "priority", "target_roles", "enabled"]
+    
+    for field in allowed_fields:
+        if field in body:
+            update_data[field] = body[field]
+    
+    result = await db.notification_triggers.update_one({"trigger_id": trigger_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    return {"message": "Trigger updated successfully"}
+
+@api_router.delete("/government/notification-triggers/{trigger_id}")
+async def delete_notification_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a notification trigger"""
+    result = await db.notification_triggers.delete_one({"trigger_id": trigger_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    return {"message": "Trigger deleted successfully"}
+
+@api_router.post("/government/notification-triggers/{trigger_id}/test")
+async def test_notification_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Test a trigger by sending to the admin"""
+    trigger = await db.notification_triggers.find_one({"trigger_id": trigger_id}, {"_id": 0})
+    
+    if not trigger:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    # Send test notification to the admin
+    test_notif = {
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "title": f"[TEST] {trigger['template_title']}",
+        "message": trigger["template_message"].replace("{{user_name}}", user.get("name", "Test User")),
+        "type": trigger["notification_type"],
+        "category": trigger["notification_category"],
+        "priority": trigger["priority"],
+        "sent_by": "system_test",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(test_notif)
+    
+    return {"message": "Test notification sent", "notification_id": test_notif["notification_id"]}
+
+@api_router.get("/government/notification-templates")
+async def get_notification_templates(user: dict = Depends(require_auth(["admin"]))):
+    """Get saved notification templates"""
+    templates = await db.notification_templates.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"templates": [serialize_doc(t) for t in templates]}
+
+@api_router.post("/government/notification-templates")
+async def create_notification_template(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a reusable notification template"""
+    body = await request.json()
+    
+    template = NotificationTemplate(
+        name=body.get("name"),
+        title=body.get("title"),
+        message=body.get("message"),
+        type=body.get("type", "announcement"),
+        category=body.get("category", "general"),
+        priority=body.get("priority", "normal"),
+        action_url=body.get("action_url"),
+        action_label=body.get("action_label"),
+        created_by=user["user_id"]
+    )
+    
+    template_doc = template.model_dump()
+    template_doc["created_at"] = template_doc["created_at"].isoformat()
+    await db.notification_templates.insert_one(template_doc)
+    
+    return {"template_id": template.template_id, "message": "Template created successfully"}
+
+@api_router.delete("/government/notification-templates/{template_id}")
+async def delete_notification_template(template_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a notification template"""
+    result = await db.notification_templates.delete_one({"template_id": template_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted successfully"}
+
+@api_router.get("/government/notification-stats")
+async def get_notification_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get notification statistics"""
+    total_sent = await db.notifications.count_documents({"sent_by": {"$exists": True}})
+    total_read = await db.notifications.count_documents({"sent_by": {"$exists": True}, "read": True})
+    
+    # Count by category
+    pipeline = [
+        {"$match": {"sent_by": {"$exists": True}}},
+        {"$group": {"_id": "$category", "count": {"$sum": 1}}}
+    ]
+    by_category = {}
+    async for result in db.notifications.aggregate(pipeline):
+        by_category[result["_id"] or "general"] = result["count"]
+    
+    # Recent activity (last 7 days)
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    recent_count = await db.notifications.count_documents({
+        "sent_by": {"$exists": True},
+        "created_at": {"$gte": seven_days_ago.isoformat()}
+    })
+    
+    # Active triggers
+    active_triggers = await db.notification_triggers.count_documents({"enabled": True})
+    
+    return {
+        "total_sent": total_sent,
+        "total_read": total_read,
+        "read_rate": round((total_read / total_sent * 100) if total_sent > 0 else 0, 1),
+        "by_category": by_category,
+        "recent_7_days": recent_count,
+        "active_triggers": active_triggers
+    }
+
+@api_router.get("/government/users-list")
+async def get_users_list(
+    role: Optional[str] = None,
+    limit: int = 100,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get list of users for notification targeting"""
+    query = {}
+    if role:
+        query["role"] = role
+    
+    users = await db.users.find(query, {"_id": 0, "password": 0}).limit(limit).to_list(limit)
+    
+    # Count by role
+    role_counts = {}
+    pipeline = [{"$group": {"_id": "$role", "count": {"$sum": 1}}}]
+    async for result in db.users.aggregate(pipeline):
+        role_counts[result["_id"]] = result["count"]
+    
+    return {
+        "users": [serialize_doc(u) for u in users],
+        "role_counts": role_counts
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
