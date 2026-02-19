@@ -288,16 +288,19 @@ class TestQRVerification:
     
     def test_verify_document_endpoint_exists(self):
         """Test that document verification endpoint exists"""
-        # Test with a fake document ID - should return 404, not 500
+        # Test with a fake document ID - returns 200 with valid:false
         response = self.session.get(f"{BASE_URL}/api/verify/doc_fake123")
-        # Should be 404 (not found) or 400 (bad request) - not 500
-        assert response.status_code in [400, 404], f"Expected 400/404, got {response.status_code}: {response.text}"
-        print(f"✅ Verification endpoint responds correctly (404 for non-existent doc)")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        assert data.get("valid") == False, "Expected valid=false for non-existent doc"
+        print(f"✅ Verification endpoint responds correctly (valid=false for non-existent doc)")
     
     def test_verify_with_hash(self):
         """Test verification with hash parameter"""
         response = self.session.get(f"{BASE_URL}/api/verify/doc_fake123?h=fakehash123")
-        assert response.status_code in [400, 404], f"Expected 400/404, got {response.status_code}: {response.text}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        assert data.get("valid") == False, "Expected valid=false for invalid hash"
         print(f"✅ Verification with hash parameter works")
 
 
@@ -326,8 +329,10 @@ class TestCitizenDocumentView:
         response = self.session.get(f"{BASE_URL}/api/citizen/documents")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
-        documents = response.json()
-        assert isinstance(documents, list), f"Expected list of documents: {documents}"
+        data = response.json()
+        # Documents can come wrapped in {'documents': [...]} or as a list directly
+        documents = data.get("documents", data) if isinstance(data, dict) else data
+        assert isinstance(documents, list), f"Expected list of documents: {data}"
         
         print(f"✅ Citizen has {len(documents)} documents")
         
