@@ -45,7 +45,9 @@ import {
   Pie,
   Cell,
   Area,
-  AreaChart
+  AreaChart,
+  RadialBarChart,
+  RadialBar
 } from 'recharts';
 
 const GovernmentDashboard = ({ user, api }) => {
