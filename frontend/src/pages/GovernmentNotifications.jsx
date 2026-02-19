@@ -535,6 +535,73 @@ const GovernmentNotifications = ({ user, api }) => {
 
           {/* Triggers Tab */}
           <TabsContent value="triggers" className="space-y-4">
+            {/* Scheduler Controls */}
+            <Card className="border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                    <span>Trigger Scheduler</span>
+                    <Badge className={schedulerStatus.scheduler_running ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                      {schedulerStatus.scheduler_running ? 'Running' : 'Stopped'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleRunAllTriggers}
+                      disabled={submitting}
+                      data-testid="run-all-triggers-btn"
+                    >
+                      <Play className="w-4 h-4 mr-1" />
+                      Run All Now
+                    </Button>
+                    <Button 
+                      variant={schedulerStatus.scheduler_running ? "destructive" : "default"}
+                      size="sm"
+                      onClick={handleToggleScheduler}
+                      disabled={submitting}
+                      data-testid="toggle-scheduler-btn"
+                    >
+                      {schedulerStatus.scheduler_running ? (
+                        <><X className="w-4 h-4 mr-1" />Stop</>
+                      ) : (
+                        <><Play className="w-4 h-4 mr-1" />Start</>
+                      )}
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Check Interval</p>
+                    <p className="font-medium">{schedulerStatus.check_interval || '1 hour'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Enabled Triggers</p>
+                    <p className="font-medium">{schedulerStatus.enabled_triggers || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Last Execution</p>
+                    <p className="font-medium">
+                      {schedulerStatus.recent_executions?.[0]?.started_at 
+                        ? formatDate(schedulerStatus.recent_executions[0].started_at)
+                        : 'Never'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Notifications Sent (Recent)</p>
+                    <p className="font-medium">
+                      {schedulerStatus.recent_executions?.reduce((sum, e) => sum + (e.notifications_sent || 0), 0) || 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Triggers List */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -557,6 +624,7 @@ const GovernmentNotifications = ({ user, api }) => {
                   <div className="space-y-3">
                     {triggers.map((trigger) => {
                       const EventIcon = eventTypes.find(e => e.value === trigger.event_type)?.icon || Zap;
+                      const isExecuting = executingTrigger === trigger.trigger_id;
                       return (
                         <div 
                           key={trigger.trigger_id}
@@ -570,13 +638,28 @@ const GovernmentNotifications = ({ user, api }) => {
                               <div className="flex items-center gap-2">
                                 <p className="font-medium">{trigger.name}</p>
                                 <Badge className={priorityColors[trigger.priority]}>{trigger.priority}</Badge>
+                                <Badge variant="outline" className="text-[10px]">{trigger.schedule_interval || 'daily'}</Badge>
                                 {!trigger.enabled && <Badge variant="outline">Disabled</Badge>}
                               </div>
                               <p className="text-sm text-muted-foreground">{trigger.description || trigger.template_title}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Event: {eventTypes.find(e => e.value === trigger.event_type)?.label || trigger.event_type}
-                                {trigger.target_roles && ` • Target: ${trigger.target_roles.join(', ')}`}
-                              </p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>Event: {eventTypes.find(e => e.value === trigger.event_type)?.label || trigger.event_type}</span>
+                                {trigger.last_executed_at && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Last run: {formatDate(trigger.last_executed_at)}
+                                  </span>
+                                )}
+                                {trigger.last_execution_result && (
+                                  <span className={`flex items-center gap-1 ${trigger.last_execution_result.status === 'completed' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {trigger.last_execution_result.status === 'completed' ? (
+                                      <><Check className="w-3 h-3" />{trigger.last_execution_result.notifications_sent} sent</>
+                                    ) : (
+                                      <><X className="w-3 h-3" />Failed</>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -591,10 +674,19 @@ const GovernmentNotifications = ({ user, api }) => {
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => handleTestTrigger(trigger.trigger_id)}
-                              title="Test"
+                              onClick={() => handleExecuteTrigger(trigger.trigger_id)}
+                              disabled={isExecuting}
+                              title="Execute Now"
                             >
-                              <Play className="w-4 h-4" />
+                              {isExecuting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleTestTrigger(trigger.trigger_id)}
+                              title="Test (send to self)"
+                            >
+                              <Eye className="w-4 h-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
