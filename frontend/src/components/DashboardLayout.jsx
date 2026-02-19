@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSwipeable } from 'react-swipeable';
 import { 
   Shield, Menu, X, LogOut, Sun, Moon, HelpCircle,
-  MessageSquare, Search, Bell, Mail, ChevronDown
+  MessageSquare, Search, Bell, Mail, ChevronDown, ChevronRight,
+  AlertTriangle, FileText, Award, CreditCard, GraduationCap,
+  Clock, Check, ExternalLink
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 import { useTheme } from "../contexts/ThemeContext";
 
 // Navigation paths for swipe navigation
@@ -25,13 +28,72 @@ const DashboardLayout = ({
   title = "Dashboard",
   subtitle = "",
   onLogout,
-  unreadNotifications = 0
+  unreadNotifications = 0,
+  api
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Dropdown states
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [docsDropdownOpen, setDocsDropdownOpen] = useState(false);
+  const [recentNotifications, setRecentNotifications] = useState([]);
+  const [recentDocuments, setRecentDocuments] = useState([]);
+  const [unreadDocs, setUnreadDocs] = useState(0);
+  
+  // Refs for click outside detection
+  const notifDropdownRef = useRef(null);
+  const docsDropdownRef = useRef(null);
+
+  // Fetch recent notifications and documents when dropdown opens
+  useEffect(() => {
+    if (notifDropdownOpen && api) {
+      fetchRecentNotifications();
+    }
+  }, [notifDropdownOpen]);
+
+  useEffect(() => {
+    if (docsDropdownOpen && api) {
+      fetchRecentDocuments();
+    }
+  }, [docsDropdownOpen]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target)) {
+        setNotifDropdownOpen(false);
+      }
+      if (docsDropdownRef.current && !docsDropdownRef.current.contains(event.target)) {
+        setDocsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchRecentNotifications = async () => {
+    try {
+      const response = await api.get("/citizen/notifications");
+      const notifications = response.data || [];
+      setRecentNotifications(notifications.slice(0, 4));
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const fetchRecentDocuments = async () => {
+    try {
+      const response = await api.get("/citizen/documents");
+      setRecentDocuments(response.data?.documents?.slice(0, 4) || []);
+      setUnreadDocs(response.data?.unread_count || 0);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+    }
+  };
 
   // Swipe navigation for mobile
   const currentIndex = SWIPE_ROUTES.findIndex(route => location.pathname === route);
