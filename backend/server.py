@@ -7070,6 +7070,746 @@ async def get_users_list(
         "role_counts": role_counts
     }
 
+# ============== FORMAL DOCUMENTS & CERTIFICATES SYSTEM ==============
+
+# Standard templates that come pre-loaded
+STANDARD_TEMPLATES = [
+    {
+        "template_id": "std_warning_general",
+        "name": "General Warning Letter",
+        "description": "Standard warning letter for compliance issues",
+        "template_type": "warning_letter",
+        "category": "compliance",
+        "is_standard": True,
+        "primary_color": "#dc2626",
+        "secondary_color": "#f87171",
+        "title": "Official Warning Notice",
+        "body_template": """Dear {{recipient_name}},
+
+This letter serves as an official warning regarding {{violation_type}}.
+
+Our records indicate that on {{incident_date}}, the following issue was identified:
+
+{{violation_details}}
+
+Please take immediate action to rectify this matter. Failure to comply may result in further penalties including license suspension or revocation.
+
+If you believe this warning was issued in error, you may file an appeal within 30 days of receipt.
+
+Reference Number: {{reference_number}}""",
+        "footer_text": "This is an official warning from AMMO Government Portal. Please retain this document for your records.",
+        "signature_title": "Compliance Officer",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_license_cert",
+        "name": "License Certificate",
+        "description": "Official license issuance certificate",
+        "template_type": "license_certificate",
+        "category": "license",
+        "is_standard": True,
+        "primary_color": "#3b5bdb",
+        "secondary_color": "#8b5cf6",
+        "title": "Certificate of License",
+        "body_template": """This certifies that
+
+{{recipient_name}}
+
+has been granted a valid {{license_type}} license under the AMMO regulatory framework.
+
+License Number: {{license_number}}
+Issue Date: {{issue_date}}
+Expiry Date: {{expiry_date}}
+Region: {{region}}
+
+This license authorizes the holder to legally {{license_permissions}} in accordance with all applicable laws and regulations.
+
+The holder must maintain compliance with all AMMO requirements and complete mandatory training as required.""",
+        "footer_text": "This certificate is valid only when accompanied by proper identification. Verify at ammo.gov/verify",
+        "signature_title": "Licensing Authority",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_training_cert",
+        "name": "Training Completion Certificate",
+        "description": "Certificate for completed training courses",
+        "template_type": "training_certificate",
+        "category": "training",
+        "is_standard": True,
+        "primary_color": "#059669",
+        "secondary_color": "#34d399",
+        "title": "Certificate of Training Completion",
+        "body_template": """This certifies that
+
+{{recipient_name}}
+
+has successfully completed the training course:
+
+{{course_name}}
+
+Duration: {{duration_hours}} hours
+Completion Date: {{completion_date}}
+Score: {{score}}%
+ARI Points Earned: +{{ari_points}}
+
+This training fulfills the requirements for {{training_category}} under AMMO guidelines.""",
+        "footer_text": "Certificate ID: {{certificate_id}} | Verify at ammo.gov/certificates",
+        "signature_title": "Training Authority",
+        "created_by": "system",
+        "auto_send_on_event": "training_completion",
+        "auto_send_enabled": True
+    },
+    {
+        "template_id": "std_achievement_cert",
+        "name": "Achievement Certificate",
+        "description": "Certificate for special achievements and milestones",
+        "template_type": "achievement_certificate",
+        "category": "achievement",
+        "is_standard": True,
+        "primary_color": "#d97706",
+        "secondary_color": "#fbbf24",
+        "title": "Certificate of Achievement",
+        "body_template": """This certificate is proudly presented to
+
+{{recipient_name}}
+
+In recognition of outstanding achievement:
+
+{{achievement_title}}
+
+{{achievement_description}}
+
+This milestone demonstrates exceptional commitment to responsible ownership and compliance with AMMO standards.
+
+Awarded on: {{award_date}}""",
+        "footer_text": "AMMO recognizes and celebrates responsible firearm ownership.",
+        "signature_title": "Government Administrator",
+        "created_by": "system"
+    },
+    {
+        "template_id": "std_formal_notice",
+        "name": "Formal Notice",
+        "description": "General formal notice template",
+        "template_type": "formal_notice",
+        "category": "general",
+        "is_standard": True,
+        "primary_color": "#4f46e5",
+        "secondary_color": "#818cf8",
+        "title": "Official Notice",
+        "body_template": """Dear {{recipient_name}},
+
+{{notice_subject}}
+
+{{notice_body}}
+
+Please review this notice carefully and take any required action by {{action_deadline}}.
+
+For questions or concerns, please contact our support team.
+
+Reference: {{reference_number}}""",
+        "footer_text": "Official communication from AMMO Government Portal.",
+        "signature_title": "Government Administrator",
+        "created_by": "system"
+    }
+]
+
+def generate_formal_document_pdf(doc: dict) -> io.BytesIO:
+    """Generate a professional PDF for a formal document"""
+    buffer = io.BytesIO()
+    
+    # Parse colors
+    def hex_to_color(hex_color):
+        hex_color = hex_color.lstrip('#')
+        r, g, b = tuple(int(hex_color[i:i+2], 16) / 255 for i in (0, 2, 4))
+        return colors.Color(r, g, b)
+    
+    primary_color = hex_to_color(doc.get("primary_color", "#3b5bdb"))
+    secondary_color = hex_to_color(doc.get("secondary_color", "#8b5cf6"))
+    
+    # Determine orientation based on document type
+    is_certificate = "certificate" in doc.get("document_type", "")
+    if is_certificate:
+        page_size = landscape(letter)
+    else:
+        page_size = letter
+    
+    c = canvas.Canvas(buffer, pagesize=page_size)
+    width, height = page_size
+    
+    # Background
+    c.setFillColor(colors.Color(0.98, 0.98, 1.0))
+    c.rect(0, 0, width, height, fill=True, stroke=False)
+    
+    # Watermark if enabled
+    if doc.get("watermark_enabled", True):
+        c.saveState()
+        c.setFillColor(colors.Color(0.9, 0.9, 0.95))
+        c.setFont("Helvetica-Bold", 60)
+        c.translate(width/2, height/2)
+        c.rotate(45)
+        c.drawCentredString(0, 0, "AMMO OFFICIAL")
+        c.restoreState()
+    
+    # Border
+    c.setStrokeColor(primary_color)
+    c.setLineWidth(3)
+    c.rect(30, 30, width - 60, height - 60, fill=False, stroke=True)
+    
+    # Inner decorative border
+    c.setStrokeColor(secondary_color)
+    c.setLineWidth(1)
+    c.rect(40, 40, width - 80, height - 80, fill=False, stroke=True)
+    
+    # Official seal if enabled
+    if doc.get("seal_enabled", True):
+        seal_x = width - 120 if is_certificate else width - 100
+        seal_y = height - 120 if is_certificate else height - 100
+        
+        # Draw seal circle
+        c.setStrokeColor(primary_color)
+        c.setLineWidth(2)
+        c.circle(seal_x, seal_y, 35, fill=False, stroke=True)
+        c.circle(seal_x, seal_y, 30, fill=False, stroke=True)
+        
+        # Seal text
+        c.setFillColor(primary_color)
+        c.setFont("Helvetica-Bold", 8)
+        c.drawCentredString(seal_x, seal_y + 10, "OFFICIAL")
+        c.drawCentredString(seal_x, seal_y - 2, "AMMO")
+        c.drawCentredString(seal_x, seal_y - 14, "SEAL")
+    
+    # Header
+    c.setFillColor(primary_color)
+    c.setFont("Helvetica-Bold", 20)
+    header_y = height - 80 if is_certificate else height - 70
+    c.drawCentredString(width / 2, header_y, doc.get("header_text", "AMMO - Government Portal"))
+    
+    # Document title
+    c.setFillColor(colors.Color(0.1, 0.1, 0.1))
+    c.setFont("Helvetica-Bold", 28 if is_certificate else 24)
+    title_y = header_y - 50
+    c.drawCentredString(width / 2, title_y, doc.get("title", "Official Document"))
+    
+    # Decorative line under title
+    c.setStrokeColor(primary_color)
+    c.setLineWidth(2)
+    line_y = title_y - 15
+    c.line(width/4, line_y, width*3/4, line_y)
+    
+    # Body content
+    body_content = doc.get("body_content", "")
+    lines = body_content.split('\n')
+    
+    c.setFont("Helvetica", 11)
+    c.setFillColor(colors.Color(0.2, 0.2, 0.2))
+    
+    y_position = line_y - 40
+    line_height = 16
+    max_width = width - 120
+    
+    for line in lines:
+        if y_position < 120:  # Leave room for footer
+            break
+        
+        # Handle empty lines
+        if not line.strip():
+            y_position -= line_height / 2
+            continue
+        
+        # Check if this is a centered/emphasized line (recipient name, achievement, etc.)
+        if line.strip() and len(line.strip()) < 50 and not any(char in line for char in ['.', ',', ':']):
+            c.setFont("Helvetica-Bold", 16)
+            c.setFillColor(primary_color)
+            c.drawCentredString(width / 2, y_position, line.strip())
+            c.setFont("Helvetica", 11)
+            c.setFillColor(colors.Color(0.2, 0.2, 0.2))
+        else:
+            # Word wrap for long lines
+            words = line.split()
+            current_line = ""
+            for word in words:
+                test_line = current_line + " " + word if current_line else word
+                if c.stringWidth(test_line, "Helvetica", 11) < max_width:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        c.drawCentredString(width / 2, y_position, current_line)
+                        y_position -= line_height
+                    current_line = word
+            if current_line:
+                c.drawCentredString(width / 2, y_position, current_line)
+        
+        y_position -= line_height
+    
+    # Signature section
+    sig_y = 100
+    c.setStrokeColor(colors.Color(0.3, 0.3, 0.3))
+    c.setLineWidth(1)
+    c.line(width/2 - 100, sig_y, width/2 + 100, sig_y)
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.Color(0.4, 0.4, 0.4))
+    c.drawCentredString(width / 2, sig_y - 15, doc.get("signature_title", "Government Administrator"))
+    
+    # Issue date
+    c.setFont("Helvetica", 9)
+    issued_at = doc.get("issued_at", datetime.now(timezone.utc).isoformat())
+    if isinstance(issued_at, str):
+        try:
+            issued_at = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+        except:
+            issued_at = datetime.now(timezone.utc)
+    c.drawCentredString(width / 2, sig_y - 30, f"Issued: {issued_at.strftime('%B %d, %Y')}")
+    
+    # Footer
+    c.setFont("Helvetica", 8)
+    c.setFillColor(colors.Color(0.5, 0.5, 0.5))
+    footer_text = doc.get("footer_text", "")
+    c.drawCentredString(width / 2, 50, footer_text)
+    
+    # Document ID
+    c.setFont("Helvetica", 7)
+    c.drawCentredString(width / 2, 38, f"Document ID: {doc.get('document_id', 'N/A')}")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+@api_router.get("/government/document-templates")
+async def get_document_templates(
+    template_type: Optional[str] = None,
+    category: Optional[str] = None,
+    include_standard: bool = True,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get all document templates"""
+    query = {"is_active": True}
+    if template_type:
+        query["template_type"] = template_type
+    if category:
+        query["category"] = category
+    
+    templates = await db.document_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Add standard templates if requested
+    if include_standard:
+        standard = [t for t in STANDARD_TEMPLATES if 
+                   (not template_type or t["template_type"] == template_type) and
+                   (not category or t["category"] == category)]
+        # Don't duplicate if already in DB
+        existing_ids = {t["template_id"] for t in templates}
+        for std in standard:
+            if std["template_id"] not in existing_ids:
+                templates.append(std)
+    
+    return {"templates": templates}
+
+@api_router.post("/government/document-templates")
+async def create_document_template(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new document template"""
+    body = await request.json()
+    
+    template = DocumentTemplate(
+        name=body.get("name"),
+        description=body.get("description"),
+        template_type=body.get("template_type"),
+        category=body.get("category", "general"),
+        is_standard=False,
+        primary_color=body.get("primary_color", "#3b5bdb"),
+        secondary_color=body.get("secondary_color", "#8b5cf6"),
+        logo_url=body.get("logo_url"),
+        seal_enabled=body.get("seal_enabled", True),
+        watermark_enabled=body.get("watermark_enabled", True),
+        header_text=body.get("header_text", "AMMO - Government Portal"),
+        title=body.get("title"),
+        body_template=body.get("body_template"),
+        footer_text=body.get("footer_text", ""),
+        signature_title=body.get("signature_title", "Government Administrator"),
+        auto_send_on_event=body.get("auto_send_on_event"),
+        auto_send_enabled=body.get("auto_send_enabled", False),
+        created_by=user["user_id"]
+    )
+    
+    template_doc = template.model_dump()
+    template_doc["created_at"] = template_doc["created_at"].isoformat()
+    template_doc["updated_at"] = template_doc["updated_at"].isoformat()
+    await db.document_templates.insert_one(template_doc)
+    
+    return {"template_id": template.template_id, "message": "Template created successfully"}
+
+@api_router.put("/government/document-templates/{template_id}")
+async def update_document_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a document template"""
+    body = await request.json()
+    
+    # Check if it's a standard template being customized
+    existing = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    if not existing:
+        # Check if it's a standard template
+        std_template = next((t for t in STANDARD_TEMPLATES if t["template_id"] == template_id), None)
+        if std_template:
+            # Create a copy with customizations
+            new_template = {**std_template, **body}
+            new_template["template_id"] = f"tmpl_{uuid.uuid4().hex[:12]}"
+            new_template["is_standard"] = False
+            new_template["name"] = body.get("name", std_template["name"] + " (Custom)")
+            new_template["created_by"] = user["user_id"]
+            new_template["created_at"] = datetime.now(timezone.utc).isoformat()
+            new_template["updated_at"] = datetime.now(timezone.utc).isoformat()
+            await db.document_templates.insert_one(new_template)
+            return {"template_id": new_template["template_id"], "message": "Custom template created from standard"}
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    update_data = {
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Allowed fields to update
+    for field in ["name", "description", "primary_color", "secondary_color", "logo_url", 
+                  "seal_enabled", "watermark_enabled", "header_text", "title", "body_template",
+                  "footer_text", "signature_title", "auto_send_on_event", "auto_send_enabled", "is_active"]:
+        if field in body:
+            update_data[field] = body[field]
+    
+    await db.document_templates.update_one({"template_id": template_id}, {"$set": update_data})
+    return {"message": "Template updated successfully"}
+
+@api_router.delete("/government/document-templates/{template_id}")
+async def delete_document_template(template_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a document template (soft delete)"""
+    result = await db.document_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": "Template deleted successfully"}
+
+@api_router.post("/government/document-templates/{template_id}/preview")
+async def preview_document_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Generate a preview PDF with sample data"""
+    body = await request.json()
+    
+    # Get template
+    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    if not template:
+        template = next((t for t in STANDARD_TEMPLATES if t["template_id"] == template_id), None)
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Sample placeholder values
+    sample_values = body.get("sample_values", {
+        "recipient_name": "John Citizen",
+        "violation_type": "Compliance Violation",
+        "incident_date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
+        "violation_details": "This is a sample violation description for preview purposes.",
+        "reference_number": "REF-2026-001234",
+        "license_type": "Firearm Owner",
+        "license_number": "LIC-2026-567890",
+        "issue_date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
+        "expiry_date": (datetime.now(timezone.utc) + timedelta(days=365)).strftime("%B %d, %Y"),
+        "region": "Northeast",
+        "license_permissions": "own and operate registered firearms",
+        "course_name": "Advanced Safety Training",
+        "duration_hours": "8",
+        "completion_date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
+        "score": "95",
+        "ari_points": "15",
+        "certificate_id": "CERT-2026-789012",
+        "training_category": "safety certification",
+        "achievement_title": "Safety Excellence Award",
+        "achievement_description": "For demonstrating exceptional commitment to firearm safety and responsible ownership.",
+        "award_date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
+        "notice_subject": "Important Update",
+        "notice_body": "This is a sample notice body for preview purposes.",
+        "action_deadline": (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%B %d, %Y")
+    })
+    
+    # Render body with placeholders
+    body_content = template.get("body_template", "")
+    for key, value in sample_values.items():
+        body_content = body_content.replace(f"{{{{{key}}}}}", str(value))
+    
+    # Create preview document
+    preview_doc = {
+        "document_id": f"preview_{uuid.uuid4().hex[:8]}",
+        "document_type": template.get("template_type", "formal_notice"),
+        "title": template.get("title", "Preview Document"),
+        "body_content": body_content,
+        "primary_color": template.get("primary_color", "#3b5bdb"),
+        "secondary_color": template.get("secondary_color", "#8b5cf6"),
+        "logo_url": template.get("logo_url"),
+        "seal_enabled": template.get("seal_enabled", True),
+        "watermark_enabled": template.get("watermark_enabled", True),
+        "header_text": template.get("header_text", "AMMO - Government Portal"),
+        "footer_text": template.get("footer_text", ""),
+        "signature_title": template.get("signature_title", "Government Administrator"),
+        "issued_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    pdf_buffer = generate_formal_document_pdf(preview_doc)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=preview_{template_id}.pdf"}
+    )
+
+@api_router.post("/government/formal-documents/send")
+async def send_formal_document(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Send a formal document to one or more recipients"""
+    body = await request.json()
+    
+    template_id = body.get("template_id")
+    recipients = body.get("recipients", [])  # List of user_ids or "role:citizen", "role:dealer"
+    placeholder_values = body.get("placeholder_values", {})
+    priority = body.get("priority", "normal")
+    related_entity_type = body.get("related_entity_type")
+    related_entity_id = body.get("related_entity_id")
+    
+    # Get template
+    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    if not template:
+        template = next((t for t in STANDARD_TEMPLATES if t["template_id"] == template_id), None)
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Resolve recipients
+    target_users = []
+    for recipient in recipients:
+        if recipient.startswith("role:"):
+            role = recipient.replace("role:", "")
+            users = await db.users.find({"role": role}, {"_id": 0}).to_list(1000)
+            target_users.extend(users)
+        else:
+            user_doc = await db.users.find_one({"user_id": recipient}, {"_id": 0})
+            if user_doc:
+                target_users.append(user_doc)
+    
+    if not target_users:
+        raise HTTPException(status_code=400, detail="No valid recipients found")
+    
+    # Get sender info
+    sender = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    sender_name = sender.get("name", "Government Administrator") if sender else "Government Administrator"
+    
+    documents_created = []
+    
+    for target_user in target_users:
+        # Personalize placeholder values
+        user_values = {
+            **placeholder_values,
+            "recipient_name": target_user.get("name", "User")
+        }
+        
+        # Get additional user data for placeholders
+        if target_user.get("role") == "citizen":
+            profile = await db.citizen_profiles.find_one({"user_id": target_user["user_id"]}, {"_id": 0})
+            if profile:
+                user_values["license_number"] = profile.get("license_number", "N/A")
+                user_values["license_type"] = profile.get("license_type", "N/A")
+                user_values["region"] = profile.get("region", "N/A")
+        
+        # Render body with placeholders
+        body_content = template.get("body_template", "")
+        for key, value in user_values.items():
+            body_content = body_content.replace(f"{{{{{key}}}}}", str(value))
+        
+        # Create document
+        document = FormalDocument(
+            template_id=template_id,
+            template_name=template.get("name", "Unknown"),
+            document_type=template.get("template_type", "formal_notice"),
+            category=template.get("category", "general"),
+            recipient_id=target_user["user_id"],
+            recipient_name=target_user.get("name", "User"),
+            recipient_email=target_user.get("email"),
+            recipient_role=target_user.get("role", "citizen"),
+            title=template.get("title", "Official Document"),
+            body_content=body_content,
+            primary_color=template.get("primary_color", "#3b5bdb"),
+            secondary_color=template.get("secondary_color", "#8b5cf6"),
+            logo_url=template.get("logo_url"),
+            seal_enabled=template.get("seal_enabled", True),
+            watermark_enabled=template.get("watermark_enabled", True),
+            header_text=template.get("header_text", "AMMO - Government Portal"),
+            footer_text=template.get("footer_text", ""),
+            signature_title=template.get("signature_title", "Government Administrator"),
+            issued_by=user["user_id"],
+            issued_by_name=sender_name,
+            related_entity_type=related_entity_type,
+            related_entity_id=related_entity_id,
+            priority=priority
+        )
+        
+        doc_dict = document.model_dump()
+        doc_dict["issued_at"] = doc_dict["issued_at"].isoformat()
+        await db.formal_documents.insert_one(doc_dict)
+        
+        documents_created.append({
+            "document_id": document.document_id,
+            "recipient_id": target_user["user_id"],
+            "recipient_name": target_user.get("name")
+        })
+        
+        # Also create a notification to alert user
+        await db.notifications.insert_one({
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "user_id": target_user["user_id"],
+            "title": f"New {template.get('template_type', 'document').replace('_', ' ').title()}",
+            "message": f"You have received a new {template.get('title', 'document')}. Please check your Documents inbox.",
+            "type": "alert",
+            "category": "document",
+            "priority": priority,
+            "action_url": "/dashboard/documents",
+            "action_label": "View Document",
+            "sent_by": user["user_id"],
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        "message": f"Document sent to {len(documents_created)} recipient(s)",
+        "documents": documents_created
+    }
+
+@api_router.get("/government/formal-documents")
+async def get_all_formal_documents(
+    limit: int = 50,
+    skip: int = 0,
+    document_type: Optional[str] = None,
+    status: Optional[str] = None,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get all formal documents sent (admin view)"""
+    query = {}
+    if document_type:
+        query["document_type"] = document_type
+    if status:
+        query["status"] = status
+    
+    documents = await db.formal_documents.find(query, {"_id": 0}).sort("issued_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.formal_documents.count_documents(query)
+    
+    return {
+        "documents": [serialize_doc(d) for d in documents],
+        "total": total
+    }
+
+@api_router.get("/government/formal-documents/stats")
+async def get_formal_documents_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get statistics about formal documents"""
+    total = await db.formal_documents.count_documents({})
+    by_type = {}
+    by_status = {}
+    
+    # Count by type
+    pipeline = [{"$group": {"_id": "$document_type", "count": {"$sum": 1}}}]
+    async for result in db.formal_documents.aggregate(pipeline):
+        by_type[result["_id"]] = result["count"]
+    
+    # Count by status
+    pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+    async for result in db.formal_documents.aggregate(pipeline):
+        by_status[result["_id"]] = result["count"]
+    
+    return {
+        "total": total,
+        "by_type": by_type,
+        "by_status": by_status
+    }
+
+# Citizen endpoints for formal documents
+@api_router.get("/citizen/documents")
+async def get_citizen_documents(
+    document_type: Optional[str] = None,
+    status: Optional[str] = None,
+    user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))
+):
+    """Get citizen's formal documents"""
+    query = {"recipient_id": user["user_id"]}
+    if document_type:
+        query["document_type"] = document_type
+    if status:
+        query["status"] = status
+    
+    documents = await db.formal_documents.find(query, {"_id": 0}).sort("issued_at", -1).to_list(100)
+    
+    # Count unread
+    unread_count = await db.formal_documents.count_documents({
+        "recipient_id": user["user_id"],
+        "status": "sent"
+    })
+    
+    return {
+        "documents": [serialize_doc(d) for d in documents],
+        "unread_count": unread_count
+    }
+
+@api_router.get("/citizen/documents/{document_id}")
+async def get_citizen_document(document_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Get a specific document"""
+    document = await db.formal_documents.find_one({
+        "document_id": document_id,
+        "recipient_id": user["user_id"]
+    }, {"_id": 0})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Mark as read if not already
+    if document.get("status") == "sent":
+        await db.formal_documents.update_one(
+            {"document_id": document_id},
+            {"$set": {"status": "read", "read_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        document["status"] = "read"
+        document["read_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return serialize_doc(document)
+
+@api_router.get("/citizen/documents/{document_id}/pdf")
+async def download_document_pdf(document_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Download a formal document as PDF"""
+    document = await db.formal_documents.find_one({
+        "document_id": document_id,
+        "recipient_id": user["user_id"]
+    }, {"_id": 0})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Mark as read if not already
+    if document.get("status") == "sent":
+        await db.formal_documents.update_one(
+            {"document_id": document_id},
+            {"$set": {"status": "read", "read_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    pdf_buffer = generate_formal_document_pdf(document)
+    
+    filename = f"AMMO_{document.get('document_type', 'document')}_{document_id}.pdf"
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.post("/citizen/documents/{document_id}/archive")
+async def archive_document(document_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+    """Archive a document"""
+    result = await db.formal_documents.update_one(
+        {"document_id": document_id, "recipient_id": user["user_id"]},
+        {"$set": {"status": "archived"}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    return {"message": "Document archived"}
+
 # ============== TRIGGER SCHEDULER & EXECUTION ==============
 
 # Global scheduler state
