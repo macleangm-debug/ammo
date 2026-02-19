@@ -124,7 +124,9 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Add notes to reviews
   - Audit trail for all review actions
 - **Document Templates Management** (Added Feb 19, 2026) - `/government/templates`
-  - 5 standard templates: Warning Letter, License Certificate, Training Certificate, Achievement Certificate, Formal Notice
+  - **Categorized Template UI** with 6 categories: Warning Letters, License Certificates, Training Certificates, Achievement Certificates, Compliance Certificates, Formal Notices
+  - 18 standard templates available
+  - One-click send with default template per category
   - Create custom templates with:
     - Custom colors (primary/secondary)
     - Logo upload option
@@ -137,6 +139,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Send documents to individual users or broadcast to roles
   - Sent Documents tab with delivery tracking
   - Stats: Total Templates, Documents Sent, Read, Pending
+- **Certificate Configuration** (Added Feb 20, 2026) - `/government/certificate-config`
+  - **Design & Colors Tab**: 4 design templates (Modern Geometric, Classic Diploma, Corporate Professional, Minimalist Official), customizable primary/secondary colors, font selection (Helvetica, Times New Roman, Courier)
+  - **Seal Style Tab**: 5 seal options (Official Government Seal, Gold Ribbon Award, Blue Certification Badge, Star Medal, Custom), customizable seal text and organization name
+  - **Signature Tab**: Authorized signatory name/designation, signature upload (PNG/JPG) or draw signature on canvas, signature preview
+  - Configuration automatically applied when sending certificates
+- **Verified Certificate System** (Added Feb 19, 2026)
+  - QR codes embedded in PDF certificates for fraud prevention
+  - Public verification page at `/verify/{doc_id}?h={hash}` (no login required)
+  - Shows: document title, type, recipient, issue date, issuer authority info
+  - Invalid/tampered documents show error message
 
 #### Review System (Added Feb 19, 2026)
 - **Public Application Forms** - Landing page "Apply or Report" section
