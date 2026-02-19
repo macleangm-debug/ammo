@@ -119,7 +119,7 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get("/admin/users");
+      const response = await api.get("/government/users-list");
       setUsers(response.data?.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
