@@ -596,6 +596,12 @@ class FormalDocument(BaseModel):
     footer_text: str = ""
     signature_title: str = "Government Administrator"
     
+    # Verification (for certificates)
+    verification_hash: Optional[str] = None  # SHA-256 hash for QR verification
+    issuer_signature_name: Optional[str] = None  # Name of the signing authority
+    issuer_designation: Optional[str] = None  # Title/designation of signing authority
+    organization_name: str = "AMMO Government Portal"  # Issuing organization
+    
     # Status
     status: str = "sent"  # draft, sent, read, archived
     read_at: Optional[datetime] = None
