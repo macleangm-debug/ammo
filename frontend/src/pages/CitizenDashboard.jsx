@@ -5,7 +5,7 @@ import {
   CreditCard, GraduationCap, Target, CheckCircle, Clock,
   TrendingUp, TrendingDown, Calendar, ChevronRight, ShoppingBag,
   ArrowUpRight, Plus, Scan, FileText, Package, DollarSign,
-  AlertTriangle, MapPin, Flame, Zap
+  AlertTriangle, MapPin, Flame, Zap, Mail
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
