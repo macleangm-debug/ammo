@@ -113,6 +113,70 @@ const LandingPage = ({ api }) => {
       console.error("Demo setup error:", error);
     }
   };
+  
+  const handleSubmitLicense = async () => {
+    setSubmitting(true);
+    try {
+      const response = await api.post("/public/license-application", licenseForm);
+      toast.success("License application submitted successfully!");
+      setShowLicenseDialog(false);
+      setLicenseForm({
+        applicant_name: "", applicant_email: "", applicant_phone: "", applicant_address: "",
+        license_type: "firearm", purpose: "personal_protection", date_of_birth: "",
+        id_type: "drivers_license", id_number: "", has_previous_license: false,
+        training_completed: false, training_certificate_number: "", region: "northeast"
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to submit application");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const handleSubmitDealer = async () => {
+    if (!dealerForm.background_check_consent || !dealerForm.compliance_agreement) {
+      toast.error("Please accept background check consent and compliance agreement");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/public/dealer-certification", dealerForm);
+      toast.success("Dealer certification submitted successfully!");
+      setShowDealerDialog(false);
+      setDealerForm({
+        business_name: "", owner_name: "", owner_email: "", owner_phone: "", business_address: "",
+        business_type: "retail", tax_id: "", business_license_number: "", years_in_business: 0,
+        has_physical_location: true, security_measures: [], insurance_provider: "",
+        insurance_policy_number: "", background_check_consent: false, compliance_agreement: false, region: "northeast"
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to submit certification");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const handleSubmitViolation = async () => {
+    if (!violationForm.description) {
+      toast.error("Please provide a description of the violation");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/public/report-violation", violationForm);
+      toast.success("Violation report submitted successfully!");
+      setShowViolationDialog(false);
+      setViolationForm({
+        violation_type: "storage_violation", description: "", location: "", date_observed: "",
+        reporter_name: "", reporter_email: "", severity: "medium", subject_name: "",
+        evidence_description: "", region: "northeast"
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to submit report");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const stats = [
     { value: "2.4M+", label: "Licensed Members" },
