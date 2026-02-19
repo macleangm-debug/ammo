@@ -36,7 +36,9 @@ import {
   Cell,
   Legend,
   Area,
-  AreaChart
+  AreaChart,
+  RadialBarChart,
+  RadialBar
 } from 'recharts';
 
 const DealerPortal = ({ user, api }) => {
