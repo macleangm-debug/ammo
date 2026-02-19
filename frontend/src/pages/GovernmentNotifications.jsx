@@ -801,15 +801,67 @@ const GovernmentNotifications = ({ user, api }) => {
 
           {/* History Tab */}
           <TabsContent value="history" className="space-y-4">
+            {/* Trigger Executions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Recent Notifications</span>
+                  <span>Trigger Executions</span>
                   <Button variant="outline" size="sm" onClick={fetchAllData}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Refresh
                   </Button>
                 </CardTitle>
+                <CardDescription>History of automated trigger runs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {executions.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Zap className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No trigger executions yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {executions.slice(0, 10).map((exec) => (
+                      <div 
+                        key={exec.execution_id}
+                        className="flex items-center justify-between p-3 border rounded-lg text-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            exec.status === 'completed' ? 'bg-green-500' :
+                            exec.status === 'failed' ? 'bg-red-500' :
+                            exec.status === 'running' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'
+                          }`} />
+                          <div>
+                            <p className="font-medium">{exec.trigger_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(exec.started_at)}
+                              {exec.details?.manual && ' • Manual run'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {exec.status === 'completed' && (
+                            <span className="text-green-600 text-xs">
+                              {exec.notifications_sent} sent / {exec.users_matched} matched
+                            </span>
+                          )}
+                          {exec.status === 'failed' && (
+                            <span className="text-red-600 text-xs" title={exec.error_message}>Failed</span>
+                          )}
+                          <Badge variant="outline" className="text-[10px] capitalize">{exec.status}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Sent Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Notifications</CardTitle>
               </CardHeader>
               <CardContent>
                 {sentNotifications.length === 0 ? (
@@ -831,6 +883,9 @@ const GovernmentNotifications = ({ user, api }) => {
                             <Badge className={priorityColors[notif.priority] || priorityColors.normal} variant="outline">
                               {notif.priority}
                             </Badge>
+                            {notif.sent_by?.startsWith('trigger:') && (
+                              <Badge variant="outline" className="text-[10px]">Auto</Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-1">{notif.message}</p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
