@@ -534,6 +534,528 @@ const LandingPage = ({ api }) => {
         </div>
       </section>
 
+      {/* Apply Now Section */}
+      <section className="py-20 lg:py-32 bg-muted/30 border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-4">
+              Apply or Report
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Start your application process or report a compliance concern.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* License Application Card */}
+            <div 
+              className="group p-8 bg-card border border-border rounded-xl hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setShowLicenseDialog(true)}
+              data-testid="apply-license-card"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-7 h-7 text-primary" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-heading text-xl font-semibold mb-2">License Application</h3>
+              <p className="text-sm text-muted-foreground">
+                Apply for a new firearm or ammunition ownership license.
+              </p>
+            </div>
+
+            {/* Dealer Certification Card */}
+            <div 
+              className="group p-8 bg-card border border-border rounded-xl hover:border-warning/50 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setShowDealerDialog(true)}
+              data-testid="apply-dealer-card"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Building className="w-7 h-7 text-warning" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-warning group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-heading text-xl font-semibold mb-2">Dealer Certification</h3>
+              <p className="text-sm text-muted-foreground">
+                Apply to become a certified firearms dealer on the AMMO platform.
+              </p>
+            </div>
+
+            {/* Report Violation Card */}
+            <div 
+              className="group p-8 bg-card border border-border rounded-xl hover:border-danger/50 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setShowViolationDialog(true)}
+              data-testid="report-violation-card"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 rounded-xl bg-danger/10 flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-danger" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-danger group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-heading text-xl font-semibold mb-2">Report Violation</h3>
+              <p className="text-sm text-muted-foreground">
+                Report a compliance concern or violation anonymously.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* License Application Dialog */}
+      <Dialog open={showLicenseDialog} onOpenChange={setShowLicenseDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              License Application
+            </DialogTitle>
+            <DialogDescription>
+              Apply for a new firearm or ammunition ownership license.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="applicant_name">Full Name *</Label>
+                <Input 
+                  id="applicant_name" 
+                  value={licenseForm.applicant_name}
+                  onChange={(e) => setLicenseForm({...licenseForm, applicant_name: e.target.value})}
+                  data-testid="license-name-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="applicant_email">Email *</Label>
+                <Input 
+                  id="applicant_email" 
+                  type="email"
+                  value={licenseForm.applicant_email}
+                  onChange={(e) => setLicenseForm({...licenseForm, applicant_email: e.target.value})}
+                  data-testid="license-email-input"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="applicant_phone">Phone</Label>
+                <Input 
+                  id="applicant_phone" 
+                  value={licenseForm.applicant_phone}
+                  onChange={(e) => setLicenseForm({...licenseForm, applicant_phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                <Input 
+                  id="date_of_birth" 
+                  type="date"
+                  value={licenseForm.date_of_birth}
+                  onChange={(e) => setLicenseForm({...licenseForm, date_of_birth: e.target.value})}
+                  data-testid="license-dob-input"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="applicant_address">Address *</Label>
+              <Input 
+                id="applicant_address" 
+                value={licenseForm.applicant_address}
+                onChange={(e) => setLicenseForm({...licenseForm, applicant_address: e.target.value})}
+                data-testid="license-address-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>License Type *</Label>
+                <Select value={licenseForm.license_type} onValueChange={(v) => setLicenseForm({...licenseForm, license_type: v})}>
+                  <SelectTrigger data-testid="license-type-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="firearm">Firearm</SelectItem>
+                    <SelectItem value="ammunition">Ammunition</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Purpose *</Label>
+                <Select value={licenseForm.purpose} onValueChange={(v) => setLicenseForm({...licenseForm, purpose: v})}>
+                  <SelectTrigger data-testid="license-purpose-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personal_protection">Personal Protection</SelectItem>
+                    <SelectItem value="sport">Sport/Recreation</SelectItem>
+                    <SelectItem value="hunting">Hunting</SelectItem>
+                    <SelectItem value="collection">Collection</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>ID Type *</Label>
+                <Select value={licenseForm.id_type} onValueChange={(v) => setLicenseForm({...licenseForm, id_type: v})}>
+                  <SelectTrigger data-testid="license-id-type-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="drivers_license">Driver's License</SelectItem>
+                    <SelectItem value="passport">Passport</SelectItem>
+                    <SelectItem value="state_id">State ID</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="id_number">ID Number *</Label>
+                <Input 
+                  id="id_number" 
+                  value={licenseForm.id_number}
+                  onChange={(e) => setLicenseForm({...licenseForm, id_number: e.target.value})}
+                  data-testid="license-id-number-input"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Region *</Label>
+              <Select value={licenseForm.region} onValueChange={(v) => setLicenseForm({...licenseForm, region: v})}>
+                <SelectTrigger data-testid="license-region-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="northeast">Northeast</SelectItem>
+                  <SelectItem value="southeast">Southeast</SelectItem>
+                  <SelectItem value="midwest">Midwest</SelectItem>
+                  <SelectItem value="southwest">Southwest</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-4 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={licenseForm.training_completed}
+                  onChange={(e) => setLicenseForm({...licenseForm, training_completed: e.target.checked})}
+                  className="rounded"
+                />
+                <span className="text-sm">I have completed safety training</span>
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLicenseDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitLicense} disabled={submitting} data-testid="submit-license-btn">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Submit Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dealer Certification Dialog */}
+      <Dialog open={showDealerDialog} onOpenChange={setShowDealerDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5 text-warning" />
+              Dealer Certification
+            </DialogTitle>
+            <DialogDescription>
+              Apply to become a certified firearms dealer on the AMMO platform.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="business_name">Business Name *</Label>
+              <Input 
+                id="business_name" 
+                value={dealerForm.business_name}
+                onChange={(e) => setDealerForm({...dealerForm, business_name: e.target.value})}
+                data-testid="dealer-business-name-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="owner_name">Owner Name *</Label>
+                <Input 
+                  id="owner_name" 
+                  value={dealerForm.owner_name}
+                  onChange={(e) => setDealerForm({...dealerForm, owner_name: e.target.value})}
+                  data-testid="dealer-owner-name-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner_email">Owner Email *</Label>
+                <Input 
+                  id="owner_email" 
+                  type="email"
+                  value={dealerForm.owner_email}
+                  onChange={(e) => setDealerForm({...dealerForm, owner_email: e.target.value})}
+                  data-testid="dealer-owner-email-input"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="owner_phone">Phone *</Label>
+                <Input 
+                  id="owner_phone" 
+                  value={dealerForm.owner_phone}
+                  onChange={(e) => setDealerForm({...dealerForm, owner_phone: e.target.value})}
+                  data-testid="dealer-phone-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Business Type *</Label>
+                <Select value={dealerForm.business_type} onValueChange={(v) => setDealerForm({...dealerForm, business_type: v})}>
+                  <SelectTrigger data-testid="dealer-type-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="retail">Retail</SelectItem>
+                    <SelectItem value="wholesale">Wholesale</SelectItem>
+                    <SelectItem value="manufacturer">Manufacturer</SelectItem>
+                    <SelectItem value="gunsmith">Gunsmith</SelectItem>
+                    <SelectItem value="range">Shooting Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="business_address">Business Address *</Label>
+              <Input 
+                id="business_address" 
+                value={dealerForm.business_address}
+                onChange={(e) => setDealerForm({...dealerForm, business_address: e.target.value})}
+                data-testid="dealer-address-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tax_id">Tax ID / EIN *</Label>
+                <Input 
+                  id="tax_id" 
+                  value={dealerForm.tax_id}
+                  onChange={(e) => setDealerForm({...dealerForm, tax_id: e.target.value})}
+                  data-testid="dealer-tax-id-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_license_number">Business License # *</Label>
+                <Input 
+                  id="business_license_number" 
+                  value={dealerForm.business_license_number}
+                  onChange={(e) => setDealerForm({...dealerForm, business_license_number: e.target.value})}
+                  data-testid="dealer-license-input"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Region *</Label>
+              <Select value={dealerForm.region} onValueChange={(v) => setDealerForm({...dealerForm, region: v})}>
+                <SelectTrigger data-testid="dealer-region-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="northeast">Northeast</SelectItem>
+                  <SelectItem value="southeast">Southeast</SelectItem>
+                  <SelectItem value="midwest">Midwest</SelectItem>
+                  <SelectItem value="southwest">Southwest</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="pt-2 space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={dealerForm.background_check_consent}
+                  onChange={(e) => setDealerForm({...dealerForm, background_check_consent: e.target.checked})}
+                  className="rounded"
+                  data-testid="dealer-bg-check-input"
+                />
+                <span className="text-sm">I consent to a background check *</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={dealerForm.compliance_agreement}
+                  onChange={(e) => setDealerForm({...dealerForm, compliance_agreement: e.target.checked})}
+                  className="rounded"
+                  data-testid="dealer-compliance-input"
+                />
+                <span className="text-sm">I agree to AMMO compliance requirements *</span>
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDealerDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitDealer} disabled={submitting} data-testid="submit-dealer-btn">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Submit Certification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Violation Report Dialog */}
+      <Dialog open={showViolationDialog} onOpenChange={setShowViolationDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-danger" />
+              Report a Violation
+            </DialogTitle>
+            <DialogDescription>
+              Report a compliance concern or violation. You may report anonymously.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Violation Type *</Label>
+                <Select value={violationForm.violation_type} onValueChange={(v) => setViolationForm({...violationForm, violation_type: v})}>
+                  <SelectTrigger data-testid="violation-type-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="illegal_sale">Illegal Sale</SelectItem>
+                    <SelectItem value="storage_violation">Storage Violation</SelectItem>
+                    <SelectItem value="license_violation">License Violation</SelectItem>
+                    <SelectItem value="safety_violation">Safety Violation</SelectItem>
+                    <SelectItem value="documentation_issue">Documentation Issue</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Severity</Label>
+                <Select value={violationForm.severity} onValueChange={(v) => setViolationForm({...violationForm, severity: v})}>
+                  <SelectTrigger data-testid="violation-severity-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea 
+                id="description" 
+                value={violationForm.description}
+                onChange={(e) => setViolationForm({...violationForm, description: e.target.value})}
+                placeholder="Describe the violation in detail..."
+                rows={4}
+                data-testid="violation-description-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input 
+                  id="location" 
+                  value={violationForm.location}
+                  onChange={(e) => setViolationForm({...violationForm, location: e.target.value})}
+                  placeholder="Where did this occur?"
+                  data-testid="violation-location-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_observed">Date Observed</Label>
+                <Input 
+                  id="date_observed" 
+                  type="date"
+                  value={violationForm.date_observed}
+                  onChange={(e) => setViolationForm({...violationForm, date_observed: e.target.value})}
+                  data-testid="violation-date-input"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Region</Label>
+              <Select value={violationForm.region} onValueChange={(v) => setViolationForm({...violationForm, region: v})}>
+                <SelectTrigger data-testid="violation-region-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="northeast">Northeast</SelectItem>
+                  <SelectItem value="southeast">Southeast</SelectItem>
+                  <SelectItem value="midwest">Midwest</SelectItem>
+                  <SelectItem value="southwest">Southwest</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Contact information (optional - leave blank for anonymous report)
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reporter_name">Your Name</Label>
+                  <Input 
+                    id="reporter_name" 
+                    value={violationForm.reporter_name}
+                    onChange={(e) => setViolationForm({...violationForm, reporter_name: e.target.value})}
+                    data-testid="violation-reporter-name-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reporter_email">Your Email</Label>
+                  <Input 
+                    id="reporter_email" 
+                    type="email"
+                    value={violationForm.reporter_email}
+                    onChange={(e) => setViolationForm({...violationForm, reporter_email: e.target.value})}
+                    data-testid="violation-reporter-email-input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViolationDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitViolation} disabled={submitting} data-testid="submit-violation-btn">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Submit Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Footer */}
       <footer className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
