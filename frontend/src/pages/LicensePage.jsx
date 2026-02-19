@@ -424,6 +424,207 @@ const LicensePage = ({ user, api }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Renewal Dialog */}
+      <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-primary" />
+              License Renewal
+            </DialogTitle>
+            <DialogDescription>
+              Submit a request to renew your license before it expires.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for Renewal</Label>
+              <Select value={renewalForm.reason_for_renewal} onValueChange={(v) => setRenewalForm({...renewalForm, reason_for_renewal: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard Renewal</SelectItem>
+                  <SelectItem value="early_renewal">Early Renewal</SelectItem>
+                  <SelectItem value="expired">Expired License</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Region</Label>
+              <Select value={renewalForm.region} onValueChange={(v) => setRenewalForm({...renewalForm, region: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="northeast">Northeast</SelectItem>
+                  <SelectItem value="southeast">Southeast</SelectItem>
+                  <SelectItem value="midwest">Midwest</SelectItem>
+                  <SelectItem value="southwest">Southwest</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={renewalForm.address_changed}
+                  onChange={(e) => setRenewalForm({...renewalForm, address_changed: e.target.checked})}
+                  className="rounded"
+                />
+                <span className="text-sm">My address has changed</span>
+              </label>
+              
+              {renewalForm.address_changed && (
+                <Input 
+                  placeholder="New address"
+                  value={renewalForm.new_address}
+                  onChange={(e) => setRenewalForm({...renewalForm, new_address: e.target.value})}
+                />
+              )}
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={renewalForm.training_current}
+                onChange={(e) => setRenewalForm({...renewalForm, training_current: e.target.checked})}
+                className="rounded"
+              />
+              <span className="text-sm">My safety training is up to date</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={renewalForm.any_incidents}
+                onChange={(e) => setRenewalForm({...renewalForm, any_incidents: e.target.checked})}
+                className="rounded"
+              />
+              <span className="text-sm">I have had incidents to report</span>
+            </label>
+            
+            {renewalForm.any_incidents && (
+              <Textarea 
+                placeholder="Please describe any incidents..."
+                value={renewalForm.incident_details}
+                onChange={(e) => setRenewalForm({...renewalForm, incident_details: e.target.value})}
+                rows={3}
+              />
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRenewalDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitRenewal} disabled={submitting} data-testid="submit-renewal-btn">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Submit Renewal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Appeal Dialog */}
+      <Dialog open={showAppealDialog} onOpenChange={setShowAppealDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scale className="w-5 h-5 text-primary" />
+              File an Appeal
+            </DialogTitle>
+            <DialogDescription>
+              Appeal a previous decision regarding your license or transactions.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Type of Decision Being Appealed</Label>
+              <Select value={appealForm.original_decision_type} onValueChange={(v) => setAppealForm({...appealForm, original_decision_type: v})}>
+                <SelectTrigger data-testid="appeal-type-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="license_rejection">License Application Rejection</SelectItem>
+                  <SelectItem value="license_revocation">License Revocation</SelectItem>
+                  <SelectItem value="transaction_rejection">Transaction Rejection</SelectItem>
+                  <SelectItem value="compliance_violation">Compliance Violation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="decision_id">Decision/Reference ID</Label>
+                <Input 
+                  id="decision_id"
+                  value={appealForm.original_decision_id}
+                  onChange={(e) => setAppealForm({...appealForm, original_decision_id: e.target.value})}
+                  placeholder="e.g., REV-12345"
+                  data-testid="appeal-decision-id-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="decision_date">Decision Date</Label>
+                <Input 
+                  id="decision_date"
+                  type="date"
+                  value={appealForm.original_decision_date}
+                  onChange={(e) => setAppealForm({...appealForm, original_decision_date: e.target.value})}
+                  data-testid="appeal-date-input"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="grounds">Grounds for Appeal *</Label>
+              <Textarea 
+                id="grounds"
+                value={appealForm.grounds_for_appeal}
+                onChange={(e) => setAppealForm({...appealForm, grounds_for_appeal: e.target.value})}
+                placeholder="Explain why you believe the decision should be reconsidered..."
+                rows={4}
+                data-testid="appeal-grounds-input"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="evidence">Supporting Evidence</Label>
+              <Textarea 
+                id="evidence"
+                value={appealForm.supporting_evidence}
+                onChange={(e) => setAppealForm({...appealForm, supporting_evidence: e.target.value})}
+                placeholder="Describe any supporting evidence you have..."
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="outcome">Requested Outcome *</Label>
+              <Input 
+                id="outcome"
+                value={appealForm.requested_outcome}
+                onChange={(e) => setAppealForm({...appealForm, requested_outcome: e.target.value})}
+                placeholder="What outcome are you requesting?"
+                data-testid="appeal-outcome-input"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAppealDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitAppeal} disabled={submitting} data-testid="submit-appeal-btn">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Submit Appeal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
