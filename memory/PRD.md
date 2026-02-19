@@ -45,7 +45,9 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Purchases by Category donut chart
   - Training Progress horizontal bars
   - Compliance Checklist with completed/pending status
-  - **Notification Bell Badge** - Shows unread count in header
+  - **Header Icons with Dropdown Previews** (Added Feb 19, 2026):
+    - **Notification Bell**: Shows unread count badge, click to preview recent 4 notifications with title, message preview, time ago, action badges. "See All Notifications" button
+    - **Documents Envelope**: Shows unread docs count, click to preview recent 4 documents with type icon, title, excerpt, time ago. "See All Documents" button
 - **My License** - License details, expiry, compliance score, biometric status
 - **Training Center** - Course enrollment, progress tracking, PDF certificates
   - Mobile: Tab navigation (Browse/My Courses/Completed), card-based course listings
