@@ -523,6 +523,95 @@ class ReorderAlert(BaseModel):
 # Region definitions
 REGIONS = ["northeast", "southeast", "midwest", "southwest", "west"]
 
+# ============== FORMAL DOCUMENTS & CERTIFICATES MODELS ==============
+
+class DocumentTemplateType:
+    WARNING_LETTER = "warning_letter"
+    FORMAL_NOTICE = "formal_notice"
+    ACHIEVEMENT_CERTIFICATE = "achievement_certificate"
+    LICENSE_CERTIFICATE = "license_certificate"
+    COMPLIANCE_CERTIFICATE = "compliance_certificate"
+    TRAINING_CERTIFICATE = "training_certificate"
+
+class DocumentTemplate(BaseModel):
+    """Template for formal letters and certificates"""
+    model_config = ConfigDict(extra="ignore")
+    template_id: str = Field(default_factory=lambda: f"tmpl_{uuid.uuid4().hex[:12]}")
+    name: str
+    description: Optional[str] = None
+    template_type: str  # warning_letter, formal_notice, achievement_certificate, license_certificate, etc.
+    category: str = "general"  # general, compliance, training, license, achievement
+    is_standard: bool = False  # True for system-provided standard templates
+    
+    # Visual customization
+    primary_color: str = "#3b5bdb"  # Hex color
+    secondary_color: str = "#8b5cf6"
+    logo_url: Optional[str] = None  # Custom logo URL
+    seal_enabled: bool = True  # Show official government seal
+    watermark_enabled: bool = True
+    
+    # Content
+    header_text: str = "AMMO - Government Portal"
+    title: str  # e.g., "Warning Letter", "Certificate of Achievement"
+    body_template: str  # Template with placeholders like {{name}}, {{date}}, {{reason}}
+    footer_text: str = "This is an official document from the AMMO Government Portal."
+    signature_title: str = "Government Administrator"
+    
+    # Automation settings
+    auto_send_on_event: Optional[str] = None  # training_completion, license_renewal, compliance_violation
+    auto_send_enabled: bool = False
+    
+    # Metadata
+    created_by: str  # admin user_id
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_active: bool = True
+
+class FormalDocument(BaseModel):
+    """Issued formal letter or certificate"""
+    model_config = ConfigDict(extra="ignore")
+    document_id: str = Field(default_factory=lambda: f"doc_{uuid.uuid4().hex[:12]}")
+    template_id: str
+    template_name: str  # Denormalized for quick access
+    document_type: str  # warning_letter, formal_notice, certificate, etc.
+    category: str = "general"
+    
+    # Recipient
+    recipient_id: str  # user_id
+    recipient_name: str
+    recipient_email: Optional[str] = None
+    recipient_role: str = "citizen"
+    
+    # Document content (rendered from template)
+    title: str
+    body_content: str  # Rendered body with placeholders filled
+    
+    # Visual settings (copied from template at time of creation)
+    primary_color: str = "#3b5bdb"
+    secondary_color: str = "#8b5cf6"
+    logo_url: Optional[str] = None
+    seal_enabled: bool = True
+    watermark_enabled: bool = True
+    header_text: str = "AMMO - Government Portal"
+    footer_text: str = ""
+    signature_title: str = "Government Administrator"
+    
+    # Status
+    status: str = "sent"  # draft, sent, read, archived
+    read_at: Optional[datetime] = None
+    
+    # Metadata
+    issued_by: str  # admin user_id
+    issued_by_name: str
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    # Related data
+    related_entity_type: Optional[str] = None  # training, license, transaction, violation
+    related_entity_id: Optional[str] = None
+    
+    # Priority for letters
+    priority: str = "normal"  # low, normal, high, urgent
+
 # ============== REVIEW & APPLICATION SYSTEM MODELS ==============
 
 class ReviewItemType:
