@@ -169,9 +169,13 @@ const DashboardLayout = ({
                 <Mail className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
               </Button>
-              <Button variant="ghost" size="icon" className="w-9 h-9 relative">
+              <Button variant="ghost" size="icon" className="w-9 h-9 relative" onClick={goToNotifications} data-testid="mobile-notifications-btn">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-destructive rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
               </Button>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center ml-1">
                 {user?.picture ? (
