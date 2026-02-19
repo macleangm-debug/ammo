@@ -45,6 +45,7 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Purchases by Category donut chart
   - Training Progress horizontal bars
   - Compliance Checklist with completed/pending status
+  - **Notification Bell Badge** - Shows unread count in header
 - **My License** - License details, expiry, compliance score, biometric status
 - **Training Center** - Course enrollment, progress tracking, PDF certificates
   - Mobile: Tab navigation (Browse/My Courses/Completed), card-based course listings
