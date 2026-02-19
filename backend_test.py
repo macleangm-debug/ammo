@@ -14,7 +14,7 @@ class AMNONewFeaturesTest:
     3. PDF certificate generation and download
     """
     
-    def __init__(self, base_url="https://review-platform-13.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://ammo-citizen-portal.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.session = requests.Session()
         self.admin_token = None

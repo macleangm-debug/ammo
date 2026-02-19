@@ -4,88 +4,85 @@
 The user's initial goal was to enhance a GitHub project named **AMMO (Accountable Munitions & Mobility Oversight)**. The project has evolved into a sophisticated platform with three distinct user portals: Citizen, Dealer, and Government.
 
 The most recent requests included:
-1.  Implementing a comprehensive review and application system. (Completed)
-2.  Adding mobile-optimized charts to all user dashboards. (Completed)
-3.  Building a notification management system for government users. (Completed)
-4.  Implementing an automated trigger execution scheduler for the notification system. (In Progress)
+1.  Implementing an automated trigger execution scheduler for the notification system. (Completed)
+2.  Implementing how notifications appear on the citizen interface, including a notification bell with an unread count. (Completed)
+3.  Building a comprehensive Letters & Certificates system for government to send formal documents and for citizens to receive them. (Completed)
+4.  Adding sneak preview dropdowns for notifications and documents in the main header. (Completed)
+5.  Restoring sidebar navigation links for Documents and Notifications. (Completed)
+6.  Changing the document view from a modal to an inline page view with social sharing capabilities. (In Progress)
 
 PRODUCT REQUIREMENTS:
--   Implement a system for handling pending reviews (License Applications, Renewals, Dealer Certifications, Flagged Transactions, Compliance Violations, Appeals).
--   Create backend APIs to support this review system.
--   Add forms on the public landing page for license applications and dealer certifications.
--   Provide a mechanism for reporting compliance violations.
--   Implement renewal and appeal functions within the firearm owner's portal.
--   Define and implement logic for automatically flagging suspicious transactions.
--   Create a dedicated Pending Reviews page in the Government portal for administrators to manage these items.
+-   Implement a system for handling pending reviews and applications.
+-   Create a dedicated Pending Reviews page in the Government portal.
 -   Implement a notification system for government users to send manual and triggered notifications.
--   Create a scheduler to automatically execute notification triggers based on defined conditions and intervals.
+-   Create a scheduler to automatically execute notification triggers.
+-   Implement a system for government users to manage and send formal documents (letters, certificates) from customizable templates.
+-   Allow citizens to receive, view, and share these formal documents.
+-   Enhance the citizen UI with a dynamic notification center, unread count badges, and preview panels.
 
 **User's preferred language**: English
 
 **what currently exists?**
 The project is a full-stack application with a FastAPI backend and a React frontend. The application is feature-rich, with three functional user portals and several major systems implemented:
--   **UI/UX**: A modern, light-theme design with advanced analytics dashboards for all roles, featuring both desktop and mobile-optimized charts powered by Recharts.
--   **Review & Application System**: A fully functional system allowing users to submit applications/reports and for government admins to manage them via a dedicated Pending Reviews page.
--   **Notification System**: A comprehensive management page for Government users to send manual notifications, create templates, and define automated triggers. The backend and frontend for an automated scheduler have been built but are not yet tested.
--   **Dealer Portal**: Includes a comprehensive inventory management system with CRUD operations and CSV/Excel import/export.
+-   **Review & Application System**: A fully functional system for submitting and managing applications/reports.
+-   **Notification System**: A complete system for manual and automated notifications, including a tested, operational scheduler.
+-   **Citizen UI**: A rich interface for citizens featuring a redesigned notifications page, a notification bell with an unread count badge, and dropdown previews for new notifications and documents.
+-   **Letters & Certificates System**: A complete backend and frontend for government users to manage document templates and send formal communications, and for citizens to receive them. The citizen view has been updated to show documents inline on the page.
 
 **Last working item**:
-The agent was implementing an automated scheduler to execute notification triggers.
+The agent was fulfilling a two-part user request: 1) restore Documents and Notifications to the citizen sidebar, and 2) change the document viewer from a modal to an inline page view with social sharing buttons.
 
--   **Last item agent was working**: The agent had just finished coding the backend scheduler logic (using FastAPI ) and the corresponding frontend controls on the Government Notifications page. This includes APIs and UI elements to start/stop the scheduler, set intervals for triggers, and view execution history.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: The agent just finished coding the inline document viewer in  and restoring the sidebar links in . Visual confirmation via screenshots shows the UI changes are in place, but the sharing functionality has not been tested.
+-   **Status**: USER VERIFICATION PENDING
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent (via  commands to test scheduler start/stop/status endpoints) followed by the frontend testing agent () for a full E2E validation.
+-   **Which testing method agent to use?**: frontend testing agent () to conduct a full E2E test. The test should verify that the sidebar links navigate correctly and that all social sharing buttons (, , , ) on the inline document page are functional.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: The notification trigger scheduler is implemented but completely untested. (P0)
+-   **Issue 1**: The social sharing functionality for documents is visually implemented but functionally untested. (P0)
 
     **Issues Detail**:
     -   **Issue 1**:
-        -   **Attempted fixes**: The agent wrote all the necessary code in  and . No testing has been performed.
+        -   **Attempted fixes**: The agent added share buttons and corresponding  and  functions in  using  and .
         -   **Next debug checklist**:
-            1.  Use  to test the backend scheduler endpoints: , , .
-            2.  Create a test trigger with a short interval (e.g., 60 seconds) via the UI or API.
-            3.  Start the scheduler and verify that the trigger executes automatically by checking the  endpoint.
-            4.  Confirm a notification is created in the database after a trigger runs.
-            5.  Use the  to run a full E2E test of the scheduler functionality from the frontend.
-        -   **Why fix this issue and what will be achieved with the fix?**: This is the final step of the user's request for a notification system. Completing it will enable automated, proactive communication with users based on system events.
+            1.  Review the  and  functions in .
+            2.  Use the  to test the feature. The agent should be instructed to:
+                -   Navigate to the Documents page as a citizen.
+                -   Click on a document to view it inline.
+                -   Click each share button (Share to WhatsApp, Share to Facebook, Share to Twitter, Copy Link).
+                -   Verify that the correct actions are triggered (e.g., a new tab opens for social sites, the link is copied to the clipboard).
+        -   **Why fix this issue and what will be achieved with the fix?**: To complete the user's explicit request for document sharing capabilities.
         -   **Status**: IN PROGRESS
         -   **Is recurring issue?**: N
-        -   **Should Test frontend/backend/both after fix?**: Both
+        -   **Should Test frontend/backend/both after fix?**: Frontend
         -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1**: Test and verify the notification trigger scheduler. (P0)
-    -   **Where to resume**: Start by executing  commands from the command line to test the newly created backend scheduler APIs.
-    -   **What will be achieved with this?**: A fully tested and operational automated notification system.
+-   **Task 1**: Test and verify the document social sharing feature. (P0)
+    -   **Where to resume**: Start by calling the  to test the implementation in .
+    -   **What will be achieved with this?**: A fully functional and user-verified document sharing system.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 
 **Upcoming Tasks:**
--   **(P1) Refactor **: Break the monolithic  file into smaller, domain-specific router files (e.g., , , , ) and place them in a new  directory. This is a critical technical debt item.
+-   **(P0) Refactor **: Break the monolithic  file into smaller, domain-specific router files (e.g., , , , , ) and place them in a new  directory. This is a critical technical debt item that is impacting maintainability.
+-   **(P2) Refactor **: This file has grown large and complex. It should be broken down into smaller, more manageable components (e.g., , ).
 
 **Future Tasks:**
 -   **(P1)** Smart Safe IoT Integration.
 -   **(P1)** Insurance Partner API Integration.
+-   **(P2)** Connect dashboard analytics charts to live backend data.
 -   **(P2)** Community Mentor Matching.
 
 **Completed work in this session**
--   **Review and Application System**:
-    -   Implemented all backend APIs and frontend forms for license applications, renewals, appeals, and violation reporting.
-    -   Created a Pending Reviews management page () for admins.
-    -   Tested and verified with .
--   **Mobile-Optimized Dashboard Charts**:
-    -   Added new compact, mobile-specific charts using Recharts to the Citizen, Dealer, and Government dashboards.
--   **Government Notification System**:
-    -   Built the backend and a dedicated frontend page () for sending manual notifications and managing triggers/templates.
-    -   Tested and verified with .
--   **Notification Scheduler (Code Complete)**:
-    -   Implemented the backend logic and frontend UI for an automated trigger execution scheduler.
+-   **Notification Scheduler Verified**: Fully tested and validated the automated notification trigger scheduler.
+-   **Citizen Notification UI Overhaul**: Implemented a rich notification interface for citizens, including an unread count badge on the header's bell icon.
+-   **Letters & Certificates System**: Built a complete system for creating, sending, and receiving formal documents, including government-side template management.
+-   **UI Sneak Previews**: Added dropdown panels to the header icons for a quick look at recent notifications and documents.
+-   **Sidebar & Document View Fix**: Restored sidebar navigation links and implemented an inline document viewer.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -99,62 +96,66 @@ The agent was implementing an automated scheduler to execute notification trigge
 **Key Technical Concepts**
 -   **Frameworks**: FastAPI (Python), React (JavaScript)
 -   **Database**: MongoDB
--   **Background Tasks**: Used  to implement the non-blocking notification scheduler.
--   **Frontend**: Tailwind CSS, Shadcn UI, React Router, Recharts.
+-   **Background Tasks**:  for the notification scheduler.
+-   **Frontend**: Tailwind CSS, Shadcn UI, React Router, Recharts, Lucide React icons.
+-   **Sharing**: Manual implementation via  and .
 
 **key DB schema**
 -   **review_items**: 
 -   **notifications**: 
 -   **notification_triggers**: 
--   **notification_trigger_executions**: 
+-   **document_templates**: 
+-   **sent_documents**: 
 
 **changes in tech stack**
--   No new third-party packages were added. The scheduler uses the built-in  from FastAPI.
+-   None.
 
 **All files of reference**
 -   **Heavily Modified**:
-    -   : Added models and endpoints for reviews, notifications, and the notification scheduler.
-    -   : Created and then updated with scheduler functionality.
+    -   : Added models and endpoints for the Letters & Certificates system.
+    -   : Added notification/document dropdown previews.
+    -   : Created and then rewritten for inline view and sharing.
+    -   : Completely redesigned.
     -   : Added new routes.
-    -   : Added dialog forms.
-    -   : Added dialog forms.
+    -   : Updated to restore sidebar items.
 -   **Newly Created**:
     -   
 -   **In Progress/Broken**:
-    -   The notification scheduler feature in  and  is untested.
+    -   The sharing functionality in  is untested.
 
 **Areas that need refactoring**:
--   The monolithic  file is now critically large and complex. It urgently needs to be refactored into separate FastAPI router files (e.g., in a  directory) to improve maintainability and scalability. This should be the next major task after the scheduler is complete.
+-   ****: This file is critically large and complex. It urgently needs to be refactored into separate FastAPI router files. This should be the next major task.
+-   ****: This component now contains complex state management and rendering logic for both mobile and desktop headers, along with data fetching for previews. It should be broken down into smaller, focused components.
 
 **key api endpoints**
--   **Review System (Done)**: , , 
--   **Notification System (Done)**: , , 
--   **Notification Scheduler (Untested)**:
+-   **Scheduler (Tested)**: 
+-   **Documents (New)**:
+    -   
+    -   
     -   
     -   
     -   
     -   
 
 **Critical Info for New Agent**
--   **PRIORITY 1: Test the Notification Scheduler.** The implementation is code-complete but has not been tested at all. The immediate next step is to test the backend endpoints via , then verify the full flow via the UI, and finally run the  to confirm stability.
--   **PRIORITY 2: Refactor .** Once the scheduler is working and verified, the next task must be to break apart the monolithic backend file. This is a critical technical debt issue that is impacting maintainability.
--   All data for analytics charts (including the new mobile ones) is still hardcoded. Connecting them to real data could be a future task.
+-   **PRIORITY 0: Test the Document Sharing Feature.** The UI is complete, but the functionality of the share buttons on the inline document page () is untested. Use the testing agent to validate this.
+-   **PRIORITY 1: Refactor .** This is the most critical technical debt. After verifying the sharing feature, the next task MUST be to break the monolithic backend file into smaller routers (e.g., in a  directory).
+-   All analytics data on the dashboards is still hardcoded. This remains a future task.
 
 **documents and test reports created in this job**
 -    (updated multiple times)
 -   
 -   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.   - **IN PROGRESS**. This is the current, unfinished task.
-2.   - **Completed**.
-3.   - **Completed**.
-4.   - **Completed**.
-5.   - **Completed**. User confirmed choice of mobile charts.
+1.   - Completed. The agent provided a series of screenshots showing the different UI screens.
+2.   - Completed. The agent successfully implemented dropdown previews for both notifications and documents.
+3.   - In Progress. The agent implemented the sidebar fix and the inline page view with sharing buttons, but the sharing functionality is untested.
 
 **Project Health Check:**
--   **Broken**: The notification trigger scheduler feature is untested and should be considered non-functional until verified.
--   **Mocked**: All analytics data on the dashboards, including the new mobile charts, is hardcoded.
+-   **Broken**: The document social sharing feature is untested and should be considered non-functional until verified.
+-   **Mocked**: All analytics data on the dashboards is hardcoded.
 
 **3rd Party Integrations**
 -   **MongoDB**: Primary database.
@@ -163,7 +164,7 @@ The agent was implementing an automated scheduler to execute notification trigge
 -   **Recharts**: Used for all data visualization and charts.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Used successfully for the Review System and the initial Notification System.
+-   **Testing agent used after significant changes**: YES. Used three times to validate the notification scheduler, citizen notification UI, and the new documents system.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
 -   **Known regressions**: None.
@@ -176,4 +177,4 @@ The agent was implementing an automated scheduler to execute notification trigge
 | Admin / Government |  |  |
 
 **What agent forgot to execute**
--   The agent did not forget any tasks. It was in the final stage of implementing the user's latest feature request (coding complete, pending testing) when the session ended.</analysis>
+-   The agent did not fully test the social sharing functionality it implemented. While the UI and basic client-side functions are in place, they have not been verified to work as expected.</analysis>

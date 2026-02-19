@@ -9,7 +9,7 @@ import os
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://review-platform-13.preview.emergentagent.com"
+    BASE_URL = "https://ammo-citizen-portal.preview.emergentagent.com"
 
 
 class TestInventoryAPI:
