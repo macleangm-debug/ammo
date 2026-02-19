@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   FileText, Send, AlertTriangle, Award, Shield, GraduationCap, 
   CheckCircle, Bell, Loader2, Star, ChevronDown, ChevronRight,
-  Users, UserCheck, Settings2, Zap, Clock, RefreshCw
+  Users, UserCheck, Settings2, Zap, Clock, RefreshCw, Palette
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
