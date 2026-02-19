@@ -208,6 +208,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/dashboard/documents"
+        element={
+          <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
+            {({ user, api }) => <DocumentsPage user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/dashboard/settings"
         element={
           <ProtectedRoute allowedRoles={["citizen", "admin"]}>
