@@ -220,6 +220,7 @@ All member portal pages now have consistent sidebar:
 Government portal pages:
 - Dashboard (`/government`)
 - Reviews (`/government/reviews`) - Pending reviews management
+- Notifications (`/government/notifications`) - Manual & automated notifications
 - Alerts (`/government/alerts-dashboard`)
 - Predictive (`/government/predictive`)
 - Settings (`/government/settings`)
