@@ -361,7 +361,8 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
                         disabled={categoryTemplates.length === 0}
                       >
                         <Send className="w-4 h-4 mr-2" />
-                        Send {category.name.replace("s", "")}
+                        Send {category.singularName}
+                      </Button>
                       </Button>
                     </CardContent>
                   </Card>
