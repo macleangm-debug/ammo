@@ -469,7 +469,7 @@ const GovernmentNotifications = ({ user, api }) => {
                         key={template.template_id} 
                         variant="outline" 
                         size="sm"
-                        onClick={() => useTemplate(template)}
+                        onClick={() => applyTemplate(template)}
                       >
                         {template.name}
                       </Button>
@@ -640,7 +640,7 @@ const GovernmentNotifications = ({ user, api }) => {
                             variant="outline" 
                             size="sm" 
                             className="mt-3 w-full"
-                            onClick={() => useTemplate(template)}
+                            onClick={() => applyTemplate(template)}
                           >
                             <Send className="w-3 h-3 mr-2" />
                             Use Template
