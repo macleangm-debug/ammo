@@ -202,9 +202,9 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - [ ] Email notifications for review status changes
 
 ### P3 - Future Enhancements
-- [ ] Backend modularization (break up server.py - now ~6500 lines)
-- [ ] Real-time notifications
+- [ ] Real-time notifications (WebSocket)
 - [ ] Advanced analytics dashboard
+- [ ] Connect dashboard charts to real data (currently hardcoded)
 
 ## Credentials Reference
 
