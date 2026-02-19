@@ -366,31 +366,193 @@ const DashboardLayout = ({
                 )}
               </Button>
 
-              {/* Messages */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full w-10 h-10 relative"
-              >
-                <Mail className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-              </Button>
-
-              {/* Notifications */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full w-10 h-10 relative"
-                onClick={goToNotifications}
-                data-testid="desktop-notifications-btn"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-destructive rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </span>
+              {/* Documents Dropdown */}
+              <div className="relative" ref={docsDropdownRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full w-10 h-10 relative"
+                  onClick={toggleDocsDropdown}
+                  data-testid="desktop-documents-btn"
+                >
+                  <Mail className="w-5 h-5" />
+                  {unreadDocs > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
+                      {unreadDocs > 99 ? '99+' : unreadDocs}
+                    </span>
+                  )}
+                </Button>
+                
+                {/* Documents Dropdown Panel */}
+                {docsDropdownOpen && (
+                  <div className="absolute right-0 top-12 w-80 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-4 border-b border-border bg-gradient-to-r from-indigo-50 to-purple-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-5 h-5 text-indigo-600" />
+                          <h3 className="font-semibold text-slate-900">Documents</h3>
+                        </div>
+                        {unreadDocs > 0 && (
+                          <Badge className="bg-indigo-100 text-indigo-700">{unreadDocs} new</Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-72 overflow-y-auto">
+                      {recentDocuments.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No documents yet</p>
+                        </div>
+                      ) : (
+                        recentDocuments.map((doc) => (
+                          <div 
+                            key={doc.document_id}
+                            className={`p-3 border-b border-border last:border-0 hover:bg-slate-50 cursor-pointer transition-colors ${doc.status === 'sent' ? 'bg-indigo-50/50' : ''}`}
+                            onClick={() => {
+                              setDocsDropdownOpen(false);
+                              navigate("/dashboard/documents");
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                {getDocIcon(doc)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium truncate ${doc.status === 'sent' ? 'text-slate-900' : 'text-slate-600'}`}>
+                                    {doc.title}
+                                  </p>
+                                  {doc.status === 'sent' && (
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {doc.body_content?.substring(0, 50)}...
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {formatTimeAgo(doc.issued_at)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    <div className="p-3 border-t border-border bg-slate-50">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-center text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                        onClick={goToDocuments}
+                      >
+                        See All Documents
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
+
+              {/* Notifications Dropdown */}
+              <div className="relative" ref={notifDropdownRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full w-10 h-10 relative"
+                  onClick={toggleNotifDropdown}
+                  data-testid="desktop-notifications-btn"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-destructive rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </span>
+                  )}
+                </Button>
+                
+                {/* Notifications Dropdown Panel */}
+                {notifDropdownOpen && (
+                  <div className="absolute right-0 top-12 w-80 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-4 border-b border-border bg-gradient-to-r from-amber-50 to-orange-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-5 h-5 text-amber-600" />
+                          <h3 className="font-semibold text-slate-900">Notifications</h3>
+                        </div>
+                        {unreadNotifications > 0 && (
+                          <Badge className="bg-amber-100 text-amber-700">{unreadNotifications} unread</Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-72 overflow-y-auto">
+                      {recentNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No notifications</p>
+                        </div>
+                      ) : (
+                        recentNotifications.map((notif) => (
+                          <div 
+                            key={notif.notification_id}
+                            className={`p-3 border-b border-border last:border-0 hover:bg-slate-50 cursor-pointer transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}
+                            onClick={() => {
+                              setNotifDropdownOpen(false);
+                              if (notif.action_url) {
+                                navigate(notif.action_url);
+                              } else {
+                                navigate("/dashboard/notifications");
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                {getNotifIcon(notif)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium truncate ${!notif.read ? 'text-slate-900' : 'text-slate-600'}`}>
+                                    {notif.title}
+                                  </p>
+                                  {!notif.read && (
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {notif.message?.substring(0, 50)}...
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatTimeAgo(notif.created_at)}
+                                  </p>
+                                  {notif.action_url && (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                      <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
+                                      Action
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    <div className="p-3 border-t border-border bg-slate-50">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-center text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        onClick={goToNotifications}
+                      >
+                        See All Notifications
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* User Profile */}
               <div className="flex items-center gap-2 pl-3 ml-2 border-l border-border cursor-pointer hover:opacity-80 transition-opacity">
