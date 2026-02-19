@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
+import hashlib
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -24,6 +25,10 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.pdfgen import canvas
 from reportlab.lib.enums import TA_CENTER
+
+# QR Code Generation
+import qrcode
+from PIL import Image as PILImage
 
 # Web Push
 from pywebpush import webpush, WebPushException
