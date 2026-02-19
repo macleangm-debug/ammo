@@ -21,6 +21,7 @@ import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import PendingReviews from "./pages/PendingReviews";
 import GovernmentNotifications from "./pages/GovernmentNotifications";
 import GovernmentTemplates from "./pages/GovernmentTemplatesV2";
+import CertificateConfig from "./pages/CertificateConfig";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 import TrainingCourses from "./pages/TrainingCourses";
