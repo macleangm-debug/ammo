@@ -34,6 +34,35 @@ const LicensePage = ({ user, api }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [myReviews, setMyReviews] = useState([]);
+  
+  // Dialog states
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [showAppealDialog, setShowAppealDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Renewal form
+  const [renewalForm, setRenewalForm] = useState({
+    reason_for_renewal: "standard",
+    address_changed: false,
+    new_address: "",
+    training_current: true,
+    recent_training_certificate: "",
+    any_incidents: false,
+    incident_details: "",
+    region: "northeast"
+  });
+  
+  // Appeal form
+  const [appealForm, setAppealForm] = useState({
+    original_decision_type: "license_rejection",
+    original_decision_id: "",
+    original_decision_date: "",
+    grounds_for_appeal: "",
+    supporting_evidence: "",
+    requested_outcome: "",
+    region: "northeast"
+  });
 
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
