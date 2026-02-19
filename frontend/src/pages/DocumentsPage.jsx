@@ -404,13 +404,45 @@ const DocumentsPage = ({ user, api }) => {
               )}
 
               {/* Document Info */}
-              <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+              <div className="mt-6 p-4 bg-slate-50 rounded-lg space-y-2">
                 <p className="text-xs text-slate-400">
                   Document ID: <span className="font-mono">{selectedDocument.document_id}</span>
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Signed by: {selectedDocument.signature_title || "Government Administrator"}
+                <p className="text-xs text-slate-400">
+                  Signed by: {selectedDocument.issuer_signature_name || selectedDocument.signature_title || "Government Administrator"}
+                  {selectedDocument.issuer_designation && (
+                    <span className="ml-1">({selectedDocument.issuer_designation})</span>
+                  )}
                 </p>
+                {selectedDocument.organization_name && (
+                  <p className="text-xs text-slate-400">
+                    Organization: {selectedDocument.organization_name}
+                  </p>
+                )}
+                
+                {/* Verification Badge for Certificates */}
+                {selectedDocument.verification_hash && (
+                  <div className="mt-3 pt-3 border-t border-slate-200">
+                    <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
+                      <Shield className="w-4 h-4" />
+                      <span className="text-sm font-medium">Verified Certificate</span>
+                      <span className="text-xs text-emerald-500 ml-auto">
+                        Hash: {selectedDocument.verification_hash.substring(0, 12)}...
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Scan the QR code on the PDF to verify authenticity, or visit:{" "}
+                      <a 
+                        href={`/verify/${selectedDocument.document_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Verify Online
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
 
