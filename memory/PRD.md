@@ -149,6 +149,15 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/reviews/{review_id}` | GET | Get review detail with associated data (admin) |
 | `/api/reviews/{review_id}` | PUT | Update review status/notes/assignment (admin) |
 | `/api/government/dashboard-summary` | GET | Dashboard summary with real pending reviews count |
+| `/api/government/notifications/send` | POST | Send notification to users (manual) |
+| `/api/government/notifications` | GET | Get notification history |
+| `/api/government/notification-stats` | GET | Get notification statistics |
+| `/api/government/notification-triggers` | GET/POST | List/create notification triggers |
+| `/api/government/notification-triggers/{id}` | PUT/DELETE | Update/delete notification trigger |
+| `/api/government/notification-triggers/{id}/test` | POST | Test a trigger by sending to admin |
+| `/api/government/notification-templates` | GET/POST | List/create notification templates |
+| `/api/government/notification-templates/{id}` | DELETE | Delete notification template |
+| `/api/government/users-list` | GET | Get list of users for targeting |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
