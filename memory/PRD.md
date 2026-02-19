@@ -52,6 +52,17 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - **Marketplace** - Product browsing, cart, order management
   - Mobile: 2-column product grid, floating cart button, category filter pills
 - **History** - Transaction history with search/filters
+- **Documents Page** (Added Feb 19, 2026) `/dashboard/documents`
+  - Formal letters and certificates inbox (envelope icon)
+  - Stats cards: Total, Unread, Certificates, Warnings counts
+  - Filter buttons: All, Unread (count), Read, Archived, Type dropdown
+  - Document cards with:
+    - Type icons (Warning, License Cert, Training Cert, Achievement, etc.)
+    - Priority badges (Urgent, Important, Normal, Info)
+    - Date, sender, type badge
+    - Download PDF and Archive buttons
+  - View dialog with full document content
+  - PDF download with official seal and watermark
 - **Notifications Page** (Enhanced Feb 19, 2026) `/dashboard/notifications`
   - Stats cards: Total, Unread, Urgent, Read counts
   - Filter buttons: All, Unread (with count), Category dropdown
