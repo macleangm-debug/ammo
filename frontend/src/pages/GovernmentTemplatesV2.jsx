@@ -12,7 +12,7 @@ import { Label } from "../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
-import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardLayout from "./DashboardLayout";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
