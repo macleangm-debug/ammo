@@ -52,7 +52,17 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - **Marketplace** - Product browsing, cart, order management
   - Mobile: 2-column product grid, floating cart button, category filter pills
 - **History** - Transaction history with search/filters
-- **Notifications** - Notification management
+- **Notifications Page** (Enhanced Feb 19, 2026) `/dashboard/notifications`
+  - Stats cards: Total, Unread, Urgent, Read counts
+  - Filter buttons: All, Unread (with count), Category dropdown
+  - Notification cards with:
+    - Category icons (System, Compliance, Training, General)
+    - Priority badges (Urgent-red, High-amber, Normal, Low)
+    - Source badges (Automated for triggers, Government for manual)
+    - Action buttons for notifications with action_url
+    - Mark as read checkmark button
+  - Mark all as read button, Refresh button
+  - Clickable bell icon in header with unread count badge
 - **Settings** - Profile, security, appearance settings
 
 #### Dealer Portal (Professional Analytics Dashboard)
