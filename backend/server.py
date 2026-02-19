@@ -8336,10 +8336,25 @@ async def send_formal_document(request: Request, user: dict = Depends(require_au
     related_entity_type = body.get("related_entity_type")
     related_entity_id = body.get("related_entity_id")
     
-    # Signature authority info
+    # Signature authority info - can be provided in request or use saved config
     issuer_signature_name = body.get("issuer_signature_name")
     issuer_designation = body.get("issuer_designation")
     organization_name = body.get("organization_name", "AMMO Government Portal")
+    
+    # Get saved certificate config (for signature, colors, seal)
+    cert_config = await db.certificate_config.find_one({}, {"_id": 0})
+    
+    # Use saved config values as defaults if not provided in request
+    if cert_config:
+        if not issuer_signature_name and cert_config.get("authorized_signatory_name"):
+            issuer_signature_name = cert_config.get("authorized_signatory_name")
+        if not issuer_designation and cert_config.get("authorized_signatory_title"):
+            issuer_designation = cert_config.get("authorized_signatory_title")
+        if not organization_name or organization_name == "AMMO Government Portal":
+            organization_name = cert_config.get("organization_name", "AMMO Government Portal")
+    
+    # Get signature image from config
+    signature_image_url = cert_config.get("signature_image_url") if cert_config else None
     
     # Get template
     template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
