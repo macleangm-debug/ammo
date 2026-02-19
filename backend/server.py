@@ -222,8 +222,29 @@ class NotificationTrigger(BaseModel):
     target_roles: list = ["citizen"]  # Which roles receive this notification
     enabled: bool = True
     created_by: Optional[str] = None
+    last_executed_at: Optional[datetime] = None
+    next_execution_at: Optional[datetime] = None
+    execution_count: int = 0
+    last_execution_result: Optional[dict] = None
+    schedule_interval: str = "daily"  # daily, hourly, weekly
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TriggerExecution(BaseModel):
+    """Log of trigger executions"""
+    model_config = ConfigDict(extra="ignore")
+    execution_id: str = Field(default_factory=lambda: f"exec_{uuid.uuid4().hex[:12]}")
+    trigger_id: str
+    trigger_name: str
+    event_type: str
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+    status: str = "running"  # running, completed, failed, partial
+    users_evaluated: int = 0
+    users_matched: int = 0
+    notifications_sent: int = 0
+    error_message: Optional[str] = None
+    details: dict = {}
 
 class NotificationTemplate(BaseModel):
     """Reusable notification templates for manual sending"""
