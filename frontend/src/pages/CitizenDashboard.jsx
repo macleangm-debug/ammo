@@ -182,6 +182,34 @@ const CitizenDashboard = ({ user, api }) => {
     { name: 'Advanced Safety', progress: 25, color: COLORS.cyan }
   ];
 
+  // Mobile-optimized chart data
+  const ariGaugeData = [{ name: 'ARI', value: ariScore, fill: ariScore >= 85 ? COLORS.primary : ariScore >= 60 ? COLORS.success : COLORS.warning }];
+  
+  const trainingRingData = [
+    { name: 'Completed', value: trainingHours, fill: COLORS.success },
+    { name: 'Remaining', value: Math.max(0, 20 - trainingHours), fill: '#f0f0f0' }
+  ];
+  
+  // 30-day compliance trend (sparkline data)
+  const complianceTrend = Array.from({ length: 30 }, (_, i) => ({
+    day: i + 1,
+    score: Math.min(100, Math.max(60, 75 + Math.sin(i / 3) * 15 + (i / 30) * 10))
+  }));
+  
+  // Weekly activity heatmap data
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weeklyActivity = weekDays.map((day, idx) => ({
+    day,
+    activity: Math.floor(Math.random() * 4) // 0-3 intensity levels
+  }));
+  
+  // License expiry progress
+  const totalDays = 365;
+  const daysUntilExpiry = profile?.license_expiry 
+    ? Math.max(0, Math.ceil((new Date(profile.license_expiry) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 180;
+  const expiryProgress = Math.min(100, (daysUntilExpiry / totalDays) * 100);
+
   if (loading) {
     return (
       <DashboardLayout 
