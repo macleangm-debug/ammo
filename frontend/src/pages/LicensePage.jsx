@@ -3,11 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, CreditCard, GraduationCap, ShoppingBag, 
   History, Bell, Settings, CheckCircle, AlertTriangle, 
-  Calendar, Shield, Clock, RefreshCw, Download, FileText
+  Calendar, Shield, Clock, RefreshCw, Download, FileText,
+  Send, Loader2, Scale
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
 
