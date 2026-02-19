@@ -43,8 +43,8 @@ const PendingReviews = ({ user, api }) => {
   
   // Filters
   const [statusFilter, setStatusFilter] = useState("pending");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [regionFilter, setRegionFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [regionFilter, setRegionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const navItems = [
