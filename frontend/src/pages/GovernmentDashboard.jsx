@@ -80,6 +80,7 @@ const GovernmentDashboard = ({ user, api }) => {
 
   const navItems = [
     { id: 'dashboard', path: '/government', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'reviews', path: '/government/reviews', label: 'Reviews', icon: FileText },
     { id: 'analytics', path: '/government/analytics', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
     { id: 'predictive', path: '/government/predictive', label: 'Predictive', icon: Target },
