@@ -7895,7 +7895,7 @@ async def get_citizen_document(document_id: str, user: dict = Depends(require_au
     return serialize_doc(document)
 
 @api_router.get("/citizen/documents/{document_id}/pdf")
-async def download_document_pdf(document_id: str, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+async def download_document_pdf(document_id: str, request: Request, user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
     """Download a formal document as PDF"""
     document = await db.formal_documents.find_one({
         "document_id": document_id,
@@ -7912,7 +7912,12 @@ async def download_document_pdf(document_id: str, user: dict = Depends(require_a
             {"$set": {"status": "read", "read_at": datetime.now(timezone.utc).isoformat()}}
         )
     
-    pdf_buffer = generate_formal_document_pdf(document)
+    # Get base URL for QR verification
+    base_url = str(request.base_url).rstrip('/')
+    # Use frontend URL for verification page
+    frontend_url = os.environ.get("FRONTEND_URL", base_url.replace("/api", "").replace(":8001", ":3000"))
+    
+    pdf_buffer = generate_formal_document_pdf(document, base_url=frontend_url)
     
     filename = f"AMMO_{document.get('document_type', 'document')}_{document_id}.pdf"
     return StreamingResponse(
