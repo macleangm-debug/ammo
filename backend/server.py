@@ -836,6 +836,40 @@ def require_auth(roles: List[str] = None):
         return user
     return dependency
 
+# ============== DOCUMENT VERIFICATION ==============
+
+# Secret salt for verification hash (in production, use env variable)
+VERIFICATION_SALT = os.environ.get("VERIFICATION_SALT", "ammo_secure_verification_2024_salt")
+
+def generate_verification_hash(document_id: str, recipient_id: str, issued_at: str) -> str:
+    """Generate a secure SHA-256 hash for document verification"""
+    data = f"{document_id}:{recipient_id}:{issued_at}:{VERIFICATION_SALT}"
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def verify_document_hash(document_id: str, recipient_id: str, issued_at: str, provided_hash: str) -> bool:
+    """Verify if the provided hash matches the expected hash"""
+    expected_hash = generate_verification_hash(document_id, recipient_id, issued_at)
+    return expected_hash == provided_hash
+
+def generate_verification_qr(verification_url: str) -> io.BytesIO:
+    """Generate a QR code image for verification"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(verification_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to bytes
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format='PNG')
+    img_buffer.seek(0)
+    return img_buffer
+
 # ============== RISK ENGINE ==============
 
 RISK_WEIGHTS = {
