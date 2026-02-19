@@ -98,9 +98,9 @@ const PendingReviews = ({ user, api }) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (statusFilter) params.append("status", statusFilter);
-      if (typeFilter) params.append("item_type", typeFilter);
-      if (regionFilter) params.append("region", regionFilter);
+      if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      if (typeFilter && typeFilter !== "all") params.append("item_type", typeFilter);
+      if (regionFilter && regionFilter !== "all") params.append("region", regionFilter);
       params.append("limit", "50");
       
       const response = await api.get(`/reviews?${params.toString()}`);
