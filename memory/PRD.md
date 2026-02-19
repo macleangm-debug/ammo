@@ -182,8 +182,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Automated notification triggers with event types (license_expiring, training_incomplete, compliance_warning, etc.)
   - Reusable notification templates
   - Notification history and statistics dashboard
+  - **Automated Trigger Scheduler** (Tested Feb 19, 2026):
+    - Background scheduler for automatic trigger execution (1-hour intervals)
+    - Start/Stop scheduler controls
+    - Run All Now manual execution
+    - Execute single trigger manually
+    - Execution history with sent/matched counts
+    - Scheduler status dashboard with enabled triggers and next run times
 
 ### P1 - High Priority
+- [ ] Backend modularization (CRITICAL - server.py ~7400 lines needs refactoring into routes/)
 - [ ] Smart Safe IoT Integration
 - [ ] Insurance Partner API Integration
 - [ ] Flagged transaction auto-detection logic (partially implemented, needs rule engine)
