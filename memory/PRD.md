@@ -138,6 +138,17 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 | `/api/dealer/inventory/scan/{sku}` | GET | SKU/barcode lookup |
 | `/api/dealer/inventory/link-marketplace/{item_id}` | POST | Link item to marketplace |
 | `/api/dealer/inventory/unlink-marketplace/{item_id}` | POST | Unlink from marketplace |
+| `/api/public/license-application` | POST | Submit new license application (no auth) |
+| `/api/public/dealer-certification` | POST | Submit dealer certification (no auth) |
+| `/api/public/report-violation` | POST | Report compliance violation (no auth, anonymous ok) |
+| `/api/citizen/license-renewal` | POST | Submit license renewal request |
+| `/api/citizen/appeal` | POST | Submit appeal for previous decision |
+| `/api/citizen/my-reviews` | GET | Get citizen's submitted review items |
+| `/api/reviews/pending-count` | GET | Get counts of pending reviews by type (admin) |
+| `/api/reviews` | GET | List reviews with filtering (admin) |
+| `/api/reviews/{review_id}` | GET | Get review detail with associated data (admin) |
+| `/api/reviews/{review_id}` | PUT | Update review status/notes/assignment (admin) |
+| `/api/government/dashboard-summary` | GET | Dashboard summary with real pending reviews count |
 
 ### Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn UI, react-swipeable
