@@ -59,6 +59,8 @@ const CitizenDashboard = ({ user, api }) => {
     { id: 'training', path: '/training', label: 'Training', icon: GraduationCap },
     { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
     { id: 'history', path: '/dashboard/history', label: 'History', icon: History },
+    { id: 'documents', path: '/dashboard/documents', label: 'Documents', icon: Mail },
+    { id: 'notifications', path: '/dashboard/notifications', label: 'Notifications', icon: Bell },
   ];
 
   useEffect(() => {
