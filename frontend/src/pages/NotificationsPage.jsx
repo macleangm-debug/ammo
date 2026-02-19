@@ -235,78 +235,214 @@ const NotificationsPage = ({ user, api }) => {
       onLogout={handleLogout}
     >
       <div className="space-y-6" data-testid="notifications-page">
-        {/* Header Actions */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
-            </p>
-          </div>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <Check className="w-4 h-4 mr-2" />
-              Mark all as read
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-indigo-600 font-medium">Total</p>
+                  <p className="text-2xl font-bold text-indigo-700">{notifications.length}</p>
+                </div>
+                <Bell className="w-8 h-8 text-indigo-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-amber-600 font-medium">Unread</p>
+                  <p className="text-2xl font-bold text-amber-700">{unreadCount}</p>
+                </div>
+                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                  <span className="text-amber-600 font-bold">{unreadCount}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-red-50 to-white border-red-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-600 font-medium">Urgent</p>
+                  <p className="text-2xl font-bold text-red-700">
+                    {notifications.filter(n => n.priority === "urgent" || n.priority === "high").length}
+                  </p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-red-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-emerald-600 font-medium">Read</p>
+                  <p className="text-2xl font-bold text-emerald-700">
+                    {notifications.filter(n => n.read).length}
+                  </p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-emerald-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters and Actions */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+              variant={filter === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setFilter("all")}
+              data-testid="filter-all"
+            >
+              All
             </Button>
-          )}
+            <Button 
+              variant={filter === "unread" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setFilter("unread")}
+              data-testid="filter-unread"
+            >
+              Unread ({unreadCount})
+            </Button>
+            {categories.length > 0 && (
+              <select 
+                className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                data-testid="category-filter"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchNotifications} data-testid="refresh-btn">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={markAllAsRead} data-testid="mark-all-read-btn">
+                <Check className="w-4 h-4 mr-2" />
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Notifications List */}
         <div className="space-y-3">
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <BellOff className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-lg font-medium">No notifications</p>
-                <p className="text-sm text-muted-foreground">You're all caught up!</p>
+                <p className="text-lg font-medium">
+                  {filter === "unread" ? "No unread notifications" : "No notifications"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {filter === "unread" ? "You're all caught up!" : "Check back later for updates"}
+                </p>
               </CardContent>
             </Card>
           ) : (
-            notifications.map((notification) => (
-              <Card 
-                key={notification.id} 
-                className={`transition-all ${!notification.read ? 'border-primary/30 bg-primary/5' : ''}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-lg ${getTypeBg(notification.type)} flex items-center justify-center flex-shrink-0`}>
-                      {getTypeIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium">{notification.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(notification.timestamp).toLocaleString()}
-                          </p>
+            filteredNotifications.map((notification) => {
+              const config = getTypeConfig(notification.type, notification.category, notification.priority);
+              const priorityBadge = getPriorityBadge(notification.priority);
+              const senderLabel = getSenderLabel(notification.sent_by);
+              
+              return (
+                <Card 
+                  key={notification.notification_id} 
+                  className={`transition-all hover:shadow-md ${!notification.read ? `border-l-4 ${config.borderColor} bg-white` : 'bg-slate-50/50 border-slate-100'}`}
+                  data-testid={`notification-${notification.notification_id}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      {/* Icon */}
+                      <div className={`w-10 h-10 rounded-lg ${config.bg} flex items-center justify-center flex-shrink-0 ${config.iconColor}`}>
+                        {config.icon}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className={`font-semibold ${!notification.read ? 'text-slate-900' : 'text-slate-600'}`}>
+                              {notification.title}
+                            </h4>
+                            {!notification.read && (
+                              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge className={`text-xs ${priorityBadge.className}`}>
+                              {priorityBadge.label}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {!notification.read && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => markAsRead(notification.id)}
-                              title="Mark as read"
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => deleteNotification(notification.id)}
-                            title="Delete"
-                            className="text-muted-foreground hover:text-danger"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        
+                        <p className={`text-sm ${!notification.read ? 'text-slate-700' : 'text-slate-500'} mb-2`}>
+                          {notification.message}
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-xs text-slate-400">
+                            <span>{formatTimestamp(notification.created_at)}</span>
+                            {notification.category && (
+                              <>
+                                <span>•</span>
+                                <span className="capitalize">{notification.category}</span>
+                              </>
+                            )}
+                            {senderLabel && (
+                              <>
+                                <span>•</span>
+                                <Badge variant="outline" className="text-xs py-0">
+                                  {senderLabel}
+                                </Badge>
+                              </>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            {notification.action_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate(notification.action_url)}
+                                className="text-indigo-600 hover:text-indigo-700"
+                                data-testid={`action-btn-${notification.notification_id}`}
+                              >
+                                {notification.action_label || "View"}
+                                <ExternalLink className="w-3 h-3 ml-1" />
+                              </Button>
+                            )}
+                            {!notification.read && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => markAsRead(notification.notification_id)}
+                                title="Mark as read"
+                                className="text-slate-400 hover:text-indigo-600"
+                                data-testid={`mark-read-btn-${notification.notification_id}`}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
