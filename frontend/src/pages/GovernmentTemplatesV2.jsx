@@ -449,7 +449,7 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
                 {selectedCategory && (
                   <>
                     <selectedCategory.icon className={`w-5 h-5 ${selectedCategory.color}`} />
-                    Send {selectedCategory?.name?.replace("s", "")}
+                    Send {selectedCategory?.singularName}
                   </>
                 )}
               </DialogTitle>
