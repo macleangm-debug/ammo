@@ -8102,7 +8102,200 @@ async def preview_document_template(template_id: str, request: Request, user: di
         headers={"Content-Disposition": f"inline; filename=preview_{template_id}.pdf"}
     )
 
-@api_router.post("/government/formal-documents/send")
+# ============== CERTIFICATE CONFIGURATION ENDPOINTS ==============
+
+@api_router.get("/government/certificate-config")
+async def get_certificate_config(user: dict = Depends(require_auth(["admin"]))):
+    """Get the organization's certificate configuration"""
+    config = await db.certificate_config.find_one({}, {"_id": 0})
+    
+    if not config:
+        # Return default config
+        config = {
+            "config_id": "default",
+            "default_design": "modern",
+            "primary_color": "#3b5bdb",
+            "secondary_color": "#d4a017",
+            "font_family": "helvetica",
+            "title_font_size": 28,
+            "body_font_size": 12,
+            "seal_style": "official",
+            "seal_text": "OFFICIAL AMMO SEAL",
+            "organization_name": "AMMO Government Portal",
+            "authorized_signatory_name": "",
+            "authorized_signatory_title": "",
+            "signature_image_url": None,
+            "custom_seal_image_url": None,
+            "organization_logo_url": None
+        }
+    
+    return config
+
+@api_router.put("/government/certificate-config")
+async def update_certificate_config(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update the organization's certificate configuration"""
+    body = await request.json()
+    
+    # Get existing config or create new
+    existing = await db.certificate_config.find_one({})
+    
+    update_data = {
+        "updated_at": datetime.now(timezone.utc),
+        "updated_by": user.get("user_id")
+    }
+    
+    # Update allowed fields
+    allowed_fields = [
+        "default_design", "primary_color", "secondary_color", "font_family",
+        "title_font_size", "body_font_size", "seal_style", "seal_text",
+        "organization_name", "authorized_signatory_name", "authorized_signatory_title",
+        "custom_seal_image_url", "organization_logo_url"
+    ]
+    
+    for field in allowed_fields:
+        if field in body:
+            update_data[field] = body[field]
+    
+    if existing:
+        await db.certificate_config.update_one(
+            {"_id": existing["_id"]},
+            {"$set": update_data}
+        )
+    else:
+        update_data["config_id"] = f"cert_config_{uuid.uuid4().hex[:12]}"
+        update_data["created_at"] = datetime.now(timezone.utc)
+        await db.certificate_config.insert_one(update_data)
+    
+    return {"message": "Configuration updated successfully"}
+
+@api_router.post("/government/certificate-config/signature")
+async def upload_signature(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Upload or save a drawn signature for the authorized signatory"""
+    body = await request.json()
+    
+    signatory_name = body.get("signatory_name")
+    signatory_title = body.get("signatory_title")
+    signature_data = body.get("signature_data")  # Base64 encoded
+    signature_type = body.get("signature_type", "upload")  # upload or drawn
+    
+    if not signature_data:
+        raise HTTPException(status_code=400, detail="Signature data is required")
+    
+    # Save signature image as base64 (in production, you'd upload to S3/cloud storage)
+    # For now, we store the base64 data directly
+    signature_url = f"data:image/png;base64,{signature_data}" if not signature_data.startswith("data:") else signature_data
+    
+    # Update certificate config with signature
+    existing = await db.certificate_config.find_one({})
+    
+    update_data = {
+        "authorized_signatory_name": signatory_name,
+        "authorized_signatory_title": signatory_title,
+        "signature_image_url": signature_url,
+        "signature_type": signature_type,
+        "updated_at": datetime.now(timezone.utc),
+        "updated_by": user.get("user_id")
+    }
+    
+    if existing:
+        await db.certificate_config.update_one(
+            {"_id": existing["_id"]},
+            {"$set": update_data}
+        )
+    else:
+        update_data["config_id"] = f"cert_config_{uuid.uuid4().hex[:12]}"
+        update_data["created_at"] = datetime.now(timezone.utc)
+        await db.certificate_config.insert_one(update_data)
+    
+    return {
+        "message": "Signature saved successfully",
+        "signatory_name": signatory_name,
+        "signatory_title": signatory_title
+    }
+
+@api_router.get("/government/certificate-designs")
+async def get_certificate_designs(user: dict = Depends(require_auth(["admin"]))):
+    """Get available certificate design templates"""
+    designs = [
+        {
+            "id": "modern",
+            "name": "Modern Geometric",
+            "description": "Clean lines with blue and gold accents, diagonal decorative bands",
+            "preview_colors": ["#3b5bdb", "#d4a017"],
+            "features": ["Diagonal accent bands", "Centered layout", "Modern typography"]
+        },
+        {
+            "id": "classic",
+            "name": "Classic Diploma",
+            "description": "Traditional formal design with ornate borders and gold seal",
+            "preview_colors": ["#1e3a5f", "#c9a227"],
+            "features": ["Ornate double border", "Gold ribbon seal", "Elegant script fonts"]
+        },
+        {
+            "id": "corporate",
+            "name": "Corporate Professional",
+            "description": "Sleek corporate style with wave elements and badge seal",
+            "preview_colors": ["#2563eb", "#f59e0b"],
+            "features": ["Curved design elements", "Professional badge", "Clean header"]
+        },
+        {
+            "id": "minimalist",
+            "name": "Minimalist Official",
+            "description": "Simple, clean design focused on content with subtle accents",
+            "preview_colors": ["#4f46e5", "#6366f1"],
+            "features": ["Simple border", "Minimal decoration", "Focus on text"]
+        }
+    ]
+    return {"designs": designs}
+
+@api_router.get("/government/seal-styles")
+async def get_seal_styles(user: dict = Depends(require_auth(["admin"]))):
+    """Get available seal/badge styles"""
+    seals = [
+        {
+            "id": "official",
+            "name": "Official Government Seal",
+            "description": "Classic circular seal with double ring border",
+            "preview_icon": "shield"
+        },
+        {
+            "id": "gold_ribbon",
+            "name": "Gold Ribbon Award",
+            "description": "Premium gold badge with ribbon, ideal for achievements",
+            "preview_icon": "award"
+        },
+        {
+            "id": "blue_badge",
+            "name": "Blue Certification Badge",
+            "description": "Modern certification badge with checkmark",
+            "preview_icon": "badge-check"
+        },
+        {
+            "id": "star_medal",
+            "name": "Star Medal",
+            "description": "Star-shaped medal for excellence awards",
+            "preview_icon": "star"
+        },
+        {
+            "id": "custom",
+            "name": "Custom Organization Seal",
+            "description": "Upload your own organization seal image",
+            "preview_icon": "upload"
+        }
+    ]
+    return {"seals": seals}
+
+@api_router.get("/government/font-options")
+async def get_font_options(user: dict = Depends(require_auth(["admin"]))):
+    """Get available font options for certificates"""
+    fonts = [
+        {"id": "helvetica", "name": "Helvetica", "description": "Clean, modern sans-serif"},
+        {"id": "times", "name": "Times New Roman", "description": "Classic, formal serif"},
+        {"id": "courier", "name": "Courier", "description": "Monospace, typewriter style"}
+    ]
+    return {"fonts": fonts}
+
+
 async def send_formal_document(request: Request, user: dict = Depends(require_auth(["admin"]))):
     """Send a formal document to one or more recipients"""
     body = await request.json()
