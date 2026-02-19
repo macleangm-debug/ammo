@@ -312,6 +312,7 @@ All member portal pages now have consistent sidebar:
 - Training (`/training`)
 - Marketplace (`/marketplace`)
 - History (`/dashboard/history`)
+- Documents (`/dashboard/documents`) - Formal documents with inline viewer and sharing
 - Notifications (`/dashboard/notifications`)
 - Settings (`/dashboard/settings`)
 
