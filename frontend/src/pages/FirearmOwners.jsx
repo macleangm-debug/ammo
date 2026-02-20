@@ -57,6 +57,7 @@ const FirearmOwners = ({ user, api }) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("list");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -82,6 +83,45 @@ const FirearmOwners = ({ user, api }) => {
       toast.error("Failed to load users");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams();
+      if (roleFilter && roleFilter !== "all") params.append("role", roleFilter);
+      
+      const response = await api.get(`/government/users-export?${params.toString()}`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get filename from header or generate one
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `firearm_owners_${roleFilter || 'all'}_${new Date().toISOString().split('T')[0]}.csv`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match) filename = match[1];
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Exported ${filteredUsers.length} records to CSV`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export data");
+    } finally {
+      setExporting(false);
     }
   };
 
