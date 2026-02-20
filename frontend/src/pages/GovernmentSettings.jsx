@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Settings, LayoutDashboard, FileText, Bell, Activity, 
   AlertTriangle, Target, Palette, Save, Loader2, User, Users,
-  Building, Mail, Phone, Globe, Shield, Key, Database
+  Building, Mail, Phone, Globe, Shield, Key, Database, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
   { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
   { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
+  { id: 'partners', path: '/government/partners', label: 'Partners', icon: Handshake },
   { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
 ];
 
