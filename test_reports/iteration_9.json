@@ -110,7 +110,7 @@
   "should_main_agent_test_itself": true,
   
   "retest_needed": false,
-  "testing_environment": "Production URL: https://ammo-owners-registry.preview.emergentagent.com",
+  "testing_environment": "Production URL: https://policy-admin.preview.emergentagent.com",
   
   "features_verified": {
     "pwa_implementation": {
