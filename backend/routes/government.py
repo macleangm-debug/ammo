@@ -705,3 +705,196 @@ async def get_notification_stats(user: dict = Depends(require_auth(["admin"]))):
         "unread": unread,
         "read": total - unread
     }
+
+
+# ============== STATS ENDPOINTS FOR DASHBOARD ==============
+
+@router.get("/revenue-stats")
+async def get_revenue_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get revenue statistics for dashboard"""
+    payments = await db.payments.find({"status": "completed"}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Group by month
+    monthly_data = {}
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
+    for p in payments:
+        try:
+            date = datetime.fromisoformat(p.get("payment_date", "").replace("Z", "+00:00"))
+            month_key = months[date.month - 1]
+            monthly_data[month_key] = monthly_data.get(month_key, 0) + p.get("amount", 0)
+        except:
+            pass
+    
+    # Fill in missing months with 0
+    chart_data = [{"month": m, "revenue": monthly_data.get(m, 0)} for m in months[:now.month]]
+    
+    total = sum(p.get("amount", 0) for p in payments)
+    
+    return {
+        "total_revenue": total,
+        "monthly_data": chart_data,
+        "payment_count": len(payments)
+    }
+
+
+@router.get("/training-stats")
+async def get_training_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get training statistics for dashboard"""
+    enrollments = await db.course_enrollments.find({}, {"_id": 0}).to_list(10000)
+    courses = await db.training_courses.find({}, {"_id": 0}).to_list(100)
+    
+    completed = sum(1 for e in enrollments if e.get("status") == "completed")
+    in_progress = sum(1 for e in enrollments if e.get("status") == "in_progress")
+    
+    # Calculate average hours
+    total_hours = sum(c.get("duration_hours", 4) for c in courses)
+    avg_hours = total_hours / len(courses) if courses else 0
+    
+    return {
+        "total_enrollments": len(enrollments),
+        "completed": completed,
+        "in_progress": in_progress,
+        "completion_rate": round((completed / len(enrollments) * 100) if enrollments else 0, 1),
+        "total_courses": len(courses),
+        "avg_course_hours": round(avg_hours, 1)
+    }
+
+
+@router.get("/dealer-stats")
+async def get_dealer_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get dealer statistics for dashboard"""
+    dealers = await db.dealer_profiles.find({}, {"_id": 0}).to_list(1000)
+    transactions = await db.transactions.find({}, {"_id": 0}).to_list(10000)
+    
+    # Group transactions by dealer
+    dealer_tx = {}
+    for t in transactions:
+        did = t.get("dealer_id")
+        if did:
+            if did not in dealer_tx:
+                dealer_tx[did] = {"count": 0, "value": 0}
+            dealer_tx[did]["count"] += 1
+            dealer_tx[did]["value"] += t.get("total_value", 0)
+    
+    # Get active dealers (with transactions)
+    active_dealers = len(dealer_tx)
+    
+    # Calculate average transaction value
+    total_value = sum(t.get("total_value", 0) for t in transactions)
+    avg_tx_value = total_value / len(transactions) if transactions else 0
+    
+    return {
+        "total_dealers": len(dealers),
+        "active_dealers": active_dealers,
+        "total_transactions": len(transactions),
+        "total_transaction_value": round(total_value, 2),
+        "avg_transaction_value": round(avg_tx_value, 2)
+    }
+
+
+@router.get("/compliance-overview")
+async def get_compliance_overview(user: dict = Depends(require_auth(["admin"]))):
+    """Get compliance overview for dashboard"""
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    warnings = await db.compliance_warnings.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    
+    compliant = 0
+    warning_status = 0
+    suspended = 0
+    expired = 0
+    
+    for p in profiles:
+        status = p.get("license_status", "active")
+        if status == "suspended":
+            suspended += 1
+        elif p.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(p["license_expiry"].replace("Z", "+00:00"))
+                if expiry < now:
+                    expired += 1
+                elif (expiry - now).days < 30:
+                    warning_status += 1
+                else:
+                    compliant += 1
+            except:
+                compliant += 1
+        else:
+            compliant += 1
+    
+    total = len(profiles)
+    
+    return {
+        "total_citizens": total,
+        "compliant": compliant,
+        "warning": warning_status,
+        "suspended": suspended,
+        "expired": expired,
+        "compliance_rate": round((compliant / total * 100) if total > 0 else 0, 1),
+        "total_warnings": len(warnings),
+        "status_breakdown": {
+            "active": compliant,
+            "warning": warning_status,
+            "suspended": suspended,
+            "expired": expired
+        }
+    }
+
+
+@router.get("/alerts")
+async def get_alerts(
+    status: Optional[str] = None,
+    severity: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get system alerts"""
+    query = {}
+    if status:
+        query["status"] = status
+    if severity:
+        query["severity"] = severity
+    
+    alerts = await db.system_alerts.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Get severity counts
+    all_alerts = await db.system_alerts.find({}, {"severity": 1}).to_list(10000)
+    severity_counts = {}
+    for a in all_alerts:
+        s = a.get("severity", "low")
+        severity_counts[s] = severity_counts.get(s, 0) + 1
+    
+    return {
+        "alerts": [serialize_doc(a) for a in alerts],
+        "total": len(all_alerts),
+        "by_severity": severity_counts
+    }
+
+
+@router.put("/alerts/{alert_id}")
+async def update_alert(alert_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update an alert status"""
+    body = await request.json()
+    
+    update_data = {
+        "status": body.get("status", "resolved"),
+        "notes": body.get("notes", ""),
+        "resolved_by": user["user_id"],
+        "resolved_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = await db.system_alerts.update_one(
+        {"alert_id": alert_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    await create_audit_log("alert_resolved", user["user_id"], "admin", details={"alert_id": alert_id})
+    return {"message": "Alert updated"}
+
