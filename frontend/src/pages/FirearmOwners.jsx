@@ -5,7 +5,8 @@ import {
   FileText, Users, Search, Filter, RefreshCw, Loader2,
   User, Mail, Calendar, MapPin, Shield, Bell, Eye,
   ChevronRight, ChevronDown, Download, Palette, UserCheck,
-  Phone, Building, CreditCard, Clock, CheckCircle, XCircle
+  Phone, Building, CreditCard, Clock, CheckCircle, XCircle,
+  DollarSign, Target, Crosshair
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -48,6 +49,8 @@ const FirearmOwners = ({ user, api }) => {
   const [users, setUsers] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [roleCounts, setRoleCounts] = useState({});
+  const [firearmsRegistry, setFirearmsRegistry] = useState([]);
+  const [feesOverview, setFeesOverview] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
