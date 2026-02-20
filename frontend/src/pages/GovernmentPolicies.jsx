@@ -268,9 +268,10 @@ const GovernmentPolicies = ({ user, api }) => {
 
         {/* Policy Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="fees"><DollarSign className="w-4 h-4 mr-1" /> Fees</TabsTrigger>
             <TabsTrigger value="escalation"><AlertCircle className="w-4 h-4 mr-1" /> Escalation</TabsTrigger>
+            <TabsTrigger value="enforcement" data-testid="enforcement-tab"><Zap className="w-4 h-4 mr-1" /> Enforcement</TabsTrigger>
             <TabsTrigger value="training"><GraduationCap className="w-4 h-4 mr-1" /> Training</TabsTrigger>
             <TabsTrigger value="ari"><Award className="w-4 h-4 mr-1" /> ARI</TabsTrigger>
             <TabsTrigger value="additional"><Settings className="w-4 h-4 mr-1" /> Additional</TabsTrigger>
