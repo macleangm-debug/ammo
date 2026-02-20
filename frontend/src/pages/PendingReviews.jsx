@@ -97,7 +97,7 @@ const PendingReviews = ({ user, api }) => {
     fetchCounts();
   }, [statusFilter, typeFilter, regionFilter]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -114,18 +114,18 @@ const PendingReviews = ({ user, api }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [api, statusFilter, typeFilter, regionFilter]);
 
-  const fetchCounts = async () => {
+  const fetchCounts = useCallback(async () => {
     try {
       const response = await api.get("/reviews/pending-count");
       setCounts(response.data);
     } catch (error) {
       console.error("Error fetching counts:", error);
     }
-  };
+  }, [api]);
 
-  const handleViewDetail = async (review) => {
+  const handleViewDetail = useCallback(async (review) => {
     setSelectedReview(review);
     try {
       const response = await api.get(`/reviews/${review.review_id}`);
@@ -133,9 +133,9 @@ const PendingReviews = ({ user, api }) => {
     } catch (error) {
       toast.error("Failed to load review details");
     }
-  };
+  }, [api]);
 
-  const handleDecision = async (decision) => {
+  const handleDecision = useCallback(async (decision) => {
     if (!decisionReason.trim()) {
       toast.error("Please provide a reason for your decision");
       return;
@@ -157,9 +157,9 @@ const PendingReviews = ({ user, api }) => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, [api, decisionReason, selectedReview, fetchReviews, fetchCounts]);
 
-  const handleAddNote = async () => {
+  const handleAddNote = useCallback(async () => {
     if (!noteText.trim()) return;
     setProcessing(true);
     try {
@@ -174,7 +174,7 @@ const PendingReviews = ({ user, api }) => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, [api, noteText, selectedReview, handleViewDetail]);
 
   const handleLogout = async () => {
     try {
