@@ -2810,6 +2810,13 @@ async def initiate_transaction(txn_data: TransactionCreate, request: Request, us
     if citizen_profile.get("license_status") != "active":
         raise HTTPException(status_code=400, detail="Citizen license is not active")
     
+    # Check if citizen is blocked from dealer transactions due to policy enforcement
+    if citizen_profile.get("dealer_transactions_blocked", False):
+        raise HTTPException(
+            status_code=403, 
+            detail="This citizen is blocked from dealer transactions due to unpaid fees. License suspended."
+        )
+    
     # Calculate risk score
     risk_result = await calculate_risk_score(
         citizen_profile["user_id"],
