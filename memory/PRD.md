@@ -302,11 +302,10 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 
 ### P0 - Completed (Feb 20, 2026)
 - [x] **Policy Enforcement System**: Automated enforcement scheduler with late fees, warnings, suspensions
+- [x] **Partner Integration APIs**: Smart Safe IoT and Insurance partner-ready APIs with Government portal page
 
 ### P1 - High Priority
-- [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~10,500+ lines)
-- [ ] Smart Safe IoT Integration
-- [ ] Insurance Partner API Integration
+- [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~10,800+ lines)
 - [ ] Flagged transaction auto-detection logic (partially implemented, needs rule engine)
 
 ### P2 - Medium Priority  
@@ -318,6 +317,7 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - [ ] Real-time notifications (WebSocket)
 - [ ] Advanced analytics dashboard
 - [ ] Connect dashboard charts to real data (currently hardcoded)
+- [ ] Onboard actual Smart Safe and Insurance partners
 
 ## Credentials Reference
 
