@@ -460,29 +460,101 @@ const FirearmOwners = ({ user, api }) => {
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>No users found matching your criteria.</p>
               </div>
+            ) : viewMode === "table" ? (
+              /* TABLE VIEW */
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left py-3 px-4 font-medium">User</th>
+                      <th className="text-left py-3 px-4 font-medium">Email</th>
+                      <th className="text-left py-3 px-4 font-medium">Region</th>
+                      <th className="text-left py-3 px-4 font-medium">License</th>
+                      <th className="text-left py-3 px-4 font-medium">Expires</th>
+                      <th className="text-left py-3 px-4 font-medium">Firearms</th>
+                      <th className="text-left py-3 px-4 font-medium">Annual Fees</th>
+                      <th className="text-left py-3 px-4 font-medium">Status</th>
+                      <th className="text-left py-3 px-4 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedUsers.map((u, index) => {
+                      const profile = getUserProfile(u.user_id);
+                      const licenseStatus = profile ? getLicenseStatus(profile) : "pending";
+                      const userFees = getUserTotalFees(u.user_id);
+                      const isLast = index === displayedUsers.length - 1;
+                      
+                      return (
+                        <tr 
+                          key={u.user_id}
+                          ref={isLast ? lastUserRef : null}
+                          className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => handleViewUser(u)}
+                          data-testid={`user-row-${u.user_id}`}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${getAvatarColor(u.name)} flex items-center justify-center`}>
+                                <span className="text-white font-semibold text-sm">
+                                  {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-medium">{u.name || "Unknown"}</div>
+                                <div className="text-xs text-muted-foreground capitalize">{u.role}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">{u.email}</td>
+                          <td className="py-3 px-4 text-sm">{profile?.region || "-"}</td>
+                          <td className="py-3 px-4 text-sm">{profile?.license_type || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{formatDate(profile?.license_expiry)}</td>
+                          <td className="py-3 px-4 text-sm">{userFees.firearmsCount || 0}</td>
+                          <td className="py-3 px-4 text-sm font-medium text-green-600">${userFees.total.toFixed(0)}/yr</td>
+                          <td className="py-3 px-4">
+                            <Badge className={statusColors[licenseStatus]}>{licenseStatus}</Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {/* Load More Indicator */}
+                {hasMore && (
+                  <div className="flex items-center justify-center py-4">
+                    {loadingMore ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Scroll for more...</span>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
+              /* CARDS VIEW */
               <div className="space-y-3">
-                {filteredUsers.map((u) => {
+                {displayedUsers.map((u, index) => {
                   const profile = getUserProfile(u.user_id);
                   const licenseStatus = profile ? getLicenseStatus(profile) : "pending";
                   const userFees = getUserTotalFees(u.user_id);
+                  const isLast = index === displayedUsers.length - 1;
                   
                   return (
                     <div 
                       key={u.user_id}
+                      ref={isLast ? lastUserRef : null}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => handleViewUser(u)}
                       data-testid={`user-item-${u.user_id}`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
-                          {u.picture ? (
-                            <img src={u.picture} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-white font-semibold text-lg">
-                              {u.name?.charAt(0) || 'U'}
-                            </span>
-                          )}
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(u.name)} flex items-center justify-center`}>
+                          <span className="text-white font-semibold text-lg">
+                            {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -546,6 +618,16 @@ const FirearmOwners = ({ user, api }) => {
                     </div>
                   );
                 })}
+                {/* Load More Indicator */}
+                {hasMore && (
+                  <div className="flex items-center justify-center py-4">
+                    {loadingMore ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Scroll for more...</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -557,7 +639,11 @@ const FirearmOwners = ({ user, api }) => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(selectedUser?.name)} flex items-center justify-center`}>
+                <span className="text-white font-semibold text-lg">
+                  {selectedUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              </div>
                 {selectedUser?.picture ? (
                   <img src={selectedUser.picture} alt="" className="w-full h-full object-cover" />
                 ) : (
