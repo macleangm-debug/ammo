@@ -198,9 +198,9 @@ const LandingPage = ({ api }) => {
       description: "Climb the leaderboard through safety certifications and training hours."
     },
     {
-      icon: Shield,
-      title: "Tier Benefits",
-      description: "Advance from Sentinel to Elite Custodian for priority service and perks."
+      icon: QrCode,
+      title: "Verified Certificates",
+      description: "QR-code enabled certificates with instant public verification for fraud prevention."
     },
     {
       icon: Eye,
@@ -208,14 +208,47 @@ const LandingPage = ({ api }) => {
       description: "Government-grade monitoring with AI-powered risk assessment."
     },
     {
-      icon: Target,
-      title: "Instant Verification",
-      description: "Dealers verify members in seconds with biometric authentication."
+      icon: Users,
+      title: "Owners Registry",
+      description: "Comprehensive firearm owners database with export capabilities for compliance reporting."
     },
     {
       icon: Fingerprint,
       title: "Biometric Security",
       description: "Multi-factor authentication ensures secure transactions."
+    },
+  ];
+
+  const govFeatures = [
+    {
+      icon: Users,
+      title: "Firearm Owners Registry",
+      description: "View all registered citizens and dealers with license status, compliance scores, and export to CSV."
+    },
+    {
+      icon: QrCode,
+      title: "Verified Certificates",
+      description: "Issue fraud-proof certificates with embedded QR codes for instant public verification."
+    },
+    {
+      icon: Palette,
+      title: "Certificate Designer",
+      description: "Customize certificate templates, seals, colors, and authorized signatures."
+    },
+    {
+      icon: ClipboardList,
+      title: "Review Management",
+      description: "Process license applications, dealer certifications, and violation reports with full audit trails."
+    },
+    {
+      icon: Bell,
+      title: "Automated Notifications",
+      description: "Set up triggers for license expiry, compliance warnings, and training reminders."
+    },
+    {
+      icon: BarChart3,
+      title: "Analytics Dashboard",
+      description: "Regional compliance rates, review queues, revenue tracking, and predictive insights."
     },
   ];
 
