@@ -590,11 +590,132 @@ const FirearmOwners = ({ user, api }) => {
                 )}
               </TabsContent>
               
-              <TabsContent value="history" className="mt-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p>Transaction and activity history will be displayed here.</p>
-                </div>
+              {/* Firearms Tab */}
+              <TabsContent value="firearms" className="mt-4">
+                {(() => {
+                  const userFirearms = selectedUser ? firearmsRegistry.filter(f => f.user_id === selectedUser.user_id) : [];
+                  return userFirearms.length > 0 ? (
+                    <div className="space-y-3">
+                      {userFirearms.map((firearm) => (
+                        <div key={firearm.firearm_id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Crosshair className="w-5 h-5 text-orange-600" />
+                              <span className="font-semibold">{firearm.make} {firearm.model}</span>
+                            </div>
+                            <Badge variant={firearm.status === 'active' ? 'default' : 'secondary'}>
+                              {firearm.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Serial:</span>
+                              <span className="ml-2 font-mono">{firearm.serial_number}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Type:</span>
+                              <span className="ml-2 capitalize">{firearm.firearm_type}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Caliber:</span>
+                              <span className="ml-2">{firearm.caliber}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Registered:</span>
+                              <span className="ml-2">{formatDate(firearm.registration_date)}</span>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Annual Fee:</span>
+                              <span className="ml-2 font-semibold text-green-600">${firearm.annual_fee || 50}/yr</span>
+                            </div>
+                            <Badge variant={firearm.fee_status === 'paid' ? 'default' : firearm.fee_status === 'overdue' ? 'destructive' : 'secondary'}>
+                              {firearm.fee_status || 'pending'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Crosshair className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No firearms registered for this user.</p>
+                    </div>
+                  );
+                })()}
+              </TabsContent>
+
+              {/* Fees Tab */}
+              <TabsContent value="fees" className="mt-4">
+                {(() => {
+                  const fees = selectedUser ? getUserTotalFees(selectedUser.user_id) : { licenseFee: 150, firearmsFee: 0, total: 150, firearmsCount: 0 };
+                  const profile = selectedUser ? getUserProfile(selectedUser.user_id) : null;
+                  return (
+                    <div className="space-y-4">
+                      {/* Summary */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-blue-600">${fees.licenseFee}</div>
+                          <div className="text-xs text-muted-foreground">License Fee/yr</div>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-orange-600">${fees.firearmsFee}</div>
+                          <div className="text-xs text-muted-foreground">Firearms Fee/yr</div>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600">${fees.total}</div>
+                          <div className="text-xs text-muted-foreground">Total Annual</div>
+                        </div>
+                      </div>
+
+                      {/* Fee Breakdown */}
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
+                          Annual Fee Breakdown
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between py-2 border-b">
+                            <div>
+                              <div className="font-medium">Member License Fee</div>
+                              <div className="text-xs text-muted-foreground">Annual fee to hold a firearm license</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">${fees.licenseFee}/yr</div>
+                              <Badge variant={profile?.fee_status === 'paid' ? 'default' : 'secondary'} className="text-xs">
+                                {profile?.fee_status || 'pending'}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between py-2 border-b">
+                            <div>
+                              <div className="font-medium">Firearm Registration Fees</div>
+                              <div className="text-xs text-muted-foreground">{fees.firearmsCount} firearm(s) × $50/yr each</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">${fees.firearmsFee}/yr</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between py-2 font-semibold text-lg">
+                            <div>Total Annual Fees</div>
+                            <div className="text-green-600">${fees.total}/yr</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payment Status */}
+                      {profile?.fee_paid_until && (
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span>License fees paid until: <strong>{formatDate(profile.fee_paid_until)}</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </TabsContent>
             </Tabs>
           )}
