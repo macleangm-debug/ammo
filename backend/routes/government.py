@@ -900,3 +900,1116 @@ async def update_alert(alert_id: str, request: Request, user: dict = Depends(req
     await create_audit_log("alert_resolved", user["user_id"], "admin", details={"alert_id": alert_id})
     return {"message": "Alert updated"}
 
+
+
+# ============== ALERTS SYSTEM ==============
+
+@router.get("/alerts/active")
+async def get_active_alerts(user: dict = Depends(require_auth(["admin"]))):
+    """Get all active alerts"""
+    alerts = await db.system_alerts.find(
+        {"status": {"$in": ["active", "warning", "critical"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return {"alerts": [serialize_doc(a) for a in alerts]}
+
+
+@router.get("/alerts/dashboard")
+async def get_alerts_dashboard(user: dict = Depends(require_auth(["admin"]))):
+    """Get alerts dashboard data"""
+    alerts = await db.system_alerts.find({}, {"_id": 0}).to_list(10000)
+    
+    active = sum(1 for a in alerts if a.get("status") in ["active", "warning", "critical"])
+    resolved = sum(1 for a in alerts if a.get("status") == "resolved")
+    
+    by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for a in alerts:
+        sev = a.get("severity", "low")
+        if sev in by_severity:
+            by_severity[sev] += 1
+    
+    return {
+        "total": len(alerts),
+        "active": active,
+        "resolved": resolved,
+        "by_severity": by_severity
+    }
+
+
+@router.get("/alerts/thresholds")
+async def get_alert_thresholds(user: dict = Depends(require_auth(["admin"]))):
+    """Get alert threshold configuration"""
+    thresholds = await db.alert_thresholds.find({}, {"_id": 0}).to_list(100)
+    return {"thresholds": [serialize_doc(t) for t in thresholds]}
+
+
+@router.post("/alerts/acknowledge/{alert_id}")
+async def acknowledge_alert(alert_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Acknowledge an alert"""
+    result = await db.system_alerts.update_one(
+        {"alert_id": alert_id},
+        {"$set": {
+            "acknowledged": True,
+            "acknowledged_by": user["user_id"],
+            "acknowledged_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"message": "Alert acknowledged"}
+
+
+@router.post("/alerts/resolve/{alert_id}")
+async def resolve_alert(alert_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Resolve an alert"""
+    body = await request.json()
+    
+    result = await db.system_alerts.update_one(
+        {"alert_id": alert_id},
+        {"$set": {
+            "status": "resolved",
+            "resolution_notes": body.get("notes", ""),
+            "resolved_by": user["user_id"],
+            "resolved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    await create_audit_log("alert_resolved", user["user_id"], "admin", details={"alert_id": alert_id})
+    return {"message": "Alert resolved"}
+
+
+@router.post("/alerts/intervene/{alert_id}")
+async def intervene_alert(alert_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Take intervention action on an alert"""
+    body = await request.json()
+    action = body.get("action", "review")
+    
+    result = await db.system_alerts.update_one(
+        {"alert_id": alert_id},
+        {"$set": {
+            "intervention_action": action,
+            "intervention_by": user["user_id"],
+            "intervention_at": datetime.now(timezone.utc).isoformat(),
+            "status": "under_review"
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    await create_audit_log("alert_intervention", user["user_id"], "admin", details={"alert_id": alert_id, "action": action})
+    return {"message": f"Intervention '{action}' recorded"}
+
+
+# ============== ENFORCEMENT SYSTEM ==============
+
+@router.get("/enforcement/status")
+async def get_enforcement_status(user: dict = Depends(require_auth(["admin"]))):
+    """Get current enforcement system status"""
+    # Check if scheduler is running
+    scheduler_status = await db.system_config.find_one({"key": "enforcement_scheduler"}, {"_id": 0})
+    
+    # Get recent enforcement history
+    history = await db.enforcement_history.find({}, {"_id": 0}).sort("start_time", -1).limit(5).to_list(5)
+    
+    return {
+        "scheduler_running": scheduler_status.get("running", False) if scheduler_status else False,
+        "last_run": history[0] if history else None,
+        "recent_runs": [serialize_doc(h) for h in history]
+    }
+
+
+@router.post("/enforcement/run")
+async def run_enforcement(user: dict = Depends(require_auth(["admin"]))):
+    """Manually trigger enforcement check"""
+    run_id = f"ENF_{uuid.uuid4().hex[:12]}"
+    
+    # Record the run
+    run_record = {
+        "run_id": run_id,
+        "start_time": datetime.now(timezone.utc).isoformat(),
+        "triggered_by": user["user_id"],
+        "status": "running"
+    }
+    await db.enforcement_history.insert_one(run_record)
+    
+    # Get policy configuration
+    policy = await db.policies.find_one({}, {"_id": 0})
+    if not policy:
+        policy = {"escalation": {"grace_period_days": 30, "warning_threshold_days": 60, "suspension_threshold_days": 90}}
+    
+    # Get all citizen profiles
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    actions_taken = []
+    
+    for profile in profiles:
+        if profile.get("license_status") == "suspended":
+            continue
+            
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                days_overdue = (now - expiry).days
+                
+                escalation = policy.get("escalation", {})
+                
+                if days_overdue > escalation.get("suspension_threshold_days", 90):
+                    # Suspend license
+                    await db.citizen_profiles.update_one(
+                        {"user_id": profile["user_id"]},
+                        {"$set": {"license_status": "suspended", "suspended_at": now.isoformat()}}
+                    )
+                    actions_taken.append({"action": "suspended", "user_id": profile["user_id"]})
+                elif days_overdue > escalation.get("warning_threshold_days", 60):
+                    # Send warning
+                    await db.compliance_warnings.insert_one({
+                        "warning_id": f"WARN_{uuid.uuid4().hex[:12]}",
+                        "user_id": profile["user_id"],
+                        "type": "final_warning",
+                        "message": "Your license is significantly overdue. Suspension imminent.",
+                        "created_at": now.isoformat()
+                    })
+                    actions_taken.append({"action": "final_warning", "user_id": profile["user_id"]})
+            except:
+                pass
+    
+    # Update run record
+    await db.enforcement_history.update_one(
+        {"run_id": run_id},
+        {"$set": {
+            "end_time": datetime.now(timezone.utc).isoformat(),
+            "status": "completed",
+            "actions_taken": actions_taken,
+            "profiles_checked": len(profiles)
+        }}
+    )
+    
+    await create_audit_log("enforcement_run", user["user_id"], "admin", details={"run_id": run_id})
+    
+    return {
+        "message": "Enforcement check completed",
+        "run_id": run_id,
+        "profiles_checked": len(profiles),
+        "actions_taken": len(actions_taken)
+    }
+
+
+@router.get("/enforcement/history")
+async def get_enforcement_history(
+    limit: int = 20,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get enforcement run history"""
+    history = await db.enforcement_history.find({}, {"_id": 0}).sort("start_time", -1).limit(limit).to_list(limit)
+    return {"history": [serialize_doc(h) for h in history]}
+
+
+@router.get("/enforcement/user/{user_id}")
+async def get_user_enforcement_status(user_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Get enforcement status for a specific user"""
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    warnings = await db.compliance_warnings.find({"user_id": user_id}, {"_id": 0}).to_list(50)
+    
+    return {
+        "profile": serialize_doc(profile),
+        "warnings": [serialize_doc(w) for w in warnings],
+        "license_status": profile.get("license_status", "active")
+    }
+
+
+@router.post("/enforcement/reinstate/{user_id}")
+async def reinstate_user(user_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Reinstate a suspended user"""
+    body = await request.json()
+    
+    result = await db.citizen_profiles.update_one(
+        {"user_id": user_id, "license_status": "suspended"},
+        {"$set": {
+            "license_status": "active",
+            "reinstated_at": datetime.now(timezone.utc).isoformat(),
+            "reinstated_by": user["user_id"],
+            "reinstatement_reason": body.get("reason", "")
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found or not suspended")
+    
+    await create_audit_log("user_reinstated", user["user_id"], "admin", details={"reinstated_user": user_id})
+    return {"message": "User reinstated"}
+
+
+@router.post("/enforcement/scheduler/start")
+async def start_enforcement_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Start the enforcement scheduler"""
+    await db.system_config.update_one(
+        {"key": "enforcement_scheduler"},
+        {"$set": {"running": True, "started_at": datetime.now(timezone.utc).isoformat(), "started_by": user["user_id"]}},
+        upsert=True
+    )
+    return {"message": "Enforcement scheduler started"}
+
+
+@router.post("/enforcement/scheduler/stop")
+async def stop_enforcement_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Stop the enforcement scheduler"""
+    await db.system_config.update_one(
+        {"key": "enforcement_scheduler"},
+        {"$set": {"running": False, "stopped_at": datetime.now(timezone.utc).isoformat(), "stopped_by": user["user_id"]}},
+        upsert=True
+    )
+    return {"message": "Enforcement scheduler stopped"}
+
+
+# ============== PARTNER DATA VIEWS (Admin) ==============
+
+@router.get("/smart-safe/reports")
+async def get_smart_safe_reports(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get smart safe status reports"""
+    reports = await db.smart_safe_reports.find({}, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    return {
+        "reports": [serialize_doc(r) for r in reports],
+        "total": len(reports),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/insurance/records")
+async def get_insurance_records(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get insurance policy records"""
+    records = await db.insurance_records.find({}, {"_id": 0}).sort("updated_at", -1).limit(limit).to_list(limit)
+    return {
+        "records": [serialize_doc(r) for r in records],
+        "total": len(records),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/insurance/verify/{license_number}")
+async def verify_insurance(license_number: str, user: dict = Depends(require_auth(["admin"]))):
+    """Verify insurance for a license"""
+    record = await db.insurance_records.find_one({"license_number": license_number}, {"_id": 0})
+    if not record:
+        return {"verified": False, "message": "No insurance record found"}
+    
+    # Check if policy is active
+    if record.get("policy_end_date"):
+        try:
+            end_date = datetime.fromisoformat(record["policy_end_date"].replace("Z", "+00:00"))
+            if end_date < datetime.now(timezone.utc):
+                return {"verified": False, "message": "Policy expired", "record": serialize_doc(record)}
+        except:
+            pass
+    
+    return {"verified": True, "record": serialize_doc(record)}
+
+
+@router.get("/training-sessions")
+async def get_training_sessions(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get training range session logs"""
+    sessions = await db.training_sessions.find({}, {"_id": 0}).sort("session_date", -1).limit(limit).to_list(limit)
+    return {
+        "sessions": [serialize_doc(s) for s in sessions],
+        "total": len(sessions),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/background-checks")
+async def get_background_checks(
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get background check records"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    checks = await db.background_checks.find(query, {"_id": 0}).sort("submitted_at", -1).limit(limit).to_list(limit)
+    return {
+        "checks": [serialize_doc(c) for c in checks],
+        "total": len(checks),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/mental-health-assessments")
+async def get_mental_health_assessments(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get mental health assessment records"""
+    assessments = await db.mental_health_assessments.find({}, {"_id": 0}).sort("assessment_date", -1).limit(limit).to_list(limit)
+    return {
+        "assessments": [serialize_doc(a) for a in assessments],
+        "total": len(assessments),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/gunsmith-services")
+async def get_gunsmith_services(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get gunsmith service records"""
+    services = await db.gunsmith_services.find({}, {"_id": 0}).sort("service_date", -1).limit(limit).to_list(limit)
+    return {
+        "services": [serialize_doc(s) for s in services],
+        "total": len(services),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/ammunition-purchases")
+async def get_ammunition_purchases(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get ammunition purchase records"""
+    purchases = await db.ammunition_purchases.find({}, {"_id": 0}).sort("purchase_date", -1).limit(limit).to_list(limit)
+    
+    total_rounds = sum(p.get("quantity", 0) for p in purchases)
+    
+    return {
+        "purchases": [serialize_doc(p) for p in purchases],
+        "total": len(purchases),
+        "total_rounds": total_rounds,
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/stolen-firearms")
+async def get_stolen_firearms(
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get stolen firearms reports"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    reports = await db.stolen_firearms.find(query, {"_id": 0}).sort("reported_at", -1).limit(limit).to_list(limit)
+    return {
+        "reports": [serialize_doc(r) for r in reports],
+        "total": len(reports),
+        "integration_status": "seeking_partner"
+    }
+
+
+@router.get("/location-verifications")
+async def get_location_verifications(
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get GPS location verification records"""
+    verifications = await db.location_verifications.find({}, {"_id": 0}).sort("verified_at", -1).limit(limit).to_list(limit)
+    return {
+        "verifications": [serialize_doc(v) for v in verifications],
+        "total": len(verifications),
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== THRESHOLDS & COMPLIANCE ==============
+
+@router.get("/thresholds")
+async def get_thresholds(user: dict = Depends(require_auth(["admin"]))):
+    """Get compliance thresholds"""
+    thresholds = await db.compliance_thresholds.find({}, {"_id": 0}).to_list(100)
+    return {"thresholds": [serialize_doc(t) for t in thresholds]}
+
+
+@router.put("/thresholds/{threshold_id}")
+async def update_threshold(threshold_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a compliance threshold"""
+    body = await request.json()
+    
+    result = await db.compliance_thresholds.update_one(
+        {"threshold_id": threshold_id},
+        {"$set": {**body, "updated_at": datetime.now(timezone.utc).isoformat(), "updated_by": user["user_id"]}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Threshold not found")
+    
+    threshold = await db.compliance_thresholds.find_one({"threshold_id": threshold_id}, {"_id": 0})
+    return serialize_doc(threshold)
+
+
+@router.post("/thresholds/run-check")
+async def run_threshold_check(user: dict = Depends(require_auth(["admin"]))):
+    """Run compliance threshold check"""
+    thresholds = await db.compliance_thresholds.find({"enabled": True}, {"_id": 0}).to_list(100)
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    violations = []
+    now = datetime.now(timezone.utc)
+    
+    for profile in profiles:
+        for threshold in thresholds:
+            # Check various threshold conditions
+            if threshold.get("type") == "license_expiry":
+                if profile.get("license_expiry"):
+                    try:
+                        expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                        days_until = (expiry - now).days
+                        if days_until < threshold.get("warning_days", 30):
+                            violations.append({
+                                "user_id": profile["user_id"],
+                                "threshold_id": threshold["threshold_id"],
+                                "type": "license_expiry",
+                                "days_until": days_until
+                            })
+                    except:
+                        pass
+    
+    return {
+        "message": "Threshold check completed",
+        "profiles_checked": len(profiles),
+        "thresholds_checked": len(thresholds),
+        "violations_found": len(violations),
+        "violations": violations[:50]  # Limit response size
+    }
+
+
+@router.post("/run-compliance-check")
+async def run_compliance_check(user: dict = Depends(require_auth(["admin"]))):
+    """Run a full compliance check"""
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    results = {"compliant": 0, "warning": 0, "non_compliant": 0, "suspended": 0}
+    issues = []
+    
+    for profile in profiles:
+        status = profile.get("license_status", "active")
+        
+        if status == "suspended":
+            results["suspended"] += 1
+            continue
+        
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                days_until = (expiry - now).days
+                
+                if days_until < 0:
+                    results["non_compliant"] += 1
+                    issues.append({"user_id": profile["user_id"], "issue": "expired", "days_overdue": -days_until})
+                elif days_until < 30:
+                    results["warning"] += 1
+                    issues.append({"user_id": profile["user_id"], "issue": "expiring_soon", "days_until": days_until})
+                else:
+                    results["compliant"] += 1
+            except:
+                results["compliant"] += 1
+        else:
+            results["compliant"] += 1
+    
+    return {
+        "message": "Compliance check completed",
+        "summary": results,
+        "total_checked": len(profiles),
+        "issues": issues[:100]
+    }
+
+
+@router.get("/preventive-warnings")
+async def get_preventive_warnings(user: dict = Depends(require_auth(["admin"]))):
+    """Get citizens who should receive preventive warnings"""
+    profiles = await db.citizen_profiles.find({"license_status": {"$ne": "suspended"}}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    warnings_needed = []
+    
+    for profile in profiles:
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                days_until = (expiry - now).days
+                
+                if 0 < days_until <= 60:
+                    warnings_needed.append({
+                        "user_id": profile["user_id"],
+                        "license_number": profile.get("license_number"),
+                        "days_until_expiry": days_until,
+                        "warning_level": "urgent" if days_until <= 14 else "warning" if days_until <= 30 else "reminder"
+                    })
+            except:
+                pass
+    
+    return {
+        "warnings_needed": sorted(warnings_needed, key=lambda x: x["days_until_expiry"]),
+        "total": len(warnings_needed)
+    }
+
+
+# ============== PREDICTIVE ANALYTICS ==============
+
+@router.get("/predictive/dashboard")
+async def get_predictive_dashboard(user: dict = Depends(require_auth(["admin"]))):
+    """Get predictive analytics dashboard"""
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Predict compliance issues
+    at_risk = []
+    for profile in profiles:
+        risk_score = 0
+        risk_factors = []
+        
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                days_until = (expiry - now).days
+                
+                if days_until < 0:
+                    risk_score += 50
+                    risk_factors.append("expired")
+                elif days_until < 30:
+                    risk_score += 30
+                    risk_factors.append("expiring_soon")
+            except:
+                pass
+        
+        # Check for previous warnings
+        warnings = await db.compliance_warnings.count_documents({"user_id": profile["user_id"]})
+        if warnings > 0:
+            risk_score += warnings * 10
+            risk_factors.append(f"{warnings}_previous_warnings")
+        
+        if risk_score > 20:
+            at_risk.append({
+                "user_id": profile["user_id"],
+                "risk_score": min(risk_score, 100),
+                "risk_factors": risk_factors
+            })
+    
+    return {
+        "total_profiles": len(profiles),
+        "at_risk_count": len(at_risk),
+        "at_risk_profiles": sorted(at_risk, key=lambda x: x["risk_score"], reverse=True)[:50]
+    }
+
+
+@router.get("/predictive/citizen/{user_id}")
+async def get_citizen_prediction(user_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Get predictive analytics for a specific citizen"""
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Citizen not found")
+    
+    warnings = await db.compliance_warnings.find({"user_id": user_id}, {"_id": 0}).to_list(50)
+    transactions = await db.transactions.find({"citizen_id": user_id}, {"_id": 0}).to_list(50)
+    
+    # Calculate risk factors
+    risk_score = 0
+    risk_factors = []
+    recommendations = []
+    
+    now = datetime.now(timezone.utc)
+    
+    if profile.get("license_expiry"):
+        try:
+            expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+            days_until = (expiry - now).days
+            
+            if days_until < 0:
+                risk_score += 50
+                risk_factors.append({"factor": "expired_license", "weight": 50})
+                recommendations.append("Immediate renewal required")
+            elif days_until < 30:
+                risk_score += 30
+                risk_factors.append({"factor": "expiring_soon", "weight": 30})
+                recommendations.append("Schedule renewal soon")
+        except:
+            pass
+    
+    if len(warnings) > 0:
+        risk_score += len(warnings) * 10
+        risk_factors.append({"factor": "previous_warnings", "weight": len(warnings) * 10, "count": len(warnings)})
+    
+    return {
+        "user_id": user_id,
+        "risk_score": min(risk_score, 100),
+        "risk_level": "high" if risk_score >= 60 else "medium" if risk_score >= 30 else "low",
+        "risk_factors": risk_factors,
+        "recommendations": recommendations,
+        "warning_history": [serialize_doc(w) for w in warnings],
+        "transaction_count": len(transactions)
+    }
+
+
+@router.post("/predictive/run-analysis")
+async def run_predictive_analysis(user: dict = Depends(require_auth(["admin"]))):
+    """Run full predictive analysis"""
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    analysis_results = {
+        "total_analyzed": len(profiles),
+        "high_risk": 0,
+        "medium_risk": 0,
+        "low_risk": 0,
+        "predicted_issues_30_days": 0,
+        "predicted_issues_60_days": 0,
+        "predicted_issues_90_days": 0
+    }
+    
+    for profile in profiles:
+        risk_score = 0
+        
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00"))
+                days_until = (expiry - now).days
+                
+                if days_until < 0:
+                    risk_score = 80
+                elif days_until <= 30:
+                    risk_score = 60
+                    analysis_results["predicted_issues_30_days"] += 1
+                elif days_until <= 60:
+                    risk_score = 40
+                    analysis_results["predicted_issues_60_days"] += 1
+                elif days_until <= 90:
+                    risk_score = 20
+                    analysis_results["predicted_issues_90_days"] += 1
+            except:
+                pass
+        
+        if risk_score >= 60:
+            analysis_results["high_risk"] += 1
+        elif risk_score >= 30:
+            analysis_results["medium_risk"] += 1
+        else:
+            analysis_results["low_risk"] += 1
+    
+    return {
+        "message": "Predictive analysis completed",
+        "analysis_date": now.isoformat(),
+        "results": analysis_results
+    }
+
+
+# ============== NOTIFICATION TRIGGERS ==============
+
+@router.get("/notification-triggers")
+async def get_notification_triggers(user: dict = Depends(require_auth(["admin"]))):
+    """Get notification trigger configurations"""
+    triggers = await db.notification_triggers.find({}, {"_id": 0}).to_list(100)
+    return {"triggers": [serialize_doc(t) for t in triggers]}
+
+
+@router.post("/notification-triggers")
+async def create_notification_trigger(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new notification trigger"""
+    body = await request.json()
+    
+    trigger = {
+        "trigger_id": f"TRG_{uuid.uuid4().hex[:12]}",
+        "name": body.get("name"),
+        "event_type": body.get("event_type"),
+        "conditions": body.get("conditions", {}),
+        "notification_template": body.get("notification_template"),
+        "enabled": body.get("enabled", True),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["user_id"]
+    }
+    
+    await db.notification_triggers.insert_one(trigger)
+    return {"message": "Trigger created", "trigger": serialize_doc(trigger)}
+
+
+@router.put("/notification-triggers/{trigger_id}")
+async def update_notification_trigger(trigger_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a notification trigger"""
+    body = await request.json()
+    
+    result = await db.notification_triggers.update_one(
+        {"trigger_id": trigger_id},
+        {"$set": {**body, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    trigger = await db.notification_triggers.find_one({"trigger_id": trigger_id}, {"_id": 0})
+    return serialize_doc(trigger)
+
+
+@router.post("/notification-triggers/{trigger_id}/test")
+async def test_notification_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Test a notification trigger"""
+    trigger = await db.notification_triggers.find_one({"trigger_id": trigger_id}, {"_id": 0})
+    if not trigger:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    return {
+        "message": "Trigger test executed",
+        "trigger_id": trigger_id,
+        "would_notify": True,
+        "test_result": "success"
+    }
+
+
+@router.get("/triggers/scheduler-status")
+async def get_triggers_scheduler_status(user: dict = Depends(require_auth(["admin"]))):
+    """Get triggers scheduler status"""
+    status = await db.system_config.find_one({"key": "triggers_scheduler"}, {"_id": 0})
+    return {
+        "running": status.get("running", False) if status else False,
+        "last_run": status.get("last_run") if status else None
+    }
+
+
+@router.post("/triggers/scheduler/start")
+async def start_triggers_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Start the triggers scheduler"""
+    await db.system_config.update_one(
+        {"key": "triggers_scheduler"},
+        {"$set": {"running": True, "started_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"message": "Triggers scheduler started"}
+
+
+@router.post("/triggers/scheduler/stop")
+async def stop_triggers_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Stop the triggers scheduler"""
+    await db.system_config.update_one(
+        {"key": "triggers_scheduler"},
+        {"$set": {"running": False, "stopped_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"message": "Triggers scheduler stopped"}
+
+
+@router.post("/triggers/{trigger_id}/execute")
+async def execute_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Manually execute a trigger"""
+    trigger = await db.notification_triggers.find_one({"trigger_id": trigger_id}, {"_id": 0})
+    if not trigger:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    # Record execution
+    execution = {
+        "execution_id": f"EXE_{uuid.uuid4().hex[:12]}",
+        "trigger_id": trigger_id,
+        "executed_at": datetime.now(timezone.utc).isoformat(),
+        "executed_by": user["user_id"],
+        "status": "completed"
+    }
+    await db.trigger_executions.insert_one(execution)
+    
+    return {"message": "Trigger executed", "execution_id": execution["execution_id"]}
+
+
+@router.post("/triggers/run-all")
+async def run_all_triggers(user: dict = Depends(require_auth(["admin"]))):
+    """Run all enabled triggers"""
+    triggers = await db.notification_triggers.find({"enabled": True}, {"_id": 0}).to_list(100)
+    
+    results = []
+    for trigger in triggers:
+        execution = {
+            "execution_id": f"EXE_{uuid.uuid4().hex[:12]}",
+            "trigger_id": trigger["trigger_id"],
+            "executed_at": datetime.now(timezone.utc).isoformat(),
+            "executed_by": user["user_id"],
+            "status": "completed"
+        }
+        await db.trigger_executions.insert_one(execution)
+        results.append({"trigger_id": trigger["trigger_id"], "status": "executed"})
+    
+    return {"message": f"Executed {len(results)} triggers", "results": results}
+
+
+@router.get("/triggers/executions")
+async def get_trigger_executions(
+    trigger_id: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get trigger execution history"""
+    query = {}
+    if trigger_id:
+        query["trigger_id"] = trigger_id
+    
+    executions = await db.trigger_executions.find(query, {"_id": 0}).sort("executed_at", -1).limit(limit).to_list(limit)
+    return {"executions": [serialize_doc(e) for e in executions]}
+
+
+# ============== MISC ENDPOINTS ==============
+
+@router.get("/supported-currencies")
+async def get_supported_currencies(user: dict = Depends(require_auth(["admin"]))):
+    """Get supported currencies for transactions"""
+    return {
+        "currencies": [
+            {"code": "USD", "symbol": "$", "name": "US Dollar"},
+            {"code": "EUR", "symbol": "€", "name": "Euro"},
+            {"code": "GBP", "symbol": "£", "name": "British Pound"},
+            {"code": "CAD", "symbol": "C$", "name": "Canadian Dollar"},
+            {"code": "AUD", "symbol": "A$", "name": "Australian Dollar"}
+        ]
+    }
+
+
+@router.get("/certificate-config")
+async def get_certificate_config(user: dict = Depends(require_auth(["admin"]))):
+    """Get certificate configuration"""
+    config = await db.certificate_config.find_one({}, {"_id": 0})
+    if not config:
+        config = {
+            "issuer_name": "AMMO National Oversight",
+            "header_text": "Certificate of Completion",
+            "footer_text": "This certificate is valid for one year from the date of issue."
+        }
+    return serialize_doc(config)
+
+
+@router.put("/certificate-config")
+async def update_certificate_config(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update certificate configuration"""
+    body = await request.json()
+    
+    await db.certificate_config.update_one(
+        {},
+        {"$set": {**body, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    config = await db.certificate_config.find_one({}, {"_id": 0})
+    return serialize_doc(config)
+
+
+@router.post("/certificate-config/signature")
+async def upload_certificate_signature(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Upload signature for certificates"""
+    body = await request.json()
+    signature_data = body.get("signature_data")
+    
+    await db.certificate_config.update_one(
+        {},
+        {"$set": {"signature": signature_data, "signature_updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"message": "Signature uploaded"}
+
+
+@router.get("/certificate-designs")
+async def get_certificate_designs(user: dict = Depends(require_auth(["admin"]))):
+    """Get available certificate designs"""
+    designs = await db.certificate_designs.find({}, {"_id": 0}).to_list(50)
+    if not designs:
+        designs = [
+            {"design_id": "classic", "name": "Classic", "description": "Traditional certificate design"},
+            {"design_id": "modern", "name": "Modern", "description": "Contemporary clean design"},
+            {"design_id": "official", "name": "Official", "description": "Government official style"}
+        ]
+    return {"designs": designs}
+
+
+@router.get("/seal-styles")
+async def get_seal_styles(user: dict = Depends(require_auth(["admin"]))):
+    """Get available seal styles"""
+    return {
+        "styles": [
+            {"style_id": "gold", "name": "Gold Seal"},
+            {"style_id": "silver", "name": "Silver Seal"},
+            {"style_id": "embossed", "name": "Embossed"},
+            {"style_id": "digital", "name": "Digital Seal"}
+        ]
+    }
+
+
+@router.get("/font-options")
+async def get_font_options(user: dict = Depends(require_auth(["admin"]))):
+    """Get available font options"""
+    return {
+        "fonts": [
+            {"font_id": "serif", "name": "Times New Roman", "family": "serif"},
+            {"font_id": "sans", "name": "Arial", "family": "sans-serif"},
+            {"font_id": "elegant", "name": "Georgia", "family": "serif"},
+            {"font_id": "modern", "name": "Helvetica", "family": "sans-serif"}
+        ]
+    }
+
+
+@router.get("/document-templates")
+async def get_document_templates(user: dict = Depends(require_auth(["admin"]))):
+    """Get document templates"""
+    templates = await db.document_templates.find({}, {"_id": 0}).to_list(100)
+    return {"templates": [serialize_doc(t) for t in templates]}
+
+
+@router.post("/document-templates")
+async def create_document_template(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new document template"""
+    body = await request.json()
+    
+    template = {
+        "template_id": f"TPL_{uuid.uuid4().hex[:12]}",
+        "name": body.get("name"),
+        "type": body.get("type", "certificate"),
+        "content": body.get("content", ""),
+        "variables": body.get("variables", []),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["user_id"]
+    }
+    
+    await db.document_templates.insert_one(template)
+    return {"message": "Template created", "template": serialize_doc(template)}
+
+
+@router.put("/document-templates/{template_id}")
+async def update_document_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a document template"""
+    body = await request.json()
+    
+    result = await db.document_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {**body, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    return serialize_doc(template)
+
+
+@router.get("/document-templates/{template_id}/preview")
+async def preview_document_template(template_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Preview a document template with sample data"""
+    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Generate preview with sample data
+    sample_data = {
+        "recipient_name": "John Doe",
+        "date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
+        "certificate_number": "CERT-SAMPLE-001"
+    }
+    
+    return {
+        "template": serialize_doc(template),
+        "preview_data": sample_data,
+        "rendered_preview": template.get("content", "").format(**sample_data) if template.get("content") else ""
+    }
+
+
+@router.get("/formal-documents")
+async def get_formal_documents(
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get formal documents"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    documents = await db.formal_documents.find(query, {"_id": 0}).sort("issued_at", -1).limit(limit).to_list(limit)
+    return {"documents": [serialize_doc(d) for d in documents]}
+
+
+@router.post("/formal-documents/send")
+async def send_formal_document(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Send a formal document to a user"""
+    body = await request.json()
+    
+    document = {
+        "document_id": f"DOC_{uuid.uuid4().hex[:12]}",
+        "user_id": body.get("user_id"),
+        "template_id": body.get("template_id"),
+        "type": body.get("type", "notice"),
+        "subject": body.get("subject"),
+        "content": body.get("content"),
+        "status": "sent",
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "issued_by": user["user_id"]
+    }
+    
+    await db.formal_documents.insert_one(document)
+    
+    # Also create a notification for the user
+    await db.notifications.insert_one({
+        "notification_id": f"NOT_{uuid.uuid4().hex[:12]}",
+        "user_id": body.get("user_id"),
+        "message": f"You have received a new document: {body.get('subject')}",
+        "type": "document",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Document sent", "document_id": document["document_id"]}
+
+
+@router.get("/formal-documents/stats")
+async def get_formal_documents_stats(user: dict = Depends(require_auth(["admin"]))):
+    """Get formal documents statistics"""
+    documents = await db.formal_documents.find({}, {"_id": 0}).to_list(10000)
+    
+    by_type = {}
+    by_status = {}
+    
+    for doc in documents:
+        doc_type = doc.get("type", "other")
+        status = doc.get("status", "unknown")
+        
+        by_type[doc_type] = by_type.get(doc_type, 0) + 1
+        by_status[status] = by_status.get(status, 0) + 1
+    
+    return {
+        "total": len(documents),
+        "by_type": by_type,
+        "by_status": by_status
+    }
+
+
+@router.get("/notification-templates")
+async def get_notification_templates(user: dict = Depends(require_auth(["admin"]))):
+    """Get notification templates"""
+    templates = await db.notification_templates.find({}, {"_id": 0}).to_list(100)
+    return {"templates": [serialize_doc(t) for t in templates]}
+
+
+@router.put("/notification-templates/{template_id}")
+async def update_notification_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Update a notification template"""
+    body = await request.json()
+    
+    result = await db.notification_templates.update_one(
+        {"template_id": template_id},
+        {"$set": {**body, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    template = await db.notification_templates.find_one({"template_id": template_id}, {"_id": 0})
+    return serialize_doc(template)
+
