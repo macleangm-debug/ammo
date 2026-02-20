@@ -340,6 +340,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/partners"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <PartnerIntegrations user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/marketplace"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
