@@ -261,7 +261,7 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
 
   if (loading) {
     return (
-      <DashboardLayout user={user} api={api} portalType="government">
+      <DashboardLayout user={user} api={api} navItems={NAV_ITEMS} subtitle="Government Portal">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </div>
@@ -270,7 +270,7 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
   }
 
   return (
-    <DashboardLayout user={user} api={api} portalType="government">
+    <DashboardLayout user={user} api={api} navItems={NAV_ITEMS} subtitle="Government Portal">
       <div className="p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
