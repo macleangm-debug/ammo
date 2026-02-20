@@ -64,10 +64,22 @@ const FirearmOwners = ({ user, api }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("list");
   const [exporting, setExporting] = useState(false);
+  
+  // View mode: "cards" or "table"
+  const [viewMode, setViewMode] = useState("cards");
+  
+  // Infinite scroll
+  const [displayCount, setDisplayCount] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter]);
+  }, [roleFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [roleFilter, statusFilter, searchQuery]);
 
   const fetchUsers = async () => {
     try {
