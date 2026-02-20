@@ -303,10 +303,10 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 ### P0 - Completed (Feb 20, 2026)
 - [x] **Policy Enforcement System**: Automated enforcement scheduler with late fees, warnings, suspensions
 - [x] **Partner Integration APIs**: Smart Safe IoT and Insurance partner-ready APIs with Government portal page
+- [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules, admin UI, test transaction feature
 
 ### P1 - High Priority
-- [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~10,800+ lines)
-- [ ] Flagged transaction auto-detection logic (partially implemented, needs rule engine)
+- [ ] Backend modularization Phase 2 (Incrementally extract routes from server.py ~11,600+ lines)
 
 ### P2 - Medium Priority  
 - [ ] Community Mentor Matching
