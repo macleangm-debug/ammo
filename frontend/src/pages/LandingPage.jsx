@@ -606,10 +606,15 @@ const LandingPage = ({ api }) => {
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-success group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-heading text-xl font-semibold mb-2">Government</h3>
-              <p className="text-sm text-muted-foreground">
-                National oversight, risk analytics, and compliance monitoring.
+              <h3 className="font-heading text-xl font-semibold mb-2">Government Portal</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                National oversight with owners registry, certificate management, and compliance monitoring.
               </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full">Owners Registry</span>
+                <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full">QR Certificates</span>
+                <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full">CSV Export</span>
+              </div>
             </div>
           </div>
 
