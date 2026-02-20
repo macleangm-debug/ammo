@@ -12309,6 +12309,10 @@ async def stop_scheduler(user: dict = Depends(require_auth(["admin"]))):
 # Include the router in the main app
 app.include_router(api_router)
 
+# Include modular routers with /api prefix
+app.include_router(partners_router, prefix="/api")
+app.include_router(flagging_router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
