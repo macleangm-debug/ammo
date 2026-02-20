@@ -313,11 +313,17 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Included partners_router and flagging_router in main FastAPI app
   - Fixed import paths for modular routes (utils, models now use absolute imports)
   - Both routers now functional with /api prefix
+- [x] **Backend Code Reduction** (Feb 20, 2026):
+  - Removed ~630 lines of duplicate flagging code from server.py
+  - Removed ~86 lines of duplicate partner-integrations endpoints from server.py
+  - server.py reduced from 12,319 lines to 11,701 lines (-618 lines, ~5% reduction)
+  - Imported evaluate_flagging_rules and flag_transaction functions from routes/flagging.py
 
 ### P1 - High Priority
-- [ ] Complete backend modularization (continue extracting more routes from server.py ~12,300+ lines)
-  - Partners and Flagging routes now exist in both server.py AND route files (duplicates to be cleaned)
-  - Next: Remove duplicate endpoints from server.py, migrate auth, government, policies, etc.
+- [ ] Continue backend modularization:
+  - Remove remaining duplicate /partner/* endpoints from server.py
+  - Migrate auth, government, policies, notifications routes to separate files
+  - Target: Reduce server.py to under 8,000 lines
 
 ### P2 - Medium Priority  
 - [ ] Community Mentor Matching
