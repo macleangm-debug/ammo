@@ -4,7 +4,7 @@ import {
   FileText, Send, AlertTriangle, Award, Shield, GraduationCap, 
   CheckCircle, Bell, Loader2, Star, ChevronDown, ChevronRight,
   Users, UserCheck, Settings2, Zap, Clock, RefreshCw, Palette,
-  LayoutDashboard, Activity, Target, Settings
+  LayoutDashboard, Activity, Target, Settings, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
   { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
   { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
+  { id: 'partners', path: '/government/partners', label: 'Partners', icon: Handshake },
   { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
 ];
 
