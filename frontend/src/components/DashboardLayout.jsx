@@ -76,6 +76,8 @@ const DashboardLayout = ({
   }, []);
 
   const fetchRecentNotifications = async () => {
+    // Only fetch for citizens, not government/dealer users
+    if (user?.role !== 'citizen') return;
     try {
       const response = await api.get("/citizen/notifications");
       const notifications = response.data || [];
@@ -86,6 +88,8 @@ const DashboardLayout = ({
   };
 
   const fetchRecentDocuments = async () => {
+    // Only fetch for citizens, not government/dealer users
+    if (user?.role !== 'citizen') return;
     try {
       const response = await api.get("/citizen/documents");
       setRecentDocuments(response.data?.documents?.slice(0, 4) || []);
