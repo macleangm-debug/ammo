@@ -73,17 +73,23 @@ const GovernmentPolicies = ({ user, api }) => {
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const [policiesRes, currenciesRes, hospitalsRes, complianceRes] = await Promise.all([
+      const [policiesRes, currenciesRes, hospitalsRes, complianceRes, enforcementRes] = await Promise.all([
         api.get("/government/policies"),
         api.get("/government/supported-currencies"),
         api.get("/government/accredited-hospitals"),
-        api.get("/government/compliance-status").catch(() => ({ data: null }))
+        api.get("/government/compliance-status").catch(() => ({ data: null })),
+        api.get("/government/enforcement/status").catch(() => ({ data: null }))
       ]);
       
       setPolicies(policiesRes.data);
       setCurrencies(currenciesRes.data.currencies || []);
       setHospitals(hospitalsRes.data.hospitals || []);
       setComplianceStatus(complianceRes.data);
+      setEnforcementStatus(enforcementRes.data);
+      
+      // Fetch enforcement history
+      const historyRes = await api.get("/government/enforcement/history?limit=5").catch(() => ({ data: { executions: [] } }));
+      setEnforcementHistory(historyRes.data.executions || []);
     } catch (error) {
       console.error("Error fetching policies:", error);
       toast.error("Failed to load policies");
