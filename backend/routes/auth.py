@@ -6,8 +6,8 @@ import httpx
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 
-from ..utils import db, serialize_doc, create_audit_log, require_auth
-from ..models import LoginRequest
+from utils import db, serialize_doc, create_audit_log, require_auth
+from models import LoginRequest
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
