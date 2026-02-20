@@ -354,7 +354,12 @@ Government portal pages:
   - Search by name, email, or user ID
   - Filter by role (Citizens/Dealers) and license status
   - User detail dialog with Profile, License, and History tabs
-  - Backend APIs: `/api/government/citizen-profiles`, `/api/government/user-profile/{user_id}`
+  - **Export CSV** button for downloading user data (Added Feb 20, 2026)
+    - Exports to Excel-compatible CSV format
+    - Includes 16 columns: User ID, Name, Email, Role, Region, State, License Type, License Number, License Status, License Issued, License Expiry, Compliance Score, Training Hours, Phone, Address, Registered Date
+    - Filename format: `firearm_owners_{role}_{timestamp}.csv`
+    - Shows success toast with record count
+  - Backend APIs: `/api/government/citizen-profiles`, `/api/government/user-profile/{user_id}`, `/api/government/users-export`
 
 - **Navigation Fixes**:
   - Fixed Analytics link redirecting to home page (was pointing to non-existent `/government/analytics`)
