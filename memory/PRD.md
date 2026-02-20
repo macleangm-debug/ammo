@@ -348,6 +348,32 @@ Government portal pages:
 - Settings (`/government/settings`)
 
 ### Recent Updates (Feb 20, 2026)
+
+- **Policy Enforcement System** (NEW - Feb 20, 2026):
+  - **Automated Enforcement Scheduler**: Runs every 6 hours to check compliance
+  - **Enforcement Actions**:
+    - Calculates fee due dates based on license/fee_paid_until
+    - Applies late fees after grace period (configurable % per month)
+    - Sends warning notifications at configured intervals (e.g., days 2, 4, 7 past grace)
+    - Auto-suspends licenses after suspension trigger days
+    - Blocks dealer transactions for suspended users
+    - Flags firearms for repossession (configurable)
+  - **Backend APIs**:
+    - `GET /api/government/enforcement/status` - Scheduler status and compliance counts
+    - `POST /api/government/enforcement/run` - Manual enforcement run
+    - `GET /api/government/enforcement/history` - Execution history
+    - `POST /api/government/enforcement/scheduler/start` - Start scheduler
+    - `POST /api/government/enforcement/scheduler/stop` - Stop scheduler
+    - `POST /api/government/enforcement/reinstate/{user_id}` - Reinstate suspended user
+    - `GET /api/government/enforcement/user/{user_id}` - User enforcement history
+  - **Frontend** (Policy Management page - Enforcement tab):
+    - Scheduler status indicator (running/stopped)
+    - Start/Stop Scheduler and Run Now buttons
+    - Compliance status cards: Total, Paid, Pending, Overdue, Suspended
+    - Enforcement Actions summary (shows policy settings)
+    - Recent Enforcement Runs history
+  - **Testing**: 97% backend tests passed, 100% frontend tests passed
+
 - **Annual Fees & Firearms Tracking System** (NEW):
   - **Member Annual License Fee**: $150/year for holding a firearm license
   - **Per-Firearm Registration Fee**: $50/year per registered firearm
