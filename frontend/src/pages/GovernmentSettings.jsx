@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Settings, LayoutDashboard, FileText, Bell, Activity, 
-  AlertTriangle, Target, Palette, Save, Loader2, User,
+  AlertTriangle, Target, Palette, Save, Loader2, User, Users,
   Building, Mail, Phone, Globe, Shield, Key, Database
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";

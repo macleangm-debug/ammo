@@ -3,7 +3,7 @@ import {
   Palette, Type, Award, PenTool, Upload, Save, Eye, 
   Check, RefreshCw, Loader2, Shield, Star, BadgeCheck,
   FileText, Settings2, LayoutDashboard, Activity, AlertTriangle, 
-  Target, Settings, Bell
+  Target, Settings, Bell, Users
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
