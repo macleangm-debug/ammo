@@ -2640,6 +2640,351 @@ async def check_user_service_access(user: dict, service_type: str = "general") -
     return True
 
 
+# ============== PARTNER INTEGRATIONS ==============
+# These APIs are designed and ready for integration with external partners.
+# Currently returning placeholder data - will be connected when partners onboard.
+
+PARTNER_INTEGRATIONS = {
+    "smart_safe": {
+        "integration_id": "partner_smart_safe",
+        "name": "Smart Safe IoT Integration",
+        "category": "storage_compliance",
+        "status": "seeking_partner",
+        "description": "Connect with IoT-enabled gun safe manufacturers to automatically verify secure storage compliance.",
+        "layman_explanation": "Imagine your gun safe could 'talk' to AMMO. When you lock your safe, it automatically tells the system 'I'm secured.' This means no more manual inspections or paperwork to prove you're storing firearms safely. The safe reports its status (locked/unlocked) automatically, and responsible owners get rewarded with higher compliance scores.",
+        "benefits": [
+            "Automated storage compliance verification - no manual inspections needed",
+            "Real-time alerts if a safe is left open or tampered with",
+            "Higher ARI scores for consistently responsible storage",
+            "Reduced administrative burden for both citizens and government",
+            "Instant notification to owner if unauthorized access is attempted"
+        ],
+        "technical_requirements": [
+            "Safe must have internet connectivity (WiFi or cellular)",
+            "API endpoint for status reporting (locked/unlocked/tampered)",
+            "Secure authentication between safe and AMMO platform",
+            "Minimum reporting interval: once per day"
+        ],
+        "data_we_receive": [
+            "Safe status (locked/unlocked/tampered)",
+            "Door open/close events with timestamps",
+            "Battery level and connectivity status",
+            "Authorized access logs (optional)"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Smart Safe Manufacturer", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "insurance": {
+        "integration_id": "partner_insurance",
+        "name": "Insurance Partner Integration",
+        "category": "coverage_verification",
+        "status": "seeking_partner",
+        "description": "Connect with firearm insurance providers to automatically verify coverage status and policy details.",
+        "layman_explanation": "Just like your car insurance can be verified instantly by police, this integration lets AMMO automatically check if a firearm owner has valid insurance. No more submitting paper certificates or remembering renewal dates. When your policy renews, AMMO knows immediately. If coverage lapses, you get a reminder before it becomes a compliance issue.",
+        "benefits": [
+            "Instant insurance verification - no paperwork needed",
+            "Automatic reminders before policy expiration",
+            "Seamless compliance for jurisdictions requiring firearm insurance",
+            "Reduced fraud through real-time verification",
+            "Faster license renewals with pre-verified insurance"
+        ],
+        "technical_requirements": [
+            "API endpoint for policy status lookup by license number",
+            "Real-time or daily policy status updates",
+            "Secure data transmission (TLS 1.3+)",
+            "Support for policy expiration webhooks"
+        ],
+        "data_we_receive": [
+            "Policy status (active/expired/cancelled)",
+            "Coverage amount and type",
+            "Policy start and end dates",
+            "Policyholder verification (name match)"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Firearm Insurance Provider", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    }
+}
+
+
+@api_router.get("/government/partner-integrations")
+async def get_partner_integrations(user: dict = Depends(require_auth(["admin"]))):
+    """Get all available partner integrations and their status"""
+    
+    # Get any registered partners from database
+    registered_partners = await db.partner_registrations.find({}, {"_id": 0}).to_list(100)
+    
+    integrations = []
+    for key, integration in PARTNER_INTEGRATIONS.items():
+        # Check if any partners are registered for this integration
+        partners = [p for p in registered_partners if p.get("integration_id") == integration["integration_id"]]
+        
+        integration_data = {
+            **integration,
+            "registered_partners": len(partners),
+            "is_active": len(partners) > 0
+        }
+        integrations.append(integration_data)
+    
+    return {
+        "integrations": integrations,
+        "total": len(integrations),
+        "active": len([i for i in integrations if i["is_active"]]),
+        "seeking_partners": len([i for i in integrations if not i["is_active"]])
+    }
+
+
+@api_router.get("/government/partner-integrations/{integration_id}")
+async def get_partner_integration_details(integration_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Get detailed information about a specific partner integration"""
+    
+    # Find the integration
+    integration = None
+    for key, integ in PARTNER_INTEGRATIONS.items():
+        if integ["integration_id"] == integration_id:
+            integration = integ
+            break
+    
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    # Get registered partners
+    registered_partners = await db.partner_registrations.find(
+        {"integration_id": integration_id}, {"_id": 0}
+    ).to_list(100)
+    
+    # Get usage statistics (placeholder for when partners are connected)
+    stats = {
+        "total_requests_today": 0,
+        "total_requests_month": 0,
+        "success_rate": 0,
+        "average_response_time_ms": 0,
+        "last_successful_call": None
+    }
+    
+    return {
+        **integration,
+        "registered_partners": registered_partners,
+        "usage_stats": stats
+    }
+
+
+@api_router.post("/government/partner-integrations/{integration_id}/register-interest")
+async def register_partner_interest(integration_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Register interest in a partner integration (for internal tracking)"""
+    
+    data = await request.json()
+    
+    interest = {
+        "interest_id": f"int_{uuid.uuid4().hex[:12]}",
+        "integration_id": integration_id,
+        "registered_by": user["user_id"],
+        "partner_name": data.get("partner_name", ""),
+        "contact_email": data.get("contact_email", ""),
+        "notes": data.get("notes", ""),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
+        "status": "pending_review"
+    }
+    
+    await db.partner_interests.insert_one(interest)
+    
+    return {
+        "message": "Interest registered successfully",
+        "interest_id": interest["interest_id"]
+    }
+
+
+# ============== SMART SAFE API ENDPOINTS (Partner-Ready) ==============
+
+@api_router.post("/partner/smart-safe/status-report")
+async def smart_safe_status_report(request: Request):
+    """
+    Endpoint for smart safes to report their status.
+    This is a partner-ready API - currently stores data but requires partner authentication.
+    
+    Expected payload:
+    {
+        "safe_id": "unique_safe_identifier",
+        "owner_license": "license_number",
+        "status": "locked" | "unlocked" | "tampered",
+        "door_open": false,
+        "battery_level": 85,
+        "timestamp": "ISO8601 timestamp",
+        "api_key": "partner_api_key"
+    }
+    """
+    data = await request.json()
+    
+    # Validate API key (placeholder - would check against registered partners)
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    # For now, store the report but flag as unverified
+    report = {
+        "report_id": f"ssr_{uuid.uuid4().hex[:12]}",
+        "safe_id": data.get("safe_id"),
+        "owner_license": data.get("owner_license"),
+        "status": data.get("status"),
+        "door_open": data.get("door_open", False),
+        "battery_level": data.get("battery_level"),
+        "reported_at": data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False,
+        "partner_verified": False,
+        "notes": "Partner integration pending - data stored for testing"
+    }
+    
+    await db.smart_safe_reports.insert_one(report)
+    
+    return {
+        "status": "received",
+        "report_id": report["report_id"],
+        "message": "Report received. Note: Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/smart-safe/reports")
+async def get_smart_safe_reports(
+    license_number: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get smart safe status reports (admin view)"""
+    
+    query = {}
+    if license_number:
+        query["owner_license"] = license_number
+    
+    reports = await db.smart_safe_reports.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "reports": [serialize_doc(r) for r in reports],
+        "total": len(reports),
+        "integration_status": "seeking_partner",
+        "note": "This data is from test submissions. Full integration requires partner onboarding."
+    }
+
+
+# ============== INSURANCE API ENDPOINTS (Partner-Ready) ==============
+
+@api_router.post("/partner/insurance/policy-update")
+async def insurance_policy_update(request: Request):
+    """
+    Endpoint for insurance providers to report policy status updates.
+    This is a partner-ready API - currently stores data but requires partner authentication.
+    
+    Expected payload:
+    {
+        "policy_id": "unique_policy_id",
+        "license_number": "firearm_license_number",
+        "status": "active" | "expired" | "cancelled" | "pending",
+        "coverage_amount": 100000,
+        "coverage_type": "liability" | "comprehensive",
+        "effective_date": "ISO8601 date",
+        "expiry_date": "ISO8601 date",
+        "provider_name": "Insurance Company Name",
+        "api_key": "partner_api_key"
+    }
+    """
+    data = await request.json()
+    
+    # Validate API key (placeholder)
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    # Store the policy update
+    policy_record = {
+        "record_id": f"ins_{uuid.uuid4().hex[:12]}",
+        "policy_id": data.get("policy_id"),
+        "license_number": data.get("license_number"),
+        "status": data.get("status"),
+        "coverage_amount": data.get("coverage_amount"),
+        "coverage_type": data.get("coverage_type"),
+        "effective_date": data.get("effective_date"),
+        "expiry_date": data.get("expiry_date"),
+        "provider_name": data.get("provider_name"),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False,
+        "partner_verified": False,
+        "notes": "Partner integration pending - data stored for testing"
+    }
+    
+    await db.insurance_records.insert_one(policy_record)
+    
+    return {
+        "status": "received",
+        "record_id": policy_record["record_id"],
+        "message": "Policy update received. Note: Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/insurance/records")
+async def get_insurance_records(
+    license_number: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get insurance policy records (admin view)"""
+    
+    query = {}
+    if license_number:
+        query["license_number"] = license_number
+    if status:
+        query["status"] = status
+    
+    records = await db.insurance_records.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "records": [serialize_doc(r) for r in records],
+        "total": len(records),
+        "integration_status": "seeking_partner",
+        "note": "This data is from test submissions. Full integration requires partner onboarding."
+    }
+
+
+@api_router.get("/government/insurance/verify/{license_number}")
+async def verify_insurance_status(license_number: str, user: dict = Depends(require_auth(["admin"]))):
+    """
+    Verify insurance status for a license number.
+    Currently returns placeholder - will query partner API when integrated.
+    """
+    
+    # Check for any stored records
+    latest_record = await db.insurance_records.find_one(
+        {"license_number": license_number},
+        {"_id": 0},
+        sort=[("received_at", -1)]
+    )
+    
+    if latest_record:
+        return {
+            "license_number": license_number,
+            "has_record": True,
+            "latest_status": latest_record.get("status"),
+            "coverage_amount": latest_record.get("coverage_amount"),
+            "expiry_date": latest_record.get("expiry_date"),
+            "provider": latest_record.get("provider_name"),
+            "verified_with_partner": False,
+            "note": "Data from test submission. Real-time verification requires partner integration."
+        }
+    
+    return {
+        "license_number": license_number,
+        "has_record": False,
+        "latest_status": "unknown",
+        "verified_with_partner": False,
+        "note": "No insurance record found. Partner integration pending."
+    }
+
+
 # Supported currencies for the platform
 SUPPORTED_CURRENCIES = [
     {"code": "USD", "symbol": "$", "name": "US Dollar"},
