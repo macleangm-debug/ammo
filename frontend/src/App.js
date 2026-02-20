@@ -350,6 +350,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/flagging"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <FlaggingRules user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/marketplace"
         element={
           <ProtectedRoute allowedRoles={["citizen", "dealer", "admin"]}>
