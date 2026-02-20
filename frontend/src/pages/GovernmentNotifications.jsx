@@ -6,7 +6,7 @@ import {
   Users, Zap, Clock, ChevronRight, RefreshCw, Loader2,
   Mail, Megaphone, Shield, GraduationCap, CreditCard,
   ToggleLeft, ToggleRight, Play, Filter, Search, X, Palette, Award, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

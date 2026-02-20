@@ -6,7 +6,7 @@ import {
   Lock, Unlock, Heart, CheckCircle, Clock, ExternalLink,
   ChevronRight, Wifi, ShieldCheck, BadgeCheck, AlertCircle,
   Building2, Zap
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

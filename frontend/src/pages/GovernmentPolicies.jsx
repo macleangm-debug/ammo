@@ -7,7 +7,7 @@ import {
   XCircle, RefreshCw, ChevronRight, AlertCircle, Hospital,
   Plus, Edit, Trash2, Globe, Percent, Calendar, Award, Play,
   Pause, Zap, History, UserCheck
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

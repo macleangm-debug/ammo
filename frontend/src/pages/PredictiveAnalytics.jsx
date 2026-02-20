@@ -6,7 +6,7 @@ import {
   ChevronRight, ArrowUp, ArrowDown, Minus, Clock, CheckCircle,
   AlertCircle, BarChart3, PieChart, Home, Bell, XCircle,
   Plus, Edit, Trash2, Eye, LayoutDashboard, FileText, Palette, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

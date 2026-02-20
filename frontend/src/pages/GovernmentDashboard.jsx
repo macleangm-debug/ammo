@@ -7,7 +7,7 @@ import {
   BarChart3, PieChart as PieChartIcon, Map, Settings, DollarSign, GraduationCap,
   Bell, AlertCircle, UserX, Ban, MessageSquare, FileText,
   ChevronRight, Zap, Target, Scale, BookOpen, Award, ArrowUpRight, Palette, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

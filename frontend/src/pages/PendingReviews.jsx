@@ -5,7 +5,7 @@ import {
   FileText, Building, Clock, CheckCircle, XCircle, Eye,
   ChevronRight, Search, Filter, RefreshCw, Loader2,
   User, Users, Mail, Calendar, MapPin, ArrowUpRight, Shield, Bell, Palette, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

@@ -7,7 +7,7 @@ import {
   UserX, Ban, MessageSquare, Activity, BarChart3, PieChart,
   ArrowUp, ArrowDown, Minus, Calendar, Settings, Home,
   LayoutDashboard, FileText, Award, Palette, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";

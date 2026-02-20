@@ -4,7 +4,7 @@ import {
   Settings, LayoutDashboard, FileText, Bell, Activity, 
   AlertTriangle, Target, Palette, Save, Loader2, User, Users,
   Building, Mail, Phone, Globe, Shield, Key, Database, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

@@ -4,7 +4,7 @@ import {
   Check, RefreshCw, Loader2, Shield, Star, BadgeCheck,
   FileText, Settings2, LayoutDashboard, Activity, AlertTriangle, 
   Target, Settings, Bell, Users, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

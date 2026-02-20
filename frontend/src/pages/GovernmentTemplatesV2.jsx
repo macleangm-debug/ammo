@@ -5,7 +5,7 @@ import {
   CheckCircle, Bell, Loader2, Star, ChevronDown, ChevronRight,
   Users, UserCheck, Settings2, Zap, Clock, RefreshCw, Palette,
   LayoutDashboard, Activity, Target, Settings, Handshake
-} from "lucide-react";
+, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
