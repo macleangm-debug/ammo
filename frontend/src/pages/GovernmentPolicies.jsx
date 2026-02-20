@@ -146,6 +146,38 @@ const GovernmentPolicies = ({ user, api }) => {
     }
   };
 
+  const handleRunEnforcement = async () => {
+    try {
+      setRunningEnforcement(true);
+      const response = await api.post("/government/enforcement/run");
+      const results = response.data.results;
+      toast.success(
+        `Enforcement completed: ${results.warnings_sent} warnings, ${results.late_fees_applied} late fees, ${results.suspensions_issued} suspensions`
+      );
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to run enforcement");
+    } finally {
+      setRunningEnforcement(false);
+    }
+  };
+
+  const handleToggleEnforcementScheduler = async () => {
+    try {
+      setSaving(true);
+      const endpoint = enforcementStatus?.scheduler_running 
+        ? "/government/enforcement/scheduler/stop" 
+        : "/government/enforcement/scheduler/start";
+      await api.post(endpoint);
+      toast.success(enforcementStatus?.scheduler_running ? "Enforcement scheduler stopped" : "Enforcement scheduler started");
+      fetchAllData();
+    } catch (error) {
+      toast.error("Failed to toggle scheduler");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveHospital = async () => {
     try {
       if (editingHospital) {
