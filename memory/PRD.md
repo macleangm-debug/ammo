@@ -348,10 +348,44 @@ Government portal pages:
 - Notifications (`/government/notifications`) - Manual & automated notifications
 - Analytics (`/government/predictive`) - Predictive analytics
 - Alerts (`/government/alerts-dashboard`)
+- Flagging (`/government/flagging`) - Transaction Auto-Detection Rules
 - Partners (`/government/partners`) - Partner Integration Opportunities
 - Settings (`/government/settings`)
 
 ### Recent Updates (Feb 20, 2026)
+
+- **Flagged Transaction Auto-Detection System** (NEW - Feb 20, 2026):
+  - **Rule Engine**: 8 configurable rules for automatic transaction flagging
+  - **Default Rules**:
+    - High Quantity Purchase (threshold: 50, auto-review)
+    - Purchase Frequency Spike (max 2/day, 5/week, auto-review)
+    - New Buyer High Value (license < 90 days + qty > 10, auto-review)
+    - Low Compliance Score Buyer (score < 60, auto-review)
+    - Geographic Anomaly (distance > 200km, disabled by default)
+    - After Hours Transaction (outside 6am-10pm, low severity)
+    - Dealer Compliance Issue (dealer score < 75, auto-review)
+    - High Risk Score (score > 60, auto-review)
+  - **Features**:
+    - Automatic flagging on transaction creation
+    - Auto-creates review items for flagged transactions
+    - Test rules against sample transactions
+    - Enable/disable rules, adjust thresholds
+    - Create custom rules
+    - Resolve flags with Clear/Block actions
+  - **Backend APIs**:
+    - `GET /api/government/flagging-rules` - Get all rules with stats
+    - `PUT /api/government/flagging-rules/{rule_id}` - Update a rule
+    - `POST /api/government/flagging-rules` - Create custom rule
+    - `DELETE /api/government/flagging-rules/{rule_id}` - Delete custom rule
+    - `GET /api/government/flagged-transactions` - Get flagged transactions
+    - `POST /api/government/flagged-transactions/{flag_id}/resolve` - Resolve flag
+    - `POST /api/government/flagging/test-transaction` - Test rules
+  - **Frontend** (`/government/flagging`):
+    - Stats cards: Total Rules, Active Rules, Unresolved Flags, High Severity, Total Flags
+    - Rules tab: View/edit all rules with toggles and conditions
+    - Flagged Transactions tab: View and resolve flagged transactions
+    - Test Rules dialog: Test against sample transactions
+    - Add Rule dialog: Create custom flagging rules
 
 - **Partner Integration Opportunities** (NEW - Feb 20, 2026):
   - **Smart Safe IoT Integration** (Seeking Partner):
