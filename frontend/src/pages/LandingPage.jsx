@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { 
   Shield, CheckCircle, Lock, ArrowRight, Fingerprint, 
   Activity, Award, GraduationCap, Target, Users, Building,
-  ChevronRight, Eye, Sun, Moon, FileText, AlertTriangle, Send, X, Loader2
+  ChevronRight, Eye, Sun, Moon, FileText, AlertTriangle, Send, X, Loader2,
+  QrCode, Download, BarChart3, Bell, Palette, ClipboardList
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
