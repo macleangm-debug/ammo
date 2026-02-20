@@ -189,15 +189,74 @@ const FirearmOwners = ({ user, api }) => {
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
-      if (!searchQuery) return true;
-      const query = searchQuery.toLowerCase();
-      return (
-        u.name?.toLowerCase().includes(query) ||
-        u.email?.toLowerCase().includes(query) ||
-        u.user_id?.toLowerCase().includes(query)
-      );
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = (
+          u.name?.toLowerCase().includes(query) ||
+          u.email?.toLowerCase().includes(query) ||
+          u.user_id?.toLowerCase().includes(query)
+        );
+        if (!matchesSearch) return false;
+      }
+      
+      // Status filter
+      if (statusFilter !== "all") {
+        const profile = profiles.find(p => p.user_id === u.user_id);
+        const licenseStatus = profile ? getLicenseStatus(profile) : "pending";
+        if (licenseStatus !== statusFilter) return false;
+      }
+      
+      return true;
     });
-  }, [users, searchQuery]);
+  }, [users, searchQuery, statusFilter, profiles]);
+  
+  // Displayed users (for infinite scroll)
+  const displayedUsers = useMemo(() => {
+    return filteredUsers.slice(0, displayCount);
+  }, [filteredUsers, displayCount]);
+  
+  const hasMore = displayCount < filteredUsers.length;
+  
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setDisplayCount(prev => Math.min(prev + 20, filteredUsers.length));
+      setLoadingMore(false);
+    }, 300);
+  }, [loadingMore, hasMore, filteredUsers.length]);
+  
+  // Intersection observer for infinite scroll
+  const observerRef = useRef(null);
+  const lastUserRef = useCallback((node) => {
+    if (loading || loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMore();
+      }
+    });
+    
+    if (node) observerRef.current.observe(node);
+  }, [loading, loadingMore, hasMore, loadMore]);
+  
+  // Generate avatar color based on name
+  const getAvatarColor = (name) => {
+    const colors = [
+      "from-blue-500 to-blue-600",
+      "from-purple-500 to-purple-600",
+      "from-green-500 to-green-600",
+      "from-orange-500 to-orange-600",
+      "from-pink-500 to-pink-600",
+      "from-teal-500 to-teal-600",
+      "from-indigo-500 to-indigo-600",
+      "from-rose-500 to-rose-600"
+    ];
+    const index = (name?.charCodeAt(0) || 0) % colors.length;
+    return colors[index];
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "N/A";
