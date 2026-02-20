@@ -5,7 +5,8 @@ import {
   CheckCircle, XCircle, Eye, RefreshCw, MapPin, Filter,
   ChevronRight, Zap, Target, Shield, Bell, AlertCircle,
   UserX, Ban, MessageSquare, Activity, BarChart3, PieChart,
-  ArrowUp, ArrowDown, Minus, Calendar, Settings, Home
+  ArrowUp, ArrowDown, Minus, Calendar, Settings, Home,
+  LayoutDashboard, FileText, Award, Palette
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
