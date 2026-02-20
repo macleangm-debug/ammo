@@ -348,6 +348,13 @@ Government portal pages:
 - Settings (`/government/settings`)
 
 ### Recent Updates (Feb 20, 2026)
+- **Landing Page Updated** to showcase new backend features:
+  - New "National Oversight Capabilities" section with 6 government features
+  - Firearm Owners Registry, Verified Certificates, Certificate Designer
+  - Review Management, Automated Notifications, Analytics Dashboard
+  - "Verify a Certificate" CTA with QR code icon and button
+  - Updated "Get Started" section with feature tags (Owners Registry, QR Certificates, CSV Export)
+
 - **Firearm Owners Registry Page** (`/government/owners`):
   - Lists all registered citizens and dealers
   - Summary cards: Citizens count, Dealers count, Active Licenses, Pending
