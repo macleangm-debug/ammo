@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 
-from ..utils.database import db, serialize_doc
-from ..utils.helpers import require_auth
+from utils.database import db, serialize_doc
+from utils.helpers import require_auth
 
 router = APIRouter(tags=["Partners"])
 
