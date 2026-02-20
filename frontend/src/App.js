@@ -26,6 +26,7 @@ import CertificateConfig from "./pages/CertificateConfig";
 import FirearmOwners from "./pages/FirearmOwners";
 import GovernmentPolicies from "./pages/GovernmentPolicies";
 import PartnerIntegrations from "./pages/PartnerIntegrations";
+import FlaggingRules from "./pages/FlaggingRules";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 import TrainingCourses from "./pages/TrainingCourses";
