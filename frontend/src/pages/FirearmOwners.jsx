@@ -644,14 +644,6 @@ const FirearmOwners = ({ user, api }) => {
                   {selectedUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
-                {selectedUser?.picture ? (
-                  <img src={selectedUser.picture} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-white font-semibold text-lg">
-                    {selectedUser?.name?.charAt(0) || 'U'}
-                  </span>
-                )}
-              </div>
               <div>
                 <div>{selectedUser?.name || "Unknown User"}</div>
                 <div className="text-sm font-normal text-muted-foreground">{selectedUser?.email}</div>
