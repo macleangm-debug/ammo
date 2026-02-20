@@ -23,6 +23,7 @@ import GovernmentNotifications from "./pages/GovernmentNotifications";
 import GovernmentTemplates from "./pages/GovernmentTemplatesV2";
 import GovernmentSettings from "./pages/GovernmentSettings";
 import CertificateConfig from "./pages/CertificateConfig";
+import FirearmOwners from "./pages/FirearmOwners";
 import Marketplace from "./pages/Marketplace";
 import ProfileSetup from "./pages/ProfileSetup";
 import TrainingCourses from "./pages/TrainingCourses";
