@@ -3181,7 +3181,6 @@ async def get_ammunition_purchases(
     }
 
 
-    }
 @api_router.get("/government/stolen-firearms")
 async def get_stolen_firearms(
     status: Optional[str] = "stolen",
