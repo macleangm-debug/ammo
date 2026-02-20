@@ -271,7 +271,7 @@ const GovernmentTemplatesV2 = ({ user, api }) => {
 
   return (
     <DashboardLayout user={user} api={api} navItems={NAV_ITEMS} subtitle="Government Portal">
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
