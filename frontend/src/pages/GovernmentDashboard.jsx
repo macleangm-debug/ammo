@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Shield, Filter, Search,
   BarChart3, PieChart as PieChartIcon, Map, Settings, DollarSign, GraduationCap,
   Bell, AlertCircle, UserX, Ban, MessageSquare, FileText,
-  ChevronRight, Zap, Target, Scale, BookOpen, Award, ArrowUpRight, Palette
+  ChevronRight, Zap, Target, Scale, BookOpen, Award, ArrowUpRight, Palette, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
