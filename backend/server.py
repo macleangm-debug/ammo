@@ -137,7 +137,41 @@ class CitizenProfile(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     biometric_verified: bool = False
+    # Annual Fee Fields
+    member_annual_fee: float = 150.00  # Base license fee per year
+    fee_paid_until: Optional[datetime] = None  # When fees are paid through
+    fee_status: str = "pending"  # pending, paid, overdue
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RegisteredFirearm(BaseModel):
+    """Individual firearm registered to a citizen"""
+    model_config = ConfigDict(extra="ignore")
+    firearm_id: str = Field(default_factory=lambda: f"fa_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    serial_number: str
+    make: str  # Manufacturer
+    model: str
+    caliber: str
+    firearm_type: str  # handgun, rifle, shotgun
+    purchase_date: Optional[datetime] = None
+    registration_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    annual_fee: float = 50.00  # Per-firearm annual fee
+    fee_paid_until: Optional[datetime] = None
+    fee_status: str = "pending"  # pending, paid, overdue
+    status: str = "active"  # active, transferred, stolen, destroyed
+    notes: Optional[str] = None
+
+
+class FirearmCreate(BaseModel):
+    """Request model for registering a new firearm"""
+    serial_number: str
+    make: str
+    model: str
+    caliber: str
+    firearm_type: str
+    purchase_date: Optional[str] = None
+    notes: Optional[str] = None
 
 class DealerProfile(BaseModel):
     model_config = ConfigDict(extra="ignore")
