@@ -8,9 +8,9 @@ import os
 import time
 
 # Use the preview URL for testing
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ammo-doc-verify.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ammo-owners-registry.preview.emergentagent.com')
 if not BASE_URL:
-    BASE_URL = 'https://ammo-doc-verify.preview.emergentagent.com'
+    BASE_URL = 'https://ammo-owners-registry.preview.emergentagent.com'
 API_URL = f"{BASE_URL}/api"
 
 
