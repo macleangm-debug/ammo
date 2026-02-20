@@ -11280,6 +11280,7 @@ app.include_router(api_router)
 # Include modular routers with /api prefix
 app.include_router(partners_router, prefix="/api")
 app.include_router(flagging_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
