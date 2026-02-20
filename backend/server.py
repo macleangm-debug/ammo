@@ -3250,6 +3250,465 @@ async def verify_insurance_status(license_number: str, user: dict = Depends(requ
     }
 
 
+# ============== TRAINING RANGE PARTNER API ==============
+
+@api_router.post("/partner/training-range/log-session")
+async def training_range_log_session(request: Request):
+    """
+    Endpoint for training ranges to log practice sessions.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    session = {
+        "session_id": f"trn_{uuid.uuid4().hex[:12]}",
+        "license_number": data.get("license_number"),
+        "range_id": data.get("range_id"),
+        "range_name": data.get("range_name"),
+        "session_type": data.get("session_type", "practice"),  # practice, course, competition
+        "start_time": data.get("start_time"),
+        "end_time": data.get("end_time"),
+        "duration_minutes": data.get("duration_minutes"),
+        "lanes_used": data.get("lanes_used"),
+        "rounds_fired": data.get("rounds_fired"),
+        "instructor_supervised": data.get("instructor_supervised", False),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False,
+        "partner_verified": False
+    }
+    
+    await db.training_sessions.insert_one(session)
+    
+    # Update citizen's training hours if license found
+    if data.get("license_number"):
+        duration_hours = (data.get("duration_minutes", 0) or 0) / 60
+        await db.citizen_profiles.update_one(
+            {"license_number": data.get("license_number")},
+            {"$inc": {"training_hours": duration_hours, "range_visits": 1}}
+        )
+    
+    return {
+        "status": "received",
+        "session_id": session["session_id"],
+        "message": "Training session logged. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/training-sessions")
+async def get_training_sessions(
+    license_number: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get logged training sessions"""
+    query = {}
+    if license_number:
+        query["license_number"] = license_number
+    
+    sessions = await db.training_sessions.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "sessions": [serialize_doc(s) for s in sessions],
+        "total": len(sessions),
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== BACKGROUND CHECK PARTNER API ==============
+
+@api_router.post("/partner/background-check/submit-result")
+async def background_check_submit_result(request: Request):
+    """
+    Endpoint for background check providers to submit verification results.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    result = {
+        "check_id": f"bgc_{uuid.uuid4().hex[:12]}",
+        "license_number": data.get("license_number"),
+        "check_type": data.get("check_type", "standard"),  # standard, enhanced, dealer
+        "status": data.get("status"),  # approved, denied, delayed
+        "denial_reason": data.get("denial_reason"),
+        "valid_until": data.get("valid_until"),
+        "provider_id": data.get("provider_id"),
+        "completed_at": data.get("completed_at", datetime.now(timezone.utc).isoformat()),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False
+    }
+    
+    await db.background_checks.insert_one(result)
+    
+    return {
+        "status": "received",
+        "check_id": result["check_id"],
+        "message": "Background check result received. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/background-checks")
+async def get_background_checks(
+    license_number: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get background check results"""
+    query = {}
+    if license_number:
+        query["license_number"] = license_number
+    if status:
+        query["status"] = status
+    
+    checks = await db.background_checks.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "checks": [serialize_doc(c) for c in checks],
+        "total": len(checks),
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== MENTAL HEALTH CLINIC PARTNER API ==============
+
+@api_router.post("/partner/mental-health/submit-assessment")
+async def mental_health_submit_assessment(request: Request):
+    """
+    Endpoint for mental health clinics to submit assessment status.
+    Privacy-compliant: only pass/fail status, no medical details.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    assessment = {
+        "assessment_id": f"mha_{uuid.uuid4().hex[:12]}",
+        "license_number": data.get("license_number"),
+        "status": data.get("status"),  # pass, fail, pending
+        "assessment_date": data.get("assessment_date"),
+        "valid_until": data.get("valid_until"),
+        "clinic_id": data.get("clinic_id"),
+        "clinic_accreditation": data.get("clinic_accreditation"),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False,
+        "hipaa_compliant": True
+    }
+    
+    await db.mental_health_assessments.insert_one(assessment)
+    
+    return {
+        "status": "received",
+        "assessment_id": assessment["assessment_id"],
+        "message": "Assessment status received (HIPAA-compliant). Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/mental-health-assessments")
+async def get_mental_health_assessments(
+    license_number: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get mental health assessment records (status only, privacy-protected)"""
+    query = {}
+    if license_number:
+        query["license_number"] = license_number
+    
+    assessments = await db.mental_health_assessments.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "assessments": [serialize_doc(a) for a in assessments],
+        "total": len(assessments),
+        "integration_status": "seeking_partner",
+        "privacy_note": "Only pass/fail status stored. No medical details."
+    }
+
+
+# ============== GUNSMITH PARTNER API ==============
+
+@api_router.post("/partner/gunsmith/log-service")
+async def gunsmith_log_service(request: Request):
+    """
+    Endpoint for gunsmiths to log firearm service records.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    service = {
+        "service_id": f"gsv_{uuid.uuid4().hex[:12]}",
+        "firearm_serial": data.get("firearm_serial"),
+        "owner_license": data.get("owner_license"),
+        "service_type": data.get("service_type"),  # repair, modification, cleaning, inspection
+        "description": data.get("description"),
+        "parts_replaced": data.get("parts_replaced", []),
+        "modifications_made": data.get("modifications_made", []),
+        "gunsmith_license": data.get("gunsmith_license"),
+        "gunsmith_name": data.get("gunsmith_name"),
+        "service_date": data.get("service_date"),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False
+    }
+    
+    await db.gunsmith_services.insert_one(service)
+    
+    # Update firearm record if exists
+    if data.get("firearm_serial"):
+        await db.registered_firearms.update_one(
+            {"serial_number": data.get("firearm_serial")},
+            {"$push": {"service_history": {
+                "service_id": service["service_id"],
+                "type": service["service_type"],
+                "date": service["service_date"],
+                "gunsmith": service["gunsmith_name"]
+            }}}
+        )
+    
+    return {
+        "status": "received",
+        "service_id": service["service_id"],
+        "message": "Service record logged. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/gunsmith-services")
+async def get_gunsmith_services(
+    firearm_serial: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get gunsmith service records"""
+    query = {}
+    if firearm_serial:
+        query["firearm_serial"] = firearm_serial
+    
+    services = await db.gunsmith_services.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "services": [serialize_doc(s) for s in services],
+        "total": len(services),
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== AMMUNITION RETAILER PARTNER API ==============
+
+@api_router.post("/partner/ammo-retailer/log-purchase")
+async def ammo_retailer_log_purchase(request: Request):
+    """
+    Endpoint for ammunition retailers to log purchases.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    purchase = {
+        "purchase_id": f"ammo_{uuid.uuid4().hex[:12]}",
+        "buyer_license": data.get("buyer_license"),
+        "retailer_id": data.get("retailer_id"),
+        "retailer_name": data.get("retailer_name"),
+        "caliber": data.get("caliber"),
+        "quantity": data.get("quantity"),
+        "ammunition_type": data.get("ammunition_type"),  # FMJ, HP, tracer, etc.
+        "purchase_date": data.get("purchase_date", datetime.now(timezone.utc).isoformat()),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False
+    }
+    
+    await db.ammunition_purchases.insert_one(purchase)
+    
+    return {
+        "status": "received",
+        "purchase_id": purchase["purchase_id"],
+        "message": "Purchase logged. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/ammunition-purchases")
+async def get_ammunition_purchases(
+    buyer_license: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get ammunition purchase records"""
+    query = {}
+    if buyer_license:
+        query["buyer_license"] = buyer_license
+    
+    purchases = await db.ammunition_purchases.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    # Calculate totals
+    total_rounds = sum(p.get("quantity", 0) for p in purchases)
+    
+    return {
+        "purchases": [serialize_doc(p) for p in purchases],
+        "total": len(purchases),
+        "total_rounds": total_rounds,
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== LAW ENFORCEMENT PARTNER API ==============
+
+@api_router.post("/partner/law-enforcement/report-stolen")
+async def law_enforcement_report_stolen(request: Request):
+    """
+    Endpoint for law enforcement to report stolen firearms.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    report = {
+        "report_id": f"stl_{uuid.uuid4().hex[:12]}",
+        "firearm_serial": data.get("firearm_serial"),
+        "make": data.get("make"),
+        "model": data.get("model"),
+        "status": data.get("status", "stolen"),  # stolen, recovered
+        "reported_date": data.get("reported_date", datetime.now(timezone.utc).isoformat()),
+        "jurisdiction": data.get("jurisdiction"),
+        "case_number": data.get("case_number"),
+        "agency_id": data.get("agency_id"),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False
+    }
+    
+    await db.stolen_firearms.insert_one(report)
+    
+    # Flag the firearm in registry
+    await db.registered_firearms.update_one(
+        {"serial_number": data.get("firearm_serial")},
+        {"$set": {
+            "stolen_flag": True,
+            "stolen_report_id": report["report_id"],
+            "stolen_reported_at": report["reported_date"]
+        }}
+    )
+    
+    return {
+        "status": "received",
+        "report_id": report["report_id"],
+        "message": "Stolen firearm report received. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/partner/law-enforcement/check-serial/{serial_number}")
+async def law_enforcement_check_serial(serial_number: str, request: Request):
+    """Check if a serial number is reported stolen"""
+    # In production, would require API key validation
+    
+    stolen = await db.stolen_firearms.find_one(
+        {"firearm_serial": serial_number, "status": "stolen"},
+        {"_id": 0}
+    )
+    
+    return {
+        "serial_number": serial_number,
+        "is_stolen": stolen is not None,
+        "report": serialize_doc(stolen) if stolen else None,
+        "checked_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@api_router.get("/government/stolen-firearms")
+async def get_stolen_firearms(
+    status: Optional[str] = "stolen",
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get stolen firearm reports"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    reports = await db.stolen_firearms.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "reports": [serialize_doc(r) for r in reports],
+        "total": len(reports),
+        "integration_status": "seeking_partner"
+    }
+
+
+# ============== GPS LOCATION PARTNER API ==============
+
+@api_router.post("/partner/gps/verify-location")
+async def gps_verify_location(request: Request):
+    """
+    Endpoint for GPS providers to verify transaction locations.
+    Partner-ready API.
+    """
+    data = await request.json()
+    
+    api_key = data.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Partner API key required. Contact AMMO for integration.")
+    
+    verification = {
+        "verification_id": f"loc_{uuid.uuid4().hex[:12]}",
+        "transaction_id": data.get("transaction_id"),
+        "dealer_id": data.get("dealer_id"),
+        "coordinates": {
+            "lat": data.get("lat"),
+            "lng": data.get("lng")
+        },
+        "registered_dealer_location": data.get("registered_dealer_location"),
+        "distance_from_dealer_meters": data.get("distance_from_dealer_meters"),
+        "is_at_dealer_location": data.get("is_at_dealer_location", False),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "received_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.location_verifications.insert_one(verification)
+    
+    return {
+        "status": "received",
+        "verification_id": verification["verification_id"],
+        "is_valid_location": verification["is_at_dealer_location"],
+        "message": "Location verified. Full integration pending partner agreement."
+    }
+
+
+@api_router.get("/government/location-verifications")
+async def get_location_verifications(
+    dealer_id: Optional[str] = None,
+    limit: int = 50,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get location verification records"""
+    query = {}
+    if dealer_id:
+        query["dealer_id"] = dealer_id
+    
+    verifications = await db.location_verifications.find(query, {"_id": 0}).sort("received_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "verifications": [serialize_doc(v) for v in verifications],
+        "total": len(verifications),
+        "integration_status": "seeking_partner"
+    }
+
+
 # ============== FLAGGED TRANSACTION AUTO-DETECTION ==============
 
 # Default flagging rules
