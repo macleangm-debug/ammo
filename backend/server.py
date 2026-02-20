@@ -7173,6 +7173,51 @@ async def get_users_list(
         "role_counts": role_counts
     }
 
+
+@api_router.get("/government/citizen-profiles")
+async def get_all_citizen_profiles(
+    limit: int = 200,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get all citizen profiles for admin view"""
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).limit(limit).to_list(limit)
+    return {"profiles": [serialize_doc(p) for p in profiles]}
+
+
+@api_router.get("/government/user-profile/{user_id}")
+async def get_user_profile_admin(
+    user_id: str,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get detailed profile for a specific user - admin only"""
+    # Get user basic info
+    user_info = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password": 0})
+    if not user_info:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get citizen profile if exists
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    # Get recent transactions
+    transactions = await db.transactions.find(
+        {"citizen_id": user_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(10).to_list(10)
+    
+    # Get compliance history
+    compliance_history = await db.compliance_history.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).sort("date", -1).limit(10).to_list(10)
+    
+    return {
+        "user": serialize_doc(user_info),
+        "profile": serialize_doc(profile) if profile else None,
+        "recent_transactions": [serialize_doc(t) for t in transactions],
+        "compliance_history": [serialize_doc(c) for c in compliance_history]
+    }
+
+
 # ============== FORMAL DOCUMENTS & CERTIFICATES SYSTEM ==============
 
 # Standard templates that come pre-loaded
