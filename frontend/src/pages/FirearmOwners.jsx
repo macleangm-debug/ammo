@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Activity, AlertTriangle, Settings,
@@ -6,8 +6,8 @@ import {
   User, Mail, Calendar, MapPin, Shield, Bell, Eye,
   ChevronRight, ChevronDown, Download, Palette, UserCheck,
   Phone, Building, CreditCard, Clock, CheckCircle, XCircle,
-  DollarSign, Target, Crosshair, Handshake
-, Flag } from "lucide-react";
+  DollarSign, Target, Crosshair, Handshake, LayoutGrid, List,
+  Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
