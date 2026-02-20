@@ -308,9 +308,16 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Law Enforcement Databases, Payment Processors, GPS/Location Services
 - [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules, admin UI, test transaction feature
 - [x] **Backend Modularization Started**: Created /app/backend/routes/ structure with partners.py, flagging.py, auth.py
+- [x] **Firearm Owners Page Bug Fix** (Feb 20, 2026): Fixed status filter crash caused by undefined helper functions
+- [x] **Backend Router Integration** (Feb 20, 2026): 
+  - Included partners_router and flagging_router in main FastAPI app
+  - Fixed import paths for modular routes (utils, models now use absolute imports)
+  - Both routers now functional with /api prefix
 
 ### P1 - High Priority
-- [ ] Complete backend modularization (continue extracting routes from server.py ~12,300+ lines)
+- [ ] Complete backend modularization (continue extracting more routes from server.py ~12,300+ lines)
+  - Partners and Flagging routes now exist in both server.py AND route files (duplicates to be cleaned)
+  - Next: Remove duplicate endpoints from server.py, migrate auth, government, policies, etc.
 
 ### P2 - Medium Priority  
 - [ ] Community Mentor Matching
