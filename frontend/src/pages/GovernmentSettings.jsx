@@ -17,6 +17,7 @@ import DashboardLayout from "../components/DashboardLayout";
 // Government navigation items
 const NAV_ITEMS = [
   { id: 'dashboard', path: '/government', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'owners', path: '/government/owners', label: 'Owners', icon: Users },
   { id: 'reviews', path: '/government/reviews', label: 'Reviews', icon: FileText },
   { id: 'templates', path: '/government/templates', label: 'Templates', icon: FileText },
   { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Palette },
