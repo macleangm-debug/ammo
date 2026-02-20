@@ -257,6 +257,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/owners"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <FirearmOwners user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/government/alerts-dashboard"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
