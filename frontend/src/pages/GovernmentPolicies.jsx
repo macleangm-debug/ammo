@@ -5,7 +5,8 @@ import {
   AlertTriangle, Palette, Save, Loader2, Users, DollarSign,
   Clock, Shield, GraduationCap, Target, Building, CheckCircle,
   XCircle, RefreshCw, ChevronRight, AlertCircle, Hospital,
-  Plus, Edit, Trash2, Globe, Percent, Calendar, Award
+  Plus, Edit, Trash2, Globe, Percent, Calendar, Award, Play,
+  Pause, Zap, History, UserCheck
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
