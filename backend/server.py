@@ -1274,6 +1274,300 @@ async def get_citizen_transactions(user: dict = Depends(require_auth(["citizen",
     ).sort("created_at", -1).to_list(100)
     return [serialize_doc(t) for t in transactions]
 
+
+# ============== FIREARMS REGISTRATION & ANNUAL FEES ==============
+
+@api_router.get("/citizen/firearms")
+async def get_citizen_firearms(user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get citizen's registered firearms"""
+    firearms = await db.registered_firearms.find(
+        {"user_id": user["user_id"], "status": {"$ne": "transferred"}},
+        {"_id": 0}
+    ).sort("registration_date", -1).to_list(100)
+    return {"firearms": [serialize_doc(f) for f in firearms]}
+
+
+@api_router.post("/citizen/firearms")
+async def register_firearm(firearm_data: FirearmCreate, user: dict = Depends(require_auth(["citizen"]))):
+    """Register a new firearm to the citizen's account"""
+    # Check for duplicate serial number
+    existing = await db.registered_firearms.find_one({"serial_number": firearm_data.serial_number, "status": "active"})
+    if existing:
+        raise HTTPException(status_code=400, detail="A firearm with this serial number is already registered")
+    
+    firearm = {
+        "firearm_id": f"fa_{uuid.uuid4().hex[:12]}",
+        "user_id": user["user_id"],
+        "serial_number": firearm_data.serial_number,
+        "make": firearm_data.make,
+        "model": firearm_data.model,
+        "caliber": firearm_data.caliber,
+        "firearm_type": firearm_data.firearm_type,
+        "purchase_date": firearm_data.purchase_date,
+        "registration_date": datetime.now(timezone.utc).isoformat(),
+        "annual_fee": 50.00,  # Default per-firearm fee
+        "fee_paid_until": None,
+        "fee_status": "pending",
+        "status": "active",
+        "notes": firearm_data.notes
+    }
+    
+    await db.registered_firearms.insert_one(firearm)
+    
+    # Create a review item for government approval
+    review = {
+        "review_id": f"rev_{uuid.uuid4().hex[:12]}",
+        "item_type": "firearm_registration",
+        "item_id": firearm["firearm_id"],
+        "submitted_by": user["user_id"],
+        "submitter_name": user.get("name", "Unknown"),
+        "submitter_email": user.get("email", ""),
+        "status": "pending",
+        "priority": "normal",
+        "region": "northeast",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "notes": []
+    }
+    await db.reviews.insert_one(review)
+    
+    return {"message": "Firearm registered successfully", "firearm_id": firearm["firearm_id"]}
+
+
+@api_router.get("/citizen/firearms/{firearm_id}")
+async def get_firearm_details(firearm_id: str, user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get details of a specific firearm"""
+    query = {"firearm_id": firearm_id}
+    if user["role"] != "admin":
+        query["user_id"] = user["user_id"]
+    
+    firearm = await db.registered_firearms.find_one(query, {"_id": 0})
+    if not firearm:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    return serialize_doc(firearm)
+
+
+@api_router.put("/citizen/firearms/{firearm_id}")
+async def update_firearm(firearm_id: str, updates: dict, user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Update firearm details"""
+    query = {"firearm_id": firearm_id}
+    if user["role"] != "admin":
+        query["user_id"] = user["user_id"]
+    
+    allowed_fields = ["notes", "status"]
+    if user["role"] == "admin":
+        allowed_fields.extend(["annual_fee", "fee_paid_until", "fee_status"])
+    
+    update_data = {k: v for k, v in updates.items() if k in allowed_fields}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    result = await db.registered_firearms.update_one(query, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    return {"message": "Firearm updated successfully"}
+
+
+@api_router.get("/citizen/fees-summary")
+async def get_citizen_fees_summary(user: dict = Depends(require_auth(["citizen", "admin"]))):
+    """Get summary of all annual fees for a citizen"""
+    user_id = user["user_id"]
+    
+    # Get citizen profile for license fee
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    # Get all active firearms
+    firearms = await db.registered_firearms.find(
+        {"user_id": user_id, "status": "active"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Calculate totals
+    license_fee = profile.get("member_annual_fee", 150.00) if profile else 150.00
+    license_fee_status = profile.get("fee_status", "pending") if profile else "pending"
+    license_fee_paid_until = profile.get("fee_paid_until") if profile else None
+    
+    firearms_total_fee = sum(f.get("annual_fee", 50.00) for f in firearms)
+    firearms_count = len(firearms)
+    
+    # Check for overdue fees
+    now = datetime.now(timezone.utc)
+    overdue_firearms = [f for f in firearms if f.get("fee_status") == "overdue" or 
+                       (f.get("fee_paid_until") and datetime.fromisoformat(f["fee_paid_until"].replace("Z", "+00:00")) < now)]
+    
+    return {
+        "license_fee": {
+            "amount": license_fee,
+            "status": license_fee_status,
+            "paid_until": license_fee_paid_until,
+            "description": "Annual Member License Fee"
+        },
+        "firearms_fees": {
+            "count": firearms_count,
+            "per_firearm_fee": 50.00,
+            "total_amount": firearms_total_fee,
+            "overdue_count": len(overdue_firearms),
+            "description": "Annual Registration Fee per Firearm"
+        },
+        "total_annual_fees": license_fee + firearms_total_fee,
+        "firearms": [serialize_doc(f) for f in firearms]
+    }
+
+
+@api_router.post("/citizen/pay-fees")
+async def pay_annual_fees(payment_data: dict, user: dict = Depends(require_auth(["citizen"]))):
+    """Process annual fee payment (simulated)"""
+    user_id = user["user_id"]
+    fee_type = payment_data.get("fee_type", "all")  # license, firearms, all
+    firearm_ids = payment_data.get("firearm_ids", [])  # Specific firearms to pay for
+    
+    now = datetime.now(timezone.utc)
+    next_year = datetime(now.year + 1, now.month, now.day, tzinfo=timezone.utc)
+    
+    payments_made = []
+    
+    if fee_type in ["license", "all"]:
+        # Pay license fee
+        await db.citizen_profiles.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "fee_status": "paid",
+                "fee_paid_until": next_year.isoformat()
+            }}
+        )
+        payments_made.append({"type": "license", "amount": 150.00})
+    
+    if fee_type in ["firearms", "all"]:
+        # Pay firearms fees
+        query = {"user_id": user_id, "status": "active"}
+        if firearm_ids:
+            query["firearm_id"] = {"$in": firearm_ids}
+        
+        firearms = await db.registered_firearms.find(query, {"_id": 0}).to_list(100)
+        
+        for firearm in firearms:
+            await db.registered_firearms.update_one(
+                {"firearm_id": firearm["firearm_id"]},
+                {"$set": {
+                    "fee_status": "paid",
+                    "fee_paid_until": next_year.isoformat()
+                }}
+            )
+            payments_made.append({"type": "firearm", "firearm_id": firearm["firearm_id"], "amount": firearm.get("annual_fee", 50.00)})
+    
+    total_paid = sum(p["amount"] for p in payments_made)
+    
+    # Record payment transaction
+    payment_record = {
+        "payment_id": f"pay_{uuid.uuid4().hex[:12]}",
+        "user_id": user_id,
+        "amount": total_paid,
+        "fee_type": fee_type,
+        "payments": payments_made,
+        "payment_date": now.isoformat(),
+        "status": "completed",
+        "valid_until": next_year.isoformat()
+    }
+    await db.fee_payments.insert_one(payment_record)
+    
+    return {
+        "message": "Payment processed successfully",
+        "total_paid": total_paid,
+        "valid_until": next_year.isoformat(),
+        "payments": payments_made
+    }
+
+
+# Government endpoints for managing fees
+@api_router.get("/government/fees-overview")
+async def get_fees_overview(user: dict = Depends(require_auth(["admin"]))):
+    """Get overview of all fees across the platform"""
+    # Count profiles by fee status
+    profiles = await db.citizen_profiles.find({}, {"_id": 0, "fee_status": 1, "member_annual_fee": 1}).to_list(10000)
+    
+    license_stats = {
+        "paid": len([p for p in profiles if p.get("fee_status") == "paid"]),
+        "pending": len([p for p in profiles if p.get("fee_status") == "pending"]),
+        "overdue": len([p for p in profiles if p.get("fee_status") == "overdue"]),
+        "total_expected": len(profiles) * 150.00
+    }
+    
+    # Count firearms by fee status
+    firearms = await db.registered_firearms.find({"status": "active"}, {"_id": 0, "fee_status": 1, "annual_fee": 1}).to_list(100000)
+    
+    firearms_stats = {
+        "total_firearms": len(firearms),
+        "paid": len([f for f in firearms if f.get("fee_status") == "paid"]),
+        "pending": len([f for f in firearms if f.get("fee_status") == "pending"]),
+        "overdue": len([f for f in firearms if f.get("fee_status") == "overdue"]),
+        "total_expected": sum(f.get("annual_fee", 50.00) for f in firearms)
+    }
+    
+    # Recent payments
+    recent_payments = await db.fee_payments.find({}, {"_id": 0}).sort("payment_date", -1).limit(10).to_list(10)
+    
+    return {
+        "license_fees": license_stats,
+        "firearms_fees": firearms_stats,
+        "total_expected_revenue": license_stats["total_expected"] + firearms_stats["total_expected"],
+        "recent_payments": [serialize_doc(p) for p in recent_payments]
+    }
+
+
+@api_router.get("/government/firearms-registry")
+async def get_all_firearms(
+    user_id: str = None,
+    firearm_type: str = None,
+    status: str = None,
+    fee_status: str = None,
+    limit: int = 100,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get all registered firearms with filters"""
+    query = {}
+    if user_id:
+        query["user_id"] = user_id
+    if firearm_type:
+        query["firearm_type"] = firearm_type
+    if status:
+        query["status"] = status
+    if fee_status:
+        query["fee_status"] = fee_status
+    
+    firearms = await db.registered_firearms.find(query, {"_id": 0}).sort("registration_date", -1).limit(limit).to_list(limit)
+    
+    # Get user info for each firearm
+    user_ids = list(set(f["user_id"] for f in firearms))
+    users = await db.users.find({"user_id": {"$in": user_ids}}, {"_id": 0, "password": 0}).to_list(len(user_ids))
+    users_map = {u["user_id"]: u for u in users}
+    
+    # Enrich with user info
+    for firearm in firearms:
+        firearm["owner"] = users_map.get(firearm["user_id"], {})
+    
+    # Stats
+    stats = {
+        "total": len(firearms),
+        "by_type": {},
+        "by_status": {},
+        "by_fee_status": {}
+    }
+    
+    for f in firearms:
+        ftype = f.get("firearm_type", "unknown")
+        stats["by_type"][ftype] = stats["by_type"].get(ftype, 0) + 1
+        
+        fstatus = f.get("status", "unknown")
+        stats["by_status"][fstatus] = stats["by_status"].get(fstatus, 0) + 1
+        
+        fee_st = f.get("fee_status", "pending")
+        stats["by_fee_status"][fee_st] = stats["by_fee_status"].get(fee_st, 0) + 1
+    
+    return {
+        "firearms": [serialize_doc(f) for f in firearms],
+        "stats": stats
+    }
+
+
 @api_router.get("/citizen/notifications")
 async def get_citizen_notifications(user: dict = Depends(require_auth(["citizen", "admin"]))):
     """Get citizen's notifications"""
