@@ -6,7 +6,7 @@ import {
   ChevronRight, Zap, Target, Shield, Bell, AlertCircle,
   UserX, Ban, MessageSquare, Activity, BarChart3, PieChart,
   ArrowUp, ArrowDown, Minus, Calendar, Settings, Home,
-  LayoutDashboard, FileText, Award, Palette
+  LayoutDashboard, FileText, Award, Palette, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -60,6 +60,7 @@ const AlertsDashboard = ({ user, api }) => {
     { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
     { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
+    { id: 'partners', path: '/government/partners', label: 'Partners', icon: Handshake },
     { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
   ];
 
