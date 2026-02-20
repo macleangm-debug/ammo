@@ -398,8 +398,8 @@ const PendingReviews = ({ user, api }) => {
       </div>
 
       {/* Review Detail Dialog */}
-      <Dialog open={!!selectedReview} onOpenChange={() => { setSelectedReview(null); setReviewDetail(null); setDecisionReason(""); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!selectedReview} onOpenChange={() => { setSelectedReview(null); setReviewDetail(null); setDecisionReason(""); setNoteText(""); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedReview && (() => {
@@ -490,58 +490,24 @@ const PendingReviews = ({ user, api }) => {
                 </div>
               )}
 
-              {/* Add Note */}
-              {reviewDetail.review?.status === 'pending' || reviewDetail.review?.status === 'under_review' ? (
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">Add Note</h4>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Add a note..."
-                      value={noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAddNote} disabled={processing || !noteText.trim()}>
-                      Add
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Decision */}
+              {/* Add Note - with isolated state to prevent parent re-renders */}
               {(reviewDetail.review?.status === 'pending' || reviewDetail.review?.status === 'under_review') && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-3">Make Decision</h4>
-                  <div className="space-y-3">
-                    <Textarea 
-                      placeholder="Reason for decision (required)..."
-                      value={decisionReason}
-                      onChange={(e) => setDecisionReason(e.target.value)}
-                      rows={3}
-                      data-testid="decision-reason-input"
-                    />
-                    <div className="flex gap-3">
-                      <Button 
-                        onClick={() => handleDecision('approved')} 
-                        disabled={processing}
-                        className="bg-green-600 hover:bg-green-700"
-                        data-testid="approve-btn"
-                      >
-                        {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                        Approve
-                      </Button>
-                      <Button 
-                        onClick={() => handleDecision('rejected')} 
-                        disabled={processing}
-                        variant="destructive"
-                        data-testid="reject-btn"
-                      >
-                        {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <NoteInput
+                  noteText={noteText}
+                  onNoteChange={setNoteText}
+                  onAddNote={handleAddNote}
+                  processing={processing}
+                />
+              )}
+
+              {/* Decision - with isolated state to prevent parent re-renders */}
+              {(reviewDetail.review?.status === 'pending' || reviewDetail.review?.status === 'under_review') && (
+                <DecisionInput
+                  decisionReason={decisionReason}
+                  onReasonChange={setDecisionReason}
+                  onDecision={handleDecision}
+                  processing={processing}
+                />
               )}
 
               {/* Decision Made */}
@@ -571,5 +537,68 @@ const PendingReviews = ({ user, api }) => {
     </DashboardLayout>
   );
 };
+
+// Memoized Note Input Component to isolate re-renders
+const NoteInput = memo(({ noteText, onNoteChange, onAddNote, processing }) => {
+  return (
+    <div className="border rounded-lg p-4">
+      <h4 className="font-semibold mb-3">Add Note</h4>
+      <div className="flex gap-2">
+        <Input 
+          placeholder="Add a note..."
+          value={noteText}
+          onChange={(e) => onNoteChange(e.target.value)}
+          className="flex-1"
+          data-testid="note-input"
+        />
+        <Button onClick={onAddNote} disabled={processing || !noteText.trim()}>
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+NoteInput.displayName = 'NoteInput';
+
+// Memoized Decision Input Component to isolate re-renders
+const DecisionInput = memo(({ decisionReason, onReasonChange, onDecision, processing }) => {
+  return (
+    <div className="border-t pt-4">
+      <h4 className="font-semibold mb-3">Make Decision</h4>
+      <div className="space-y-3">
+        <Textarea 
+          placeholder="Reason for decision (required)..."
+          value={decisionReason}
+          onChange={(e) => onReasonChange(e.target.value)}
+          rows={3}
+          data-testid="decision-reason-input"
+        />
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => onDecision('approved')} 
+            disabled={processing}
+            className="bg-green-600 hover:bg-green-700"
+            data-testid="approve-btn"
+          >
+            {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+            Approve
+          </Button>
+          <Button 
+            onClick={() => onDecision('rejected')} 
+            disabled={processing}
+            variant="destructive"
+            data-testid="reject-btn"
+          >
+            {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+            Reject
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+DecisionInput.displayName = 'DecisionInput';
 
 export default PendingReviews;
