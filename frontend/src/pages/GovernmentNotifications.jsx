@@ -5,7 +5,7 @@ import {
   FileText, Bell, Send, Plus, Trash2, Edit, Eye, Check,
   Users, Zap, Clock, ChevronRight, RefreshCw, Loader2,
   Mail, Megaphone, Shield, GraduationCap, CreditCard,
-  ToggleLeft, ToggleRight, Play, Filter, Search, X
+  ToggleLeft, ToggleRight, Play, Filter, Search, X, Palette, Award
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
