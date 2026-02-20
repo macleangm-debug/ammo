@@ -249,6 +249,30 @@ async def get_partner_integration_details(integration_id: str, user: dict = Depe
     }
 
 
+@router.post("/government/partner-integrations/{integration_id}/register-interest")
+async def register_partner_interest(integration_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Register interest in a partner integration (for internal tracking)"""
+    data = await request.json()
+    
+    interest = {
+        "interest_id": f"int_{uuid.uuid4().hex[:12]}",
+        "integration_id": integration_id,
+        "registered_by": user["user_id"],
+        "partner_name": data.get("partner_name", ""),
+        "contact_email": data.get("contact_email", ""),
+        "notes": data.get("notes", ""),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
+        "status": "pending_review"
+    }
+    
+    await db.partner_interests.insert_one(interest)
+    
+    return {
+        "message": "Interest registered successfully",
+        "interest_id": interest["interest_id"]
+    }
+
+
 # ============== PARTNER API ENDPOINTS ==============
 
 @router.post("/partner/smart-safe/status-report")
