@@ -394,6 +394,27 @@ const FirearmOwners = ({ user, api }) => {
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {/* View Toggle */}
+              <div className="flex items-center border rounded-lg">
+                <Button 
+                  variant={viewMode === "cards" ? "default" : "ghost"} 
+                  size="sm"
+                  onClick={() => setViewMode("cards")}
+                  className="rounded-r-none"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant={viewMode === "table" ? "default" : "ghost"} 
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="rounded-l-none"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+              
               <Button variant="outline" onClick={fetchUsers}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -423,6 +444,9 @@ const FirearmOwners = ({ user, api }) => {
                 <Users className="w-5 h-5" />
                 {roleFilter === "citizen" ? "Registered Firearm Owners" : roleFilter === "dealer" ? "Licensed Dealers" : "All Users"} 
                 <Badge variant="outline">{filteredUsers.length}</Badge>
+              </span>
+              <span className="text-sm font-normal text-muted-foreground">
+                Showing {displayedUsers.length} of {filteredUsers.length}
               </span>
             </CardTitle>
           </CardHeader>
