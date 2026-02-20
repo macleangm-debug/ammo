@@ -73,14 +73,18 @@ const FirearmOwners = ({ user, api }) => {
       if (roleFilter && roleFilter !== "all") params.append("role", roleFilter);
       params.append("limit", "200");
       
-      const [usersRes, profilesRes] = await Promise.all([
+      const [usersRes, profilesRes, firearmsRes, feesRes] = await Promise.all([
         api.get(`/government/users-list?${params.toString()}`),
-        api.get("/government/citizen-profiles").catch(() => ({ data: { profiles: [] } }))
+        api.get("/government/citizen-profiles").catch(() => ({ data: { profiles: [] } })),
+        api.get("/government/firearms-registry").catch(() => ({ data: { firearms: [], stats: {} } })),
+        api.get("/government/fees-overview").catch(() => ({ data: null }))
       ]);
       
       setUsers(usersRes.data.users || []);
       setRoleCounts(usersRes.data.role_counts || {});
       setProfiles(profilesRes.data.profiles || []);
+      setFirearmsRegistry(firearmsRes.data.firearms || []);
+      setFeesOverview(feesRes.data);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to load users");
@@ -88,6 +92,20 @@ const FirearmOwners = ({ user, api }) => {
       setLoading(false);
     }
   };
+
+  // Get firearms count for a specific user
+  const getUserFirearmsCount = useCallback((userId) => {
+    return firearmsRegistry.filter(f => f.user_id === userId && f.status === "active").length;
+  }, [firearmsRegistry]);
+
+  // Get user's total annual fees
+  const getUserTotalFees = useCallback((userId) => {
+    const profile = profiles.find(p => p.user_id === userId);
+    const licenseFee = profile?.member_annual_fee || 150;
+    const userFirearms = firearmsRegistry.filter(f => f.user_id === userId && f.status === "active");
+    const firearmsFee = userFirearms.reduce((sum, f) => sum + (f.annual_fee || 50), 0);
+    return { licenseFee, firearmsFee, total: licenseFee + firearmsFee, firearmsCount: userFirearms.length };
+  }, [profiles, firearmsRegistry]);
 
   const handleExportCSV = async () => {
     try {
