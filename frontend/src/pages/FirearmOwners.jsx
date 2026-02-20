@@ -481,10 +481,11 @@ const FirearmOwners = ({ user, api }) => {
             </div>
           ) : (
             <Tabs defaultValue="profile" className="mt-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
                 <TabsTrigger value="license">License</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="firearms">Firearms</TabsTrigger>
+                <TabsTrigger value="fees">Fees</TabsTrigger>
               </TabsList>
               
               <TabsContent value="profile" className="space-y-4 mt-4">
