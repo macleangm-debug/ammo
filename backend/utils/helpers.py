@@ -7,7 +7,7 @@ from typing import List, Optional
 from fastapi import Request, HTTPException
 
 from .database import db
-from ..models.audit import AuditLog
+from models.audit import AuditLog
 
 logger = logging.getLogger(__name__)
 
