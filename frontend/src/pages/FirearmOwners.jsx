@@ -187,7 +187,7 @@ const FirearmOwners = ({ user, api }) => {
     }
   };
 
-  // Helper functions - must be defined before useMemo that uses them
+  // Helper function for license status - must be defined before useMemo that uses it
   const getLicenseStatus = useCallback((profile) => {
     if (!profile?.license_expiry) return "pending";
     if (profile.license_status === "suspended") return "suspended";
@@ -195,19 +195,6 @@ const FirearmOwners = ({ user, api }) => {
     if (expiry < new Date()) return "expired";
     return profile.status || "active";
   }, []);
-
-  const getUserTotalFees = useCallback((userId) => {
-    const profile = profiles.find(p => p.user_id === userId);
-    const licenseFee = 150; // Annual license fee
-    const firearmsCount = profile?.registered_firearms || 0;
-    const firearmFees = firearmsCount * 50; // $50 per firearm
-    return {
-      licenseFee,
-      firearmFees,
-      total: licenseFee + firearmFees,
-      firearmsCount
-    };
-  }, [profiles]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
