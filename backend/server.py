@@ -99,7 +99,8 @@ app = FastAPI(title="AMMO - Accountable Munitions & Mobility Oversight")
 api_router = APIRouter(prefix="/api")
 
 # Import modular routers
-from backend.routes import partners_router, flagging_router
+from routes.partners import router as partners_router
+from routes.flagging import router as flagging_router
 
 # Configure logging
 logging.basicConfig(
