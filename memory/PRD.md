@@ -307,24 +307,26 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
   - Mental Health Clinics, Gunsmith/Repair, Ammunition Retailers
   - Law Enforcement Databases, Payment Processors, GPS/Location Services
 - [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules, admin UI, test transaction feature
-- [x] **Backend Modularization Complete** (Feb 20, 2026):
-  - Created modular router structure: /app/backend/routes/ with partners.py, flagging.py, auth.py
-  - **server.py reduced from 12,319 → 11,120 lines** (~1,199 lines removed, ~10% reduction)
-  - Removed: All duplicate /partner/* endpoints (10 endpoints)
-  - Removed: All /government/partner-integrations/* endpoints (3 endpoints)
-  - Removed: All /auth/* endpoints (5 endpoints) - now in auth.py
-  - Removed: All flagging endpoints and functions
-  - Fixed import paths to use absolute imports (utils.*, models.*)
+- [x] **Backend Modularization Phase 1** (Feb 20, 2026):
+  - Created modular router structure: /app/backend/routes/
+  - **New router files created (2,317 total lines)**:
+    - auth.py (205 lines) - Login, session, logout, me, set-role
+    - partners.py (497 lines) - 13 partner API endpoints
+    - flagging.py (514 lines) - 8 flagging endpoints + rule engine
+    - members.py (588 lines) - 28 citizen/member endpoints (renamed from citizen)
+    - dealer.py (497 lines) - 20 dealer/inventory endpoints
+  - All routers integrated with /api prefix
+  - Fixed import paths to use absolute imports
 - [x] **Firearm Owners Page Bug Fix** (Feb 20, 2026): Fixed status filter crash
 
 ### P1 - High Priority  
-- [ ] Continue backend modularization:
-  - Create citizen.py router (28 endpoints)
-  - Create dealer.py router (20 endpoints)
-  - Create government.py router (91 endpoints - largest group)
+- [ ] Backend modularization Phase 2:
+  - Remove duplicate endpoints from server.py (endpoints now exist in both places)
+  - Create government.py router (91 endpoints - largest remaining group)
   - Target: Reduce server.py to under 6,000 lines
 
 ### P2 - Medium Priority  
+- [ ] Connect dashboard charts to real data (currently hardcoded)
 - [ ] Community Mentor Matching
 - [ ] SMS Notifications (currently mocked)
 - [ ] Email notifications for review status changes
@@ -332,7 +334,6 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 ### P3 - Future Enhancements
 - [ ] Real-time notifications (WebSocket)
 - [ ] Advanced analytics dashboard
-- [ ] Connect dashboard charts to real data (currently hardcoded)
 - [ ] Onboard actual partners for all 10 integration types
 
 ## Credentials Reference
