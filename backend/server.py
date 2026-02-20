@@ -7218,6 +7218,112 @@ async def get_user_profile_admin(
     }
 
 
+@api_router.get("/government/users-export")
+async def export_users_csv(
+    role: str = None,
+    format: str = "csv",
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Export users data as CSV or Excel-compatible format"""
+    import io
+    import csv
+    from datetime import datetime
+    
+    # Build query
+    query = {}
+    if role and role != "all":
+        query["role"] = role
+    
+    # Fetch users
+    users = await db.users.find(query, {"_id": 0, "password": 0}).to_list(1000)
+    
+    # Fetch all profiles for enrichment
+    profiles_list = await db.citizen_profiles.find({}, {"_id": 0}).to_list(1000)
+    profiles_map = {p.get("user_id"): p for p in profiles_list}
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    
+    # Define columns
+    fieldnames = [
+        "User ID", "Name", "Email", "Role", "Region", "State",
+        "License Type", "License Number", "License Status", 
+        "License Issued", "License Expiry", "Compliance Score",
+        "Training Hours", "Phone", "Address", "Registered Date"
+    ]
+    
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    
+    for u in users:
+        profile = profiles_map.get(u.get("user_id"), {})
+        
+        # Determine license status
+        license_status = "No License"
+        if profile.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(profile["license_expiry"].replace("Z", "+00:00")) if isinstance(profile["license_expiry"], str) else profile["license_expiry"]
+                if expiry < datetime.now(expiry.tzinfo if expiry.tzinfo else None):
+                    license_status = "Expired"
+                else:
+                    license_status = profile.get("status", "Active")
+            except:
+                license_status = profile.get("status", "Pending")
+        elif profile:
+            license_status = "Pending"
+        
+        # Format dates
+        def format_date(d):
+            if not d:
+                return ""
+            try:
+                if isinstance(d, str):
+                    return d[:10]
+                return d.strftime("%Y-%m-%d")
+            except:
+                return str(d)[:10] if d else ""
+        
+        row = {
+            "User ID": u.get("user_id", ""),
+            "Name": u.get("name", ""),
+            "Email": u.get("email", ""),
+            "Role": u.get("role", "").capitalize(),
+            "Region": profile.get("region", ""),
+            "State": profile.get("state", ""),
+            "License Type": profile.get("license_type", ""),
+            "License Number": profile.get("license_number", ""),
+            "License Status": license_status,
+            "License Issued": format_date(profile.get("license_issued")),
+            "License Expiry": format_date(profile.get("license_expiry")),
+            "Compliance Score": profile.get("compliance_score", ""),
+            "Training Hours": profile.get("training_hours", ""),
+            "Phone": profile.get("phone", ""),
+            "Address": profile.get("address", ""),
+            "Registered Date": format_date(u.get("created_at"))
+        }
+        writer.writerow(row)
+    
+    # Get CSV content
+    csv_content = output.getvalue()
+    output.close()
+    
+    # Generate filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    role_suffix = f"_{role}" if role and role != "all" else "_all"
+    filename = f"firearm_owners{role_suffix}_{timestamp}.csv"
+    
+    # Return as downloadable file
+    from fastapi.responses import Response
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
 # ============== FORMAL DOCUMENTS & CERTIFICATES SYSTEM ==============
 
 # Standard templates that come pre-loaded
