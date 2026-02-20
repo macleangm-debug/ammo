@@ -9,8 +9,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field
 import logging
 
-from ..utils.database import db, serialize_doc
-from ..utils.helpers import require_auth
+from utils.database import db, serialize_doc
+from utils.helpers import require_auth
 
 logger = logging.getLogger(__name__)
 
