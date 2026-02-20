@@ -2708,6 +2708,271 @@ PARTNER_INTEGRATIONS = {
         ],
         "api_version": "1.0-draft",
         "last_updated": "2026-02-20"
+    },
+    "training_range": {
+        "integration_id": "partner_training_range",
+        "name": "Training Range Integration",
+        "category": "training_compliance",
+        "status": "seeking_partner",
+        "description": "Connect with shooting ranges and training facilities to automatically log practice hours and training sessions.",
+        "layman_explanation": "Walk into any partner range, show your license, and your practice hours get logged automatically. No more keeping paper records or manually entering training hours. Your ARI score updates in real-time as you train, and you'll always have proof of your practice for license renewals.",
+        "benefits": [
+            "Automatic logging of range visits and practice hours",
+            "Real-time ARI score updates based on training activity",
+            "Digital proof of practice for license renewals",
+            "Track progress across multiple ranges",
+            "Receive training recommendations based on your history"
+        ],
+        "technical_requirements": [
+            "POS/Check-in system integration capability",
+            "API endpoint for session logging (start/end time, lanes used)",
+            "License number validation against AMMO database",
+            "Secure transmission of training records"
+        ],
+        "data_we_receive": [
+            "Visit date and duration",
+            "Type of training (practice, course, competition)",
+            "Lanes/bays used",
+            "Rounds fired (optional)",
+            "Instructor supervision (if applicable)"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Shooting Range", "status": "open"},
+            {"name": "Looking for partners", "type": "Training Facility", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "background_check": {
+        "integration_id": "partner_background_check",
+        "name": "Background Check Provider",
+        "category": "verification",
+        "status": "seeking_partner",
+        "description": "Connect with authorized background check providers for real-time verification during license applications and renewals.",
+        "layman_explanation": "When you apply for or renew your license, AMMO can instantly verify your background with authorized providers. No more waiting days or weeks for paper-based checks. The system gets immediate confirmation, speeding up your approval. Dealers also benefit with instant buyer verification at point of sale.",
+        "benefits": [
+            "Instant background verification for license applications",
+            "Faster license renewals with pre-verified status",
+            "Real-time dealer verification at point of sale",
+            "Reduced processing time from days to minutes",
+            "Automatic flagging of status changes"
+        ],
+        "technical_requirements": [
+            "Real-time API for background check requests",
+            "Support for NICS or equivalent database queries",
+            "Response time under 30 seconds",
+            "Audit logging for all verification requests"
+        ],
+        "data_we_receive": [
+            "Verification status (approved/denied/delayed)",
+            "Check completion timestamp",
+            "Denial reason codes (if applicable)",
+            "Expiration of verification validity"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Background Check Provider", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "mental_health": {
+        "integration_id": "partner_mental_health",
+        "name": "Mental Health Clinic Integration",
+        "category": "health_compliance",
+        "status": "seeking_partner",
+        "description": "Connect with accredited mental health clinics for seamless assessment verification and compliance reporting.",
+        "layman_explanation": "If your jurisdiction requires mental health assessments, partner clinics can report your compliance status directly to AMMO. No more carrying certificates or worrying about paperwork getting lost. Complete your assessment, and your compliance status updates automatically. Your privacy is protected - only pass/fail status is shared, not your medical details.",
+        "benefits": [
+            "Seamless compliance verification - no paper certificates needed",
+            "Privacy-protected reporting (status only, no medical details)",
+            "Automatic reminders for assessment renewals",
+            "Faster license processing with pre-verified assessments",
+            "Reduced administrative burden for both patients and clinics"
+        ],
+        "technical_requirements": [
+            "HIPAA-compliant data transmission",
+            "API for assessment status reporting (pass/fail only)",
+            "Patient consent management system",
+            "Support for assessment expiration tracking"
+        ],
+        "data_we_receive": [
+            "Assessment completion status (pass/fail)",
+            "Assessment date",
+            "Validity period/expiration",
+            "Clinic accreditation number"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Mental Health Clinic", "status": "open"},
+            {"name": "Looking for partners", "type": "Healthcare Network", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "gunsmith": {
+        "integration_id": "partner_gunsmith",
+        "name": "Gunsmith & Repair Services",
+        "category": "maintenance_tracking",
+        "status": "seeking_partner",
+        "description": "Connect with licensed gunsmiths and repair services to maintain complete firearm maintenance and modification records.",
+        "layman_explanation": "Every time your firearm is serviced, repaired, or modified by a partner gunsmith, the record is automatically added to your firearm's history. This creates a complete service record - like a CarFax for your firearms. You'll also get automatic notifications about recalls affecting your specific firearms.",
+        "benefits": [
+            "Complete digital service history for each firearm",
+            "Automatic recall notifications for your specific firearms",
+            "Verified modification records for compliance",
+            "Easy proof of proper maintenance for insurance",
+            "Find service history when buying/selling used firearms"
+        ],
+        "technical_requirements": [
+            "POS/Work order system integration",
+            "API for service record submission",
+            "Firearm serial number validation",
+            "Support for modification type classification"
+        ],
+        "data_we_receive": [
+            "Service type (repair, modification, cleaning, inspection)",
+            "Service date and description",
+            "Parts replaced (if any)",
+            "Gunsmith license number",
+            "Firearm serial number"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Licensed Gunsmith", "status": "open"},
+            {"name": "Looking for partners", "type": "Firearm Repair Shop", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "ammunition_retailer": {
+        "integration_id": "partner_ammo_retailer",
+        "name": "Ammunition Retailer Integration",
+        "category": "purchase_tracking",
+        "status": "seeking_partner",
+        "description": "Connect with ammunition retailers to track purchases for jurisdictions with purchase limits or reporting requirements.",
+        "layman_explanation": "In jurisdictions with ammunition purchase limits or reporting requirements, partner retailers automatically verify your eligibility and log purchases. No more manual record-keeping or uncertainty about your remaining allowance. The system tracks everything, so you always know where you stand.",
+        "benefits": [
+            "Automatic purchase limit tracking and verification",
+            "Real-time eligibility check at point of sale",
+            "Digital purchase history for your records",
+            "Compliance with local ammunition regulations",
+            "Alerts when approaching purchase limits"
+        ],
+        "technical_requirements": [
+            "POS system integration for purchase logging",
+            "Real-time API for limit verification",
+            "License number validation at checkout",
+            "Support for various ammunition classifications"
+        ],
+        "data_we_receive": [
+            "Purchase date and quantity",
+            "Ammunition type and caliber",
+            "Retailer identification",
+            "Buyer license verification"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Ammunition Retailer", "status": "open"},
+            {"name": "Looking for partners", "type": "Sporting Goods Chain", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "law_enforcement": {
+        "integration_id": "partner_law_enforcement",
+        "name": "Law Enforcement Database",
+        "category": "stolen_verification",
+        "status": "seeking_partner",
+        "description": "Connect with law enforcement databases to verify firearms against stolen property registries in real-time.",
+        "layman_explanation": "Before any firearm transaction is completed, AMMO can instantly check if the firearm has been reported stolen. This protects buyers from unknowingly purchasing stolen property and helps recover stolen firearms. Dealers get peace of mind knowing every sale is verified clean.",
+        "benefits": [
+            "Instant stolen firearm verification at point of sale",
+            "Protection for buyers against purchasing stolen property",
+            "Faster recovery of stolen firearms",
+            "Reduced liability for dealers",
+            "Automatic flagging of suspicious serial numbers"
+        ],
+        "technical_requirements": [
+            "Real-time API access to stolen property database",
+            "Serial number query and validation",
+            "Response time under 10 seconds",
+            "Secure, authenticated access only"
+        ],
+        "data_we_receive": [
+            "Stolen status (clear/reported stolen)",
+            "Date reported (if stolen)",
+            "Jurisdiction of report",
+            "Recovery instructions (if applicable)"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Law Enforcement Agency", "status": "open"},
+            {"name": "Looking for partners", "type": "Crime Database Provider", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "payment_processor": {
+        "integration_id": "partner_payment",
+        "name": "Payment Processor Integration",
+        "category": "fee_collection",
+        "status": "seeking_partner",
+        "description": "Connect with payment processors to enable in-app fee payments, auto-renewals, and seamless financial transactions.",
+        "layman_explanation": "Pay your annual license fees, firearm registration fees, and late fees directly in the AMMO app. Set up auto-renewal so you never miss a payment deadline. Get instant receipts and always have proof of payment. No more mailing checks or visiting offices.",
+        "benefits": [
+            "Pay all fees directly in the AMMO app",
+            "Set up auto-renewal to never miss deadlines",
+            "Instant digital receipts for all payments",
+            "Multiple payment methods (card, bank, digital wallets)",
+            "Automatic license reinstatement upon payment"
+        ],
+        "technical_requirements": [
+            "PCI-DSS compliant payment processing",
+            "Support for recurring payments/subscriptions",
+            "Webhook notifications for payment status",
+            "Refund and dispute handling API"
+        ],
+        "data_we_receive": [
+            "Payment confirmation and transaction ID",
+            "Payment method (last 4 digits only)",
+            "Payment status (success/failed/pending)",
+            "Receipt generation data"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Payment Processor", "status": "open"},
+            {"name": "Looking for partners", "type": "Digital Wallet Provider", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
+    },
+    "gps_location": {
+        "integration_id": "partner_gps",
+        "name": "GPS & Location Services",
+        "category": "transaction_security",
+        "status": "seeking_partner",
+        "description": "Connect with location services to verify transaction locations and enhance security for dealer transactions.",
+        "layman_explanation": "When a transaction occurs, AMMO can verify that it's happening at a legitimate dealer location, not in a parking lot or unauthorized venue. This adds an extra layer of security and helps prevent illegal sales. Both buyers and sellers benefit from verified, legitimate transaction locations.",
+        "benefits": [
+            "Verify transactions occur at legitimate dealer locations",
+            "Detect suspicious transaction patterns by location",
+            "Enhanced security for high-value transactions",
+            "Geographic compliance verification",
+            "Audit trail with location verification"
+        ],
+        "technical_requirements": [
+            "Real-time location verification API",
+            "Geofencing capabilities for dealer locations",
+            "Privacy-compliant location data handling",
+            "Support for both mobile and fixed-location verification"
+        ],
+        "data_we_receive": [
+            "Transaction coordinates (with consent)",
+            "Dealer location verification status",
+            "Distance from registered dealer address",
+            "Timestamp of location verification"
+        ],
+        "potential_partners": [
+            {"name": "Looking for partners", "type": "Location Services Provider", "status": "open"},
+            {"name": "Looking for partners", "type": "Mapping/GIS Provider", "status": "open"}
+        ],
+        "api_version": "1.0-draft",
+        "last_updated": "2026-02-20"
     }
 }
 
