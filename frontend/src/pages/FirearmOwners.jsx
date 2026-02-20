@@ -1,0 +1,528 @@
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  LayoutDashboard, Activity, AlertTriangle, Settings,
+  FileText, Users, Search, Filter, RefreshCw, Loader2,
+  User, Mail, Calendar, MapPin, Shield, Bell, Eye,
+  ChevronRight, ChevronDown, Download, Palette, UserCheck,
+  Phone, Building, CreditCard, Clock, CheckCircle, XCircle
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { toast } from "sonner";
+import DashboardLayout from "../components/DashboardLayout";
+
+const NAV_ITEMS = [
+  { id: 'dashboard', path: '/government', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'owners', path: '/government/owners', label: 'Owners', icon: Users },
+  { id: 'reviews', path: '/government/reviews', label: 'Reviews', icon: FileText },
+  { id: 'templates', path: '/government/templates', label: 'Templates', icon: FileText },
+  { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Palette },
+  { id: 'notifications', path: '/government/notifications', label: 'Notifications', icon: Bell },
+  { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
+  { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
+  { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
+];
+
+const FirearmOwners = ({ user, api }) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [roleCounts, setRoleCounts] = useState({});
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  
+  // Filters
+  const [roleFilter, setRoleFilter] = useState("citizen");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("list");
+
+  useEffect(() => {
+    fetchUsers();
+  }, [roleFilter]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (roleFilter && roleFilter !== "all") params.append("role", roleFilter);
+      params.append("limit", "200");
+      
+      const [usersRes, profilesRes] = await Promise.all([
+        api.get(`/government/users-list?${params.toString()}`),
+        api.get("/government/citizen-profiles").catch(() => ({ data: { profiles: [] } }))
+      ]);
+      
+      setUsers(usersRes.data.users || []);
+      setRoleCounts(usersRes.data.role_counts || {});
+      setProfiles(profilesRes.data.profiles || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getUserProfile = useCallback((userId) => {
+    return profiles.find(p => p.user_id === userId);
+  }, [profiles]);
+
+  const handleViewUser = async (u) => {
+    setSelectedUser(u);
+    setLoadingProfile(true);
+    try {
+      // Fetch profile details
+      const profileRes = await api.get(`/government/user-profile/${u.user_id}`).catch(() => null);
+      setUserProfile(profileRes?.data || null);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        u.name?.toLowerCase().includes(query) ||
+        u.email?.toLowerCase().includes(query) ||
+        u.user_id?.toLowerCase().includes(query)
+      );
+    });
+  }, [users, searchQuery]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  };
+
+  const statusColors = {
+    active: "bg-green-100 text-green-800",
+    pending: "bg-yellow-100 text-yellow-800",
+    suspended: "bg-red-100 text-red-800",
+    expired: "bg-gray-100 text-gray-800"
+  };
+
+  const getLicenseStatus = (profile) => {
+    if (!profile?.license_expiry) return "pending";
+    const expiry = new Date(profile.license_expiry);
+    if (expiry < new Date()) return "expired";
+    return profile.status || "active";
+  };
+
+  return (
+    <DashboardLayout 
+      user={user} 
+      navItems={NAV_ITEMS} 
+      title="Firearm Owners Registry"
+      subtitle="Government Portal"
+      onLogout={handleLogout}
+      api={api}
+    >
+      <div className="space-y-6" data-testid="firearm-owners-page">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card 
+            className={`cursor-pointer hover:border-primary/50 transition-colors ${roleFilter === 'citizen' ? 'border-primary ring-1 ring-primary' : ''}`}
+            onClick={() => setRoleFilter("citizen")}
+          >
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{roleCounts.citizen || 0}</div>
+                  <div className="text-xs text-muted-foreground">Citizens</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer hover:border-primary/50 transition-colors ${roleFilter === 'dealer' ? 'border-primary ring-1 ring-primary' : ''}`}
+            onClick={() => setRoleFilter("dealer")}
+          >
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Building className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{roleCounts.dealer || 0}</div>
+                  <div className="text-xs text-muted-foreground">Dealers</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{profiles.filter(p => getLicenseStatus(p) === 'active').length}</div>
+                  <div className="text-xs text-muted-foreground">Active Licenses</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{profiles.filter(p => getLicenseStatus(p) === 'pending').length}</div>
+                  <div className="text-xs text-muted-foreground">Pending</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search and Filters */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input 
+                    placeholder="Search by name, email, or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="user-search-input"
+                  />
+                </div>
+              </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[150px]" data-testid="role-filter-select">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="citizen">Citizens</SelectItem>
+                  <SelectItem value="dealer">Dealers</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]" data-testid="status-filter-select">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={fetchUsers}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Users List */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {roleFilter === "citizen" ? "Registered Firearm Owners" : roleFilter === "dealer" ? "Licensed Dealers" : "All Users"} 
+                <Badge variant="outline">{filteredUsers.length}</Badge>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No users found matching your criteria.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredUsers.map((u) => {
+                  const profile = getUserProfile(u.user_id);
+                  const licenseStatus = profile ? getLicenseStatus(profile) : "pending";
+                  
+                  return (
+                    <div 
+                      key={u.user_id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => handleViewUser(u)}
+                      data-testid={`user-item-${u.user_id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
+                          {u.picture ? (
+                            <img src={u.picture} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-white font-semibold text-lg">
+                              {u.name?.charAt(0) || 'U'}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{u.name || "Unknown"}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {u.role}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {u.email}
+                            </span>
+                            {profile?.region && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {profile.region}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {profile && (
+                          <>
+                            <div className="text-right mr-2">
+                              <div className="text-sm font-medium">
+                                {profile.license_type || "N/A"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Expires: {formatDate(profile.license_expiry)}
+                              </div>
+                            </div>
+                            <Badge className={statusColors[licenseStatus]}>
+                              {licenseStatus}
+                            </Badge>
+                          </>
+                        )}
+                        {!profile && (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            No License
+                          </Badge>
+                        )}
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User Detail Dialog */}
+      <Dialog open={!!selectedUser} onOpenChange={() => { setSelectedUser(null); setUserProfile(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden">
+                {selectedUser?.picture ? (
+                  <img src={selectedUser.picture} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-semibold text-lg">
+                    {selectedUser?.name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </div>
+              <div>
+                <div>{selectedUser?.name || "Unknown User"}</div>
+                <div className="text-sm font-normal text-muted-foreground">{selectedUser?.email}</div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {loadingProfile ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Tabs defaultValue="profile" className="mt-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="license">License</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="profile" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">User ID</div>
+                    <div className="font-mono text-sm">{selectedUser?.user_id}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Role</div>
+                    <div className="font-medium capitalize">{selectedUser?.role}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Registered</div>
+                    <div className="font-medium">{formatDate(selectedUser?.created_at)}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Last Login</div>
+                    <div className="font-medium">{formatDate(selectedUser?.last_login) || "N/A"}</div>
+                  </div>
+                </div>
+                
+                {userProfile && (
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-semibold mb-3">Contact Information</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Phone:</span>
+                        <span className="ml-2">{userProfile.phone || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Address:</span>
+                        <span className="ml-2">{userProfile.address || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Region:</span>
+                        <span className="ml-2">{userProfile.region || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">State:</span>
+                        <span className="ml-2">{userProfile.state || "N/A"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="license" className="space-y-4 mt-4">
+                {userProfile ? (
+                  <>
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <div className="text-sm text-muted-foreground">License Status</div>
+                        <Badge className={`mt-1 ${statusColors[getLicenseStatus(userProfile)]}`}>
+                          {getLicenseStatus(userProfile)}
+                        </Badge>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Compliance Score</div>
+                        <div className="text-2xl font-bold">{userProfile.compliance_score || "N/A"}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="border rounded-lg p-4">
+                        <div className="text-sm text-muted-foreground mb-1">License Type</div>
+                        <div className="font-semibold capitalize">{userProfile.license_type || "N/A"}</div>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <div className="text-sm text-muted-foreground mb-1">License Number</div>
+                        <div className="font-mono">{userProfile.license_number || "N/A"}</div>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <div className="text-sm text-muted-foreground mb-1">Issue Date</div>
+                        <div className="font-medium">{formatDate(userProfile.license_issued)}</div>
+                      </div>
+                      <div className="border rounded-lg p-4">
+                        <div className="text-sm text-muted-foreground mb-1">Expiry Date</div>
+                        <div className="font-medium">{formatDate(userProfile.license_expiry)}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-3">Training & Certifications</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Training Hours:</span>
+                          <span className="ml-2 font-medium">{userProfile.training_hours || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Certifications:</span>
+                          <span className="ml-2 font-medium">{userProfile.certifications?.length || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>No license information available for this user.</p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="history" className="mt-4">
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>Transaction and activity history will be displayed here.</p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => navigate(`/government/reviews?user=${selectedUser?.user_id}`)}>
+              <FileText className="w-4 h-4 mr-2" />
+              View Reviews
+            </Button>
+            <Button variant="outline" onClick={() => { setSelectedUser(null); setUserProfile(null); }}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+};
+
+export default FirearmOwners;
