@@ -301,9 +301,18 @@ const FirearmOwners = ({ user, api }) => {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
-              <Button variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Export
+              <Button 
+                variant="outline" 
+                onClick={handleExportCSV}
+                disabled={exporting || filteredUsers.length === 0}
+                data-testid="export-csv-btn"
+              >
+                {exporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                {exporting ? "Exporting..." : "Export CSV"}
               </Button>
             </div>
           </CardContent>
