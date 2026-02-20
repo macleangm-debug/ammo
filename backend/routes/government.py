@@ -581,12 +581,14 @@ async def get_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
             pass
     
     return {
+        "total_licenses": citizens,  # Frontend expects this field name
         "licensed_owners": citizens,
         "active_dealers": dealers,
         "registered_firearms": firearms,
         "pending_reviews": pending_reviews,
         "compliance_rate": round(compliance_rate, 1),
-        "monthly_revenue": monthly_revenue
+        "monthly_revenue": monthly_revenue,
+        "total_revenue": monthly_revenue  # Frontend also uses this
     }
 
 
