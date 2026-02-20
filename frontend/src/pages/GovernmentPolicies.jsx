@@ -508,6 +508,164 @@ const GovernmentPolicies = ({ user, api }) => {
             </Card>
           </TabsContent>
 
+          {/* ENFORCEMENT TAB */}
+          <TabsContent value="enforcement">
+            <div className="space-y-6">
+              {/* Enforcement Scheduler Control */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Automated Policy Enforcement
+                  </CardTitle>
+                  <CardDescription>
+                    Automatically apply late fees, send warnings, and suspend licenses based on your escalation policies
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Scheduler Status */}
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${enforcementStatus?.scheduler_running ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                      <div>
+                        <div className="font-medium">
+                          Enforcement Scheduler: {enforcementStatus?.scheduler_running ? 'Running' : 'Stopped'}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Checks every {enforcementStatus?.check_interval || '6 hours'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant={enforcementStatus?.scheduler_running ? "destructive" : "default"}
+                        onClick={handleToggleEnforcementScheduler}
+                        disabled={saving}
+                        data-testid="toggle-scheduler-btn"
+                      >
+                        {enforcementStatus?.scheduler_running ? (
+                          <><Pause className="w-4 h-4 mr-2" /> Stop Scheduler</>
+                        ) : (
+                          <><Play className="w-4 h-4 mr-2" /> Start Scheduler</>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleRunEnforcement}
+                        disabled={runningEnforcement}
+                        data-testid="run-enforcement-btn"
+                      >
+                        {runningEnforcement ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        Run Now
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Current Compliance Status */}
+                  <div className="grid grid-cols-5 gap-4">
+                    <Card className="p-4 text-center">
+                      <div className="text-2xl font-bold">{enforcementStatus?.current_status?.total || 0}</div>
+                      <div className="text-sm text-muted-foreground">Total Members</div>
+                    </Card>
+                    <Card className="p-4 text-center border-green-200 bg-green-50 dark:bg-green-950/20">
+                      <div className="text-2xl font-bold text-green-600">{enforcementStatus?.current_status?.paid || 0}</div>
+                      <div className="text-sm text-green-600">Paid</div>
+                    </Card>
+                    <Card className="p-4 text-center border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                      <div className="text-2xl font-bold text-amber-600">{enforcementStatus?.current_status?.pending || 0}</div>
+                      <div className="text-sm text-amber-600">Pending</div>
+                    </Card>
+                    <Card className="p-4 text-center border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+                      <div className="text-2xl font-bold text-orange-600">{enforcementStatus?.current_status?.overdue || 0}</div>
+                      <div className="text-sm text-orange-600">Overdue</div>
+                    </Card>
+                    <Card className="p-4 text-center border-red-200 bg-red-50 dark:bg-red-950/20">
+                      <div className="text-2xl font-bold text-red-600">{enforcementStatus?.current_status?.suspended || 0}</div>
+                      <div className="text-sm text-red-600">Suspended</div>
+                    </Card>
+                  </div>
+
+                  {/* Enforcement Actions Summary */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Shield className="w-4 h-4" /> Enforcement Actions (Based on Escalation Policy)
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 border rounded-lg">
+                        <div className="font-medium">Grace Period</div>
+                        <div className="text-muted-foreground">{policies?.escalation?.grace_period_days || 30} days after due date</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="font-medium">Warning Notifications</div>
+                        <div className="text-muted-foreground">Days {(policies?.escalation?.warning_intervals || [3, 5, 10]).join(', ')} past grace</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="font-medium">License Suspension</div>
+                        <div className="text-muted-foreground">{policies?.escalation?.suspension_trigger_days || 15} days after final warning</div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <div className="font-medium">Late Fee Penalty</div>
+                        <div className="text-muted-foreground">{policies?.fees?.late_fee_penalty_percent || 10}% per month overdue</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Enforcement Executions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    Recent Enforcement Runs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {enforcementHistory.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                      <p>No enforcement runs yet</p>
+                      <p className="text-sm">Click "Run Now" to execute your first enforcement check</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {enforcementHistory.map((exec, idx) => (
+                        <div key={exec.execution_id || idx} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">
+                              {new Date(exec.executed_at).toLocaleString()}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Processed {exec.results?.processed || 0} users
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              <span>{exec.results?.warnings_sent || 0} warnings</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4 text-orange-500" />
+                              <span>{exec.results?.late_fees_applied || 0} fees</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <XCircle className="w-4 h-4 text-red-500" />
+                              <span>{exec.results?.suspensions_issued || 0} suspended</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* TRAINING TAB */}
           <TabsContent value="training">
             <Card>
