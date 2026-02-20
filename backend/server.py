@@ -173,6 +173,192 @@ class FirearmCreate(BaseModel):
     purchase_date: Optional[str] = None
     notes: Optional[str] = None
 
+
+# ============== POLICY MANAGEMENT MODELS ==============
+
+class FeePolicies(BaseModel):
+    """Fee-related policies"""
+    currency: str = "USD"
+    currency_symbol: str = "$"
+    member_annual_license_fee: float = 150.00
+    per_firearm_registration_fee: float = 50.00
+    late_fee_penalty_percent: float = 10.0  # % per month
+    grace_period_days: int = 30  # Days before late fees apply
+    
+class EscalationPolicies(BaseModel):
+    """Compliance escalation policies"""
+    grace_period_days: int = 30
+    warning_intervals: List[int] = [3, 5, 10]  # Days after grace period
+    suspension_trigger_days: int = 15  # Days after final warning
+    block_dealer_transactions: bool = True
+    block_government_services: bool = True
+    flag_firearm_repossession: bool = True
+    auto_suspend_on_expiry: bool = True
+    
+class TrainingPolicies(BaseModel):
+    """Training & certification requirements"""
+    mandatory_initial_training_hours: int = 8
+    annual_refresher_training_hours: int = 4
+    range_practice_sessions_per_year: int = 2
+    first_aid_certification_required: bool = True
+    mental_health_assessment_required: bool = True
+    mental_health_assessment_interval_months: int = 24
+    safe_storage_training_required: bool = True
+    
+class ARIPolicies(BaseModel):
+    """ARI (Accountability Responsibility Index) point system"""
+    points_per_training_hour: int = 5
+    points_per_range_session: int = 10
+    points_per_community_event: int = 15
+    points_per_safety_course: int = 20
+    penalty_points_minor_violation: int = -10
+    penalty_points_major_violation: int = -25
+    bonus_accident_free_year: int = 10
+    max_ari_score: int = 100
+    min_ari_for_renewal: int = 50
+    
+class AdditionalPolicies(BaseModel):
+    """Additional regulatory policies"""
+    background_check_renewal_months: int = 12
+    safe_storage_inspection_required: bool = True
+    safe_storage_inspection_interval_months: int = 12
+    insurance_required: bool = False
+    insurance_minimum_coverage: float = 100000.00
+    waiting_period_days: int = 7
+    cooling_off_period_days: int = 3
+    max_firearms_standard_license: int = 5
+    max_firearms_collector_license: int = 20
+    min_age_handgun: int = 21
+    min_age_rifle: int = 18
+    min_age_shotgun: int = 18
+
+class PlatformPolicies(BaseModel):
+    """Complete platform policy configuration"""
+    policy_id: str = "default"
+    country_code: str = "US"
+    jurisdiction_name: str = "Default Jurisdiction"
+    preset_name: str = "standard"  # strict, standard, permissive, custom
+    fees: FeePolicies = Field(default_factory=FeePolicies)
+    escalation: EscalationPolicies = Field(default_factory=EscalationPolicies)
+    training: TrainingPolicies = Field(default_factory=TrainingPolicies)
+    ari: ARIPolicies = Field(default_factory=ARIPolicies)
+    additional: AdditionalPolicies = Field(default_factory=AdditionalPolicies)
+    last_updated: Optional[str] = None
+    updated_by: Optional[str] = None
+
+class AccreditedHospital(BaseModel):
+    """Accredited hospital for mental health assessments"""
+    hospital_id: str = Field(default_factory=lambda: f"hosp_{uuid.uuid4().hex[:12]}")
+    name: str
+    hospital_type: str = "national"  # national, regional, private
+    address: str
+    city: str
+    state: str
+    country: str
+    phone: str
+    email: Optional[str] = None
+    accreditation_number: str
+    accreditation_expiry: str
+    services: List[str] = ["mental_health_assessment"]
+    status: str = "active"  # active, suspended, expired
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Policy Presets
+POLICY_PRESETS = {
+    "strict": {
+        "fees": {
+            "member_annual_license_fee": 250.00,
+            "per_firearm_registration_fee": 100.00,
+            "late_fee_penalty_percent": 15.0,
+            "grace_period_days": 14
+        },
+        "escalation": {
+            "grace_period_days": 14,
+            "warning_intervals": [2, 4, 7],
+            "suspension_trigger_days": 7,
+            "block_dealer_transactions": True,
+            "block_government_services": True,
+            "flag_firearm_repossession": True
+        },
+        "training": {
+            "mandatory_initial_training_hours": 16,
+            "annual_refresher_training_hours": 8,
+            "range_practice_sessions_per_year": 4,
+            "first_aid_certification_required": True,
+            "mental_health_assessment_required": True,
+            "mental_health_assessment_interval_months": 12
+        },
+        "ari": {
+            "min_ari_for_renewal": 70,
+            "penalty_points_minor_violation": -15,
+            "penalty_points_major_violation": -35
+        },
+        "additional": {
+            "background_check_renewal_months": 6,
+            "insurance_required": True,
+            "waiting_period_days": 14,
+            "max_firearms_standard_license": 3
+        }
+    },
+    "standard": {
+        "fees": {
+            "member_annual_license_fee": 150.00,
+            "per_firearm_registration_fee": 50.00,
+            "late_fee_penalty_percent": 10.0,
+            "grace_period_days": 30
+        },
+        "escalation": {
+            "grace_period_days": 30,
+            "warning_intervals": [3, 5, 10],
+            "suspension_trigger_days": 15
+        },
+        "training": {
+            "mandatory_initial_training_hours": 8,
+            "annual_refresher_training_hours": 4,
+            "range_practice_sessions_per_year": 2
+        },
+        "ari": {
+            "min_ari_for_renewal": 50
+        },
+        "additional": {
+            "background_check_renewal_months": 12,
+            "waiting_period_days": 7,
+            "max_firearms_standard_license": 5
+        }
+    },
+    "permissive": {
+        "fees": {
+            "member_annual_license_fee": 75.00,
+            "per_firearm_registration_fee": 25.00,
+            "late_fee_penalty_percent": 5.0,
+            "grace_period_days": 60
+        },
+        "escalation": {
+            "grace_period_days": 60,
+            "warning_intervals": [7, 14, 21],
+            "suspension_trigger_days": 30,
+            "flag_firearm_repossession": False
+        },
+        "training": {
+            "mandatory_initial_training_hours": 4,
+            "annual_refresher_training_hours": 2,
+            "range_practice_sessions_per_year": 1,
+            "mental_health_assessment_required": False
+        },
+        "ari": {
+            "min_ari_for_renewal": 30
+        },
+        "additional": {
+            "background_check_renewal_months": 24,
+            "insurance_required": False,
+            "waiting_period_days": 3,
+            "max_firearms_standard_license": 10
+        }
+    }
+}
+
+
 class DealerProfile(BaseModel):
     model_config = ConfigDict(extra="ignore")
     dealer_id: str = Field(default_factory=lambda: f"dealer_{uuid.uuid4().hex[:12]}")
