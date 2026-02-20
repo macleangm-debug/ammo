@@ -41,16 +41,20 @@ class TestFirearmsFeesAPIs:
         response = self.admin_session.post(f"{BASE_URL}/api/demo/login/admin")
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
-        assert data.get("role") == "admin"
-        print(f"✅ Admin login successful: {data.get('name')}")
+        # Role is nested in user object
+        user = data.get("user", data)
+        assert user.get("role") == "admin"
+        print(f"✅ Admin login successful: {user.get('name')}")
     
     def test_03_citizen_login(self):
         """Test citizen login"""
         response = self.citizen_session.post(f"{BASE_URL}/api/demo/login/citizen")
         assert response.status_code == 200, f"Citizen login failed: {response.text}"
         data = response.json()
-        assert data.get("role") == "citizen"
-        print(f"✅ Citizen login successful: {data.get('name')}")
+        # Role is nested in user object
+        user = data.get("user", data)
+        assert user.get("role") == "citizen"
+        print(f"✅ Citizen login successful: {user.get('name')}")
     
     # ===================== Government Fees Overview API Tests =====================
     
