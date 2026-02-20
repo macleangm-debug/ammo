@@ -84,7 +84,7 @@ const GovernmentDashboard = ({ user, api }) => {
     { id: 'dashboard', path: '/government', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'reviews', path: '/government/reviews', label: 'Reviews', icon: FileText },
     { id: 'templates', path: '/government/templates', label: 'Templates', icon: FileText },
-    { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Award },
+    { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Palette },
     { id: 'notifications', path: '/government/notifications', label: 'Notifications', icon: Bell },
     { id: 'analytics', path: '/government/analytics', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
