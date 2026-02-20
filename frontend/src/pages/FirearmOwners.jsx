@@ -367,6 +367,7 @@ const FirearmOwners = ({ user, api }) => {
                 {filteredUsers.map((u) => {
                   const profile = getUserProfile(u.user_id);
                   const licenseStatus = profile ? getLicenseStatus(profile) : "pending";
+                  const userFees = getUserTotalFees(u.user_id);
                   
                   return (
                     <div 
@@ -391,6 +392,12 @@ const FirearmOwners = ({ user, api }) => {
                             <Badge variant="outline" className="text-xs">
                               {u.role}
                             </Badge>
+                            {userFees.firearmsCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Crosshair className="w-3 h-3 mr-1" />
+                                {userFees.firearmsCount} firearm{userFees.firearmsCount > 1 ? 's' : ''}
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="flex items-center gap-1">
@@ -406,10 +413,19 @@ const FirearmOwners = ({ user, api }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
+                        {/* Annual Fees */}
+                        <div className="text-right border-r pr-4">
+                          <div className="text-sm font-semibold text-green-600">
+                            ${userFees.total.toFixed(0)}/yr
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Annual Fees
+                          </div>
+                        </div>
                         {profile && (
                           <>
-                            <div className="text-right mr-2">
+                            <div className="text-right">
                               <div className="text-sm font-medium">
                                 {profile.license_type || "N/A"}
                               </div>
