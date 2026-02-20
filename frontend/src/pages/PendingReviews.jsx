@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Activity, AlertTriangle, Settings, Target,
   FileText, Building, Clock, CheckCircle, XCircle, Eye,
   ChevronRight, Search, Filter, RefreshCw, Loader2,
-  User, Mail, Calendar, MapPin, ArrowUpRight, Shield
+  User, Mail, Calendar, MapPin, ArrowUpRight, Shield, Bell, Palette
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
