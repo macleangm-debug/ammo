@@ -1,76 +1,91 @@
-<analysis>An analysis of the user's request and the AI's actions has been completed. The following summary will be provided to the next agent.
-
-**original_problem_statement:**
+<analysis>**original_problem_statement:**
 The user's goal is to build a sophisticated platform, **AMMO (Accountable Munitions & Mobility Oversight)**, with distinct portals for Citizens, Dealers, and the Government.
 
-Recent feature requests focused on enhancing the document system:
-1.  **Verified Certificates**: Implement a fraud-prevention system for certificates using a scannable QR code that links to a public verification page. This system should not require a login to verify a document's authenticity.
-2.  **Issuer Information**: Certificates must include details of the issuing authority, including the signatory's name, title, and organization seal/signature.
-3.  **Standardized Templates**: Provide a comprehensive library of standard, professional certificate and document templates for government use.
-4.  **Categorized Template Management**: Redesign the government-side template management UI to group templates into logical categories (e.g., Warning Letters, License Certificates).
-5.  **Simplified Workflow**: Allow government users to set a default template for each category and use a one-click Send button that utilizes the selected default, streamlining the process of sending documents.
+Initial feature requests focused on enhancing the document system:
+1.  **Verified Certificates**: Implement a fraud-prevention system for certificates using a scannable QR code that links to a public verification page.
+2.  **Issuer Information**: Certificates must include details of the issuing authority.
+3.  **Standardized Templates**: Provide a library of standard, professional certificate and document templates.
+4.  **Categorized Template Management**: Redesign the government-side template management UI to group templates into logical categories.
+5.  **Simplified Workflow**: Allow government users to set a default template for each category for one-click sending.
 
-PRODUCT REQUIREMENTS:
--   A public, unauthenticated endpoint and corresponding frontend page to verify document authenticity via a unique hash.
--   Integration of QR codes containing the verification link into generated PDF documents.
--   Backend models and APIs to store and manage verification hashes and issuer details.
--   An expanded library of pre-built, professional document templates for government users.
--   A redesigned government UI for template management that organizes templates by category and allows for setting default templates to simplify sending.
+Subsequent requests expanded on this, asking for a more advanced certificate customization system:
+*   Professionally designed certificate templates with decorative elements (borders, seals).
+*   The ability to choose from multiple seal templates.
+*   A system for the authorized signatory to upload or draw their signature.
+*   The ability to customize template colors and fonts.
+
+The user has also reported several UI/UX issues, including input lag, broken links, and inconsistent layouts.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a full-stack FastAPI and React application with three functional user portals. The core systems are mature:
--   **User Authentication**: Role-based access for Citizens, Dealers, and Government.
--   **Notification System**: A complete system for manual and automated user notifications.
--   **Verified Certificate System**: A newly implemented, end-to-end system for issuing fraud-proof documents. It includes backend hash generation, QR codes embedded in PDFs, a public verification webpage, and UI updates for both government (to input issuer details) and citizens (to see verification status).
--   **Categorized Template Management**: A brand new, redesigned UI for the government portal that groups the extensive library of document templates into categories (e.g., License Certificates, Training Certificates). This UI allows an admin to select a default template for each category to streamline sending.
+The project is a full-stack FastAPI and React application with three functional user portals (Citizen, Dealer, Government) and role-based authentication.
+-   **Verified Certificate System**: A complete, end-to-end system for issuing fraud-proof documents. It includes backend hash generation, QR codes embedded in PDFs, and a public verification webpage.
+-   **Categorized Template Management**: A redesigned UI for the government portal () that groups templates into categories and allows setting defaults.
+-   **Certificate Configuration System**: A comprehensive settings page () where government users can:
+    -   Choose from 4 certificate design templates.
+    -   Customize template colors and fonts.
+    -   Select from 5 seal styles.
+    -   Upload or draw a signature, which is stored and automatically applied to documents.
+-   **Unified Government UI**: All government portal pages now feature a consistent sidebar for navigation, and page content is correctly aligned with it. A new  page has been created to fix a broken navigation link.
 
 **Last working item**:
-The agent was fulfilling the user's request to redesign the government-side template management system to be category-based and allow setting default templates for a simplified workflow.
+The agent was about to begin work on a new list of five issues and questions raised by the user in their most recent message.
 
--   **Last item agent was working**: The agent just finished creating the new categorized template UI in . The UI is visually complete, grouping templates into sections and providing a Change button to select a default template for each category. Screenshots confirm the UI looks correct.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent (). The test should be a full end-to-end flow:
-    1.  Log in as a government user (/).
-    2.  Navigate to the new Document Templates page.
-    3.  For the Warning Letters category, click Change to expand the template selector.
-    4.  Select a non-default template (e.g., Final Warning Letter).
-    5.  Verify the UI updates to show the new default.
-    6.  Click the Send Warning Letter button.
-    7.  Confirm the send dialog opens and is pre-configured to use the Final Warning Letter template.
--   **User Testing Done**: N
+-   **Last item agent was working**: Investigating a list of 5 user-reported problems:
+    1.  Input fields in the Pending Reviews dialog are still lagging.
+    2.  The Analytics page redirects to the home page.
+    3.  A question on how to view certificate templates.
+    4.  A question about a Member list view.
+    5.  A question on where to find a certificate preview with actual data.
+-   **Status**: NOT STARTED
+-   **Agent Testing Done**: N/A
+-   **Which testing method agent to use?**: Manual investigation and debugging. Screenshots will be needed to guide the user on their questions. Component profiling might be needed to solve the input lag.
+-   **User Testing Done**: N/A
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: The new categorized template system's functionality is untested. While the UI has been built, the logic for setting, persisting, and using the default template for sending has not been functionally verified. (P0)
 
-    **Issues Detail**:
-    -   **Issue 1**:
-        -   **Attempted fixes**: The agent created the  component and visually confirmed its appearance via screenshots.
-        -   **Next debug checklist**:
-            1.  Execute the E2E test plan outlined in the Last working item section using .
-            2.  If the test fails, inspect the state management and event handlers in  to debug the default selection and send logic.
-            3.  Ensure the  function correctly passes the chosen default template to the send dialog.
-        -   **Why fix this issue and what will be achieved with the fix?**: To complete the user's core request for a streamlined, category-based document sending workflow.
-        -   **Status**: IN PROGRESS
-        -   **Is recurring issue?**: N
-        -   **Should Test frontend/backend/both after fix?**: Frontend
-        -   **Blocked on other issue**: None
+-   **Issue 1**: Input fields in the Pending Reviews dialog are lagging. (P0)
+-   **Issue 2**: The government Analytics page redirects to the landing page. (P1)
+-   **Issue 3**: User needs guidance on how to view certificate templates. (P2)
+-   **Issue 4**: User asked about a Member list view, which requires clarification. (P2)
+-   **Issue 5**: User needs guidance on how to see a certificate preview with sample data. (P2)
+
+**Issues Detail**:
+
+-   **Issue 1: Input still lagging**
+    -   **Attempted fixes**: The agent previously added role-based checks in  to prevent unnecessary API calls for non-citizen roles, as this was suspected to be the cause. The user reports the problem persists.
+    -   **Next debug checklist**:
+        1.  Re-verify the fix in  to ensure no citizen-specific API calls are being made for government users.
+        2.  Use browser dev tools to profile component re-renders while typing in the dialog in .
+        3.  Investigate the  component for other expensive operations, frequent state updates, or improper handling of chart components that could be causing performance degradation across all pages.
+    -   **Why fix this issue and what will be achieved with the fix?**: A responsive UI is critical for user experience. Fixing this will make the document review process usable.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: Analytics page redirects to home page**
+    -   **Attempted fixes**: None.
+    -   **Next debug checklist**:
+        1.  Check the  for the Analytics link in the government sidebar navigation.
+        2.  Verify the  route exists and is configured correctly in .
+        3.  Inspect the  component for any conditional logic that might be causing a redirect.
+    -   **Why fix this issue and what will be achieved with the fix?**: Restores access to a key feature for government users.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1**: Test and verify the new categorized template system. (P0)
-    -   **Where to resume**: Call the  with the detailed test plan.
-    -   **What will be achieved with this?**: A fully functional and validated template management system for the government portal.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on something**: No.
+-   There are no other tasks in progress. The focus is on the 5 user-reported items.
 
 **Upcoming and Future Tasks**
 
 **Upcoming Tasks:**
--   **(P0) Refactor **: Break the monolithic  file into smaller, domain-specific router files (e.g., , , , , ) and place them in a new  directory. This is a critical technical debt item that is impacting maintainability.
--   **(P2) Refactor **: This file has grown large and complex. It should be broken down into smaller, more manageable components.
+-   **(P0) Refactor **: Break the monolithic file into domain-specific routers in a  directory. This is a critical technical debt item.
+-   **(P1) Member List View**: Clarify requirements with the user and implement this feature.
+-   **(P2) Refactor **: Break down the large, complex layout component into smaller, more manageable pieces to improve maintainability and performance.
 
 **Future Tasks:**
 -   **(P1)** Smart Safe IoT Integration.
@@ -79,20 +94,13 @@ The agent was fulfilling the user's request to redesign the government-side temp
 -   **(P2)** Community Mentor Matching.
 
 **Completed work in this session**
--   **Verified Certificate System (Complete)**: Implemented an end-to-end fraud-prevention system for documents.
-    -   Added verification hashes and issuer details to the backend ().
-    -   Integrated QR code generation () into PDF certificates ().
-    -   Created a public-facing verification page at  ().
-    -   Updated the Send Document dialog to capture issuer signature details ().
-    -   Enhanced the citizen document view to display a Verified badge and issuer info ().
--   **Expanded Certificate Template Library**: Added 9 new professional, standardized templates to 's demo data, bringing the total to 14 standard templates.
--   **Redesigned Government Template UI**: Created a new, categorized interface () to manage and send documents more efficiently.
-
-**Earlier issues found/mentioned but not fixed**
--   None.
-
-**Known issue recurrence from previous fork**
--   None.
+-   **Certificate Configuration System (DONE)**: Implemented and tested a full-featured system for government users to customize certificate designs, seals, and signatures (). The backend was updated with new models and APIs in , and the PDF generation logic was enhanced to use these customizations.
+-   **QR Code Verification (FIXED)**: Fixed the broken QR code verification link by correctly setting the  environment variable on the backend.
+-   **Consistent Government UI (DONE)**:
+    -   Added a consistent sidebar to all government pages.
+    -   Created a new  page to fix a broken navigation link.
+    -   Fixed a page content alignment issue across the government portal.
+-   **Input Lag Performance (ATTEMPTED FIX)**: Optimized API calls in  as an initial attempt to fix the input lag issue.
 
 **Code Architecture**
 
@@ -100,69 +108,91 @@ The agent was fulfilling the user's request to redesign the government-side temp
 **Key Technical Concepts**
 -   **Frameworks**: FastAPI (Python), React (JavaScript)
 -   **Database**: MongoDB
--   **PDF Generation**:  library for creating PDFs on the backend.
--   **QR Code Generation**:  and  for creating and embedding QR codes into PDFs.
--   **Hashing**:  for generating secure, unique verification hashes for documents.
--   **Frontend**: Tailwind CSS, Shadcn UI, React Router, Lucide React icons.
+-   **PDF Generation**: 
+-   **QR Code Generation**: , 
+-   **Frontend**: Tailwind CSS, Shadcn UI, React Router, Lucide React
 
 **key DB schema**
 -   **sent_documents**: 
+-   **certificate_configs**:  (New)
+-   **signatures**:  (New)
 
 **changes in tech stack**
--   **Added Backend Dependencies**: ,  (for QR code generation).
+-   None.
 
 **All files of reference**
 -   **Heavily Modified**:
-    -   : Added models, hashing logic, QR code generation, PDF updates, and a new public verification endpoint. Also added many new standard templates.
-    -   : Updated to display the new Verified Certificate badge, issuer information, and a link to the verification page.
-    -   : The send dialog was updated to include input fields for the issuer's signature details.
-    -   : Added routes for the new public verification page and the V2 templates page.
+    -   : Added models, APIs, and logic for the certificate configuration system.
+    -   : Modified to fix navigation, performance, and alignment issues.
 -   **Newly Created**:
-    -   : The public-facing page for verifying a document's authenticity.
-    -   : The new, redesigned UI for managing templates in categories.
--   **In Progress/Broken**:
-    -   The new  is visually complete but its core functionality is untested.
+    -   : UI for certificate customization.
+    -   : Placeholder settings page to fix a broken link.
+-   **Referenced/Updated**:
+    -   : Added routes for new pages.
+    -   : Added link to config page.
+    -   : File containing the lagging input fields.
+    -   Various government page files: Updated to pass consistent  to the layout.
 
 **Areas that need refactoring**:
--   ****: This file is critically large and is the highest priority for refactoring. The attempt to modularize it was aborted due to complexity, but it remains a major source of technical debt.
--   ****: This component is large and manages significant state, making it a good candidate for being broken down into smaller components.
+-   ****: Highest priority. This monolithic file is a major source of technical debt and needs to be broken into a router-based structure.
+-   ****: This component remains large and complex, contributing to bugs related to navigation and performance. It should be broken down.
 
 **key api endpoints**
--   **New**:  (Public, no auth required)
--   **Updated**:  (Now accepts issuer signature details in the payload)
+-   **New**:
+    -   : Save certificate design settings.
+    -   : Retrieve certificate design settings.
+    -   : Save signatory signature.
+    -   : Retrieve signatory signature.
+-   **Updated**:
+    -   : Now applies the saved certificate configuration (design, seal, signature) when generating the PDF.
 
 **Critical Info for New Agent**
--   **PRIORITY 0: Test the New Template System.** The new categorized UI for government users () is the last thing that was built and is functionally unverified. You must start by running a full E2E test to ensure selecting and sending with a default template works correctly.
--   **PRIORITY 1: Refactor .** This is the most critical technical debt in the project. After verifying the template system, this should be the next major task. The file is over 8,200 lines long and needs to be broken into a proper router-based structure.
+-   **Start with the user's latest 5-point list.** The top priorities are fixing the recurring **input lag** and the broken **Analytics page**.
+-   **Three of the user's points are questions, not bugs.** You will need to provide clear guidance with instructions and possibly screenshots to show the user how to view templates and certificate previews.
+-   **Clarify Member list view?** before starting any implementation. It is an ambiguous request.
+-   The input lag is a recurring performance issue. The previous fix was insufficient. A deeper investigation using component profiling is likely required. The  is a prime suspect.
 
 **documents and test reports created in this job**
--    (updated with verification system and template redesign)
+-    (updated)
+-   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.   - Completed. The agent implemented the full QR code verification system.
-2.   - Completed. The agent confirmed requirements and implemented them.
-3.   - Completed. The agent added 9 new professional templates.
-4.   - In Progress. The agent built the new categorized UI, but it's pending functional testing.
-5.   - Completed. The agent demonstrated the new templates.
+1.  **User**: Asks to see the certificate layout.
+2.  **User**: Requests advanced certificate templates (like images), seal options, signature uploads, and reports QR code is broken.
+3.  **User**: Asks for screenshots of the new configuration process.
+4.  **User**: Asks for the web login and credentials for all roles.
+5.  **User**: Reports the Certificate Configuration page is missing the side menu.
+6.  **User**: Reports the Settings link in the sidebar leads back to the landing page.
+7.  **User**: Reports that Certificate Configuration is also not working and that input fields in a popup are lagging.
+8.  **User**: Reports that page content is not aligned with the side menu, making it look like it's hanging.
+9.  **User**: Provides a new list of 5 issues:
+    - Input still lagging (IN PROGRESS)
+    - How do I see these templates? (PENDING GUIDANCE)
+    - Member list view? (PENDING CLARIFICATION)
+    - Where is the certificate preview with actual wording? (PENDING GUIDANCE)
+    - Why is the analytics page going back to the home page? (NOT STARTED)
+10. **Agent**: Acknowledged the 5 points and was about to start work.
 
 **Project Health Check:**
--   **Broken**: The core functionality of the new categorized government template page () is untested and should be considered non-functional until verified.
+-   **Broken**:
+    -   Input fields in the  dialog are lagging, making them difficult to use.
+    -   The  page is inaccessible and redirects to the landing page.
 -   **Mocked**: All analytics data on the dashboards is still hardcoded.
 
 **3rd Party Integrations**
 -   **MongoDB**: Primary database.
 -   **Twilio**: Mocked for SMS functionality.
 -   **Emergent-managed Google Auth**: Available for login.
--   **Recharts**: Used for all data visualization and charts.
+-   **Recharts**: Used for data visualization and charts.
 -   **reportlab**: Used for PDF generation.
 -   **pyqrcode/pypng**: Used for QR code generation.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, but not for the most recent features (QR verification, categorized templates). The last test was run before these major implementations.
+-   **Testing agent used after significant changes**: YES. The full Certificate Configuration feature was tested end-to-end.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
--   **Known regressions**: None.
+-   **Known regressions**: The input lag in the reviews dialog appears to be a regression or a persistent issue.
 
 **Credentials to test flow:**
 | Role | Username | Password |
@@ -172,4 +202,4 @@ The agent was fulfilling the user's request to redesign the government-side temp
 | Admin / Government |  |  |
 
 **What agent forgot to execute**
--   The agent did not perform any functional testing on the new  page. After building the UI and confirming it visually, the agent did not proceed to test whether the core logic (selecting a default template and sending a document with it) actually works.</analysis>
+-   The previous agent successfully implemented a large number of features and fixes. The current work is to address the new list of issues and questions from the user, which has not yet been started.</analysis>
