@@ -449,8 +449,66 @@ const LandingPage = ({ api }) => {
         </div>
       </section>
 
+      {/* Government Capabilities Section */}
+      <section className="py-20 lg:py-32 bg-gradient-to-b from-success/5 to-transparent border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success text-sm font-medium mb-4">
+              <Lock className="w-4 h-4" />
+              Government Portal
+            </div>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-4">
+              National Oversight Capabilities
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive tools for monitoring, certification, and compliance management across all regions.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {govFeatures.map((feature) => (
+              <div 
+                key={feature.title}
+                className="p-6 bg-card border border-border rounded-xl hover:border-success/50 hover:shadow-lg transition-all"
+              >
+                <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-success" />
+                </div>
+                <h3 className="font-heading text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Verify Certificate CTA */}
+          <div className="mt-12 p-8 bg-card border border-border rounded-2xl">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-success/10 flex items-center justify-center">
+                  <QrCode className="w-8 h-8 text-success" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-xl font-semibold">Verify a Certificate</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Scan the QR code on any AMMO certificate to verify its authenticity instantly.
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                className="border-success text-success hover:bg-success/10"
+                onClick={() => navigate('/verify')}
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                Verify Certificate
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Tier Showcase */}
-      <section className="py-20 lg:py-32 bg-muted/30 border-y border-border">
+      <section className="py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-4">
