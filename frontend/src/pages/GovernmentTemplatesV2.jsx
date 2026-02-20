@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { 
   FileText, Send, AlertTriangle, Award, Shield, GraduationCap, 
   CheckCircle, Bell, Loader2, Star, ChevronDown, ChevronRight,
-  Users, UserCheck, Settings2, Zap, Clock, RefreshCw, Palette
+  Users, UserCheck, Settings2, Zap, Clock, RefreshCw, Palette,
+  LayoutDashboard, Activity, Target, Settings
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -16,6 +17,19 @@ import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Government navigation items
+const NAV_ITEMS = [
+  { id: 'dashboard', path: '/government', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'reviews', path: '/government/reviews', label: 'Reviews', icon: FileText },
+  { id: 'templates', path: '/government/templates', label: 'Templates', icon: FileText },
+  { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Palette },
+  { id: 'notifications', path: '/government/notifications', label: 'Notifications', icon: Bell },
+  { id: 'analytics', path: '/government/analytics', label: 'Analytics', icon: Activity },
+  { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
+  { id: 'predictive', path: '/government/predictive', label: 'Predictive', icon: Target },
+  { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
+];
 
 // Template category configuration
 const TEMPLATE_CATEGORIES = [
