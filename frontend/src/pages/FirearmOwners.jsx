@@ -215,7 +215,7 @@ const FirearmOwners = ({ user, api }) => {
       api={api}
     >
       <div className="space-y-6" data-testid="firearm-owners-page">
-        {/* Summary Cards */}
+        {/* Summary Cards - Row 1 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card 
             className={`cursor-pointer hover:border-primary/50 transition-colors ${roleFilter === 'citizen' ? 'border-primary ring-1 ring-primary' : ''}`}
@@ -254,12 +254,12 @@ const FirearmOwners = ({ user, api }) => {
           <Card className="cursor-pointer hover:border-primary/50 transition-colors">
             <CardContent className="pt-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Crosshair className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{profiles.filter(p => getLicenseStatus(p) === 'active').length}</div>
-                  <div className="text-xs text-muted-foreground">Active Licenses</div>
+                  <div className="text-2xl font-bold">{firearmsRegistry.filter(f => f.status === 'active').length}</div>
+                  <div className="text-xs text-muted-foreground">Reg. Firearms</div>
                 </div>
               </div>
             </CardContent>
@@ -268,12 +268,14 @@ const FirearmOwners = ({ user, api }) => {
           <Card className="cursor-pointer hover:border-primary/50 transition-colors">
             <CardContent className="pt-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-amber-600" />
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{profiles.filter(p => getLicenseStatus(p) === 'pending').length}</div>
-                  <div className="text-xs text-muted-foreground">Pending</div>
+                  <div className="text-2xl font-bold">
+                    ${feesOverview ? ((feesOverview.total_expected_revenue || 0) / 1000).toFixed(1) + 'K' : '0'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Annual Revenue</div>
                 </div>
               </div>
             </CardContent>
