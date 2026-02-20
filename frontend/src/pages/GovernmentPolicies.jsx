@@ -66,10 +66,6 @@ const GovernmentPolicies = ({ user, api }) => {
   const [enforcementHistory, setEnforcementHistory] = useState([]);
   const [runningEnforcement, setRunningEnforcement] = useState(false);
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
   const fetchAllData = async () => {
     try {
       setLoading(true);
