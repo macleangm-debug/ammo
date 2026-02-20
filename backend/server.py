@@ -102,6 +102,8 @@ api_router = APIRouter(prefix="/api")
 from routes.partners import router as partners_router
 from routes.flagging import router as flagging_router, evaluate_flagging_rules, flag_transaction
 from routes.auth import router as auth_router
+from routes.members import router as members_router
+from routes.dealer import router as dealer_router
 
 # Configure logging
 logging.basicConfig(
