@@ -147,10 +147,33 @@ async def auth_login(login_data: LoginRequest, response: Response):
     
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user:
-        # Auto-setup demo data if not exists
-        from .demo import setup_demo_data
-        await setup_demo_data()
-        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        # Auto-create demo user if not exists
+        demo_data = {
+            "demo_citizen_001": {
+                "user_id": "demo_citizen_001",
+                "email": "demo.citizen@aegis.gov",
+                "name": "John Citizen",
+                "role": "citizen",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            "demo_dealer_001": {
+                "user_id": "demo_dealer_001",
+                "email": "demo.dealer@aegis.gov",
+                "name": "Smith Arms Co.",
+                "role": "dealer",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            "demo_admin_001": {
+                "user_id": "demo_admin_001",
+                "email": "admin@aegis.gov",
+                "name": "System Administrator",
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        if user_id in demo_data:
+            await db.users.insert_one(demo_data[user_id])
+            user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
         if not user:
             raise HTTPException(status_code=500, detail="Failed to initialize demo user")
     
