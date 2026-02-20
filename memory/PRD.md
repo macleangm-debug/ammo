@@ -348,6 +348,20 @@ Government portal pages:
 - Settings (`/government/settings`)
 
 ### Recent Updates (Feb 20, 2026)
+- **Annual Fees & Firearms Tracking System** (NEW):
+  - **Member Annual License Fee**: $150/year for holding a firearm license
+  - **Per-Firearm Registration Fee**: $50/year per registered firearm
+  - Backend APIs:
+    - `/api/citizen/firearms` - CRUD for firearm registration
+    - `/api/citizen/fees-summary` - User's total annual fees breakdown
+    - `/api/government/fees-overview` - Platform-wide fee statistics
+    - `/api/government/firearms-registry` - All registered firearms with owner info
+  - Frontend updates:
+    - Summary cards: "Reg. Firearms" count and "Annual Revenue" total
+    - User list shows "$150/yr Annual Fees" per user
+    - User detail dialog: 4 tabs (Profile, License, Firearms, Fees)
+    - Fees tab: Complete breakdown of license + firearm fees
+
 - **Landing Page Updated** to showcase new backend features:
   - New "National Oversight Capabilities" section with 6 government features
   - Firearm Owners Registry, Verified Certificates, Certificate Designer
