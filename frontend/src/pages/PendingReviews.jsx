@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Activity, AlertTriangle, Settings, Target,
   FileText, Building, Clock, CheckCircle, XCircle, Eye,
   ChevronRight, Search, Filter, RefreshCw, Loader2,
-  User, Users, Mail, Calendar, MapPin, ArrowUpRight, Shield, Bell, Palette
+  User, Users, Mail, Calendar, MapPin, ArrowUpRight, Shield, Bell, Palette, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -57,6 +57,7 @@ const PendingReviews = ({ user, api }) => {
     { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
     { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
+    { id: 'partners', path: '/government/partners', label: 'Partners', icon: Handshake },
     { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
   ];
 
