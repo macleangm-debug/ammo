@@ -348,9 +348,32 @@ Government portal pages:
 - Notifications (`/government/notifications`) - Manual & automated notifications
 - Analytics (`/government/predictive`) - Predictive analytics
 - Alerts (`/government/alerts-dashboard`)
+- Partners (`/government/partners`) - Partner Integration Opportunities
 - Settings (`/government/settings`)
 
 ### Recent Updates (Feb 20, 2026)
+
+- **Partner Integration Opportunities** (NEW - Feb 20, 2026):
+  - **Smart Safe IoT Integration** (Seeking Partner):
+    - Purpose: Connect with IoT-enabled gun safes to automatically verify secure storage
+    - Benefits: Automated compliance verification, real-time tamper alerts, higher ARI scores
+    - API endpoints ready for partner onboarding
+  - **Insurance Partner Integration** (Seeking Partner):
+    - Purpose: Connect with firearm insurance providers for automatic coverage verification
+    - Benefits: Instant verification, automatic renewal reminders, reduced fraud
+    - API endpoints ready for partner onboarding
+  - **Government Portal Page** (`/government/partners`):
+    - Displays all available integrations with layman explanations
+    - Shows integration status (Active/Seeking Partner)
+    - Technical requirements and data sharing details
+    - Contact partnership team CTA
+  - **Backend APIs**:
+    - `GET /api/government/partner-integrations` - List all integrations
+    - `GET /api/government/partner-integrations/{id}` - Integration details
+    - `POST /api/partner/smart-safe/status-report` - Partner endpoint for safe reports
+    - `POST /api/partner/insurance/policy-update` - Partner endpoint for policy updates
+    - `GET /api/government/smart-safe/reports` - Admin view of safe reports
+    - `GET /api/government/insurance/records` - Admin view of insurance records
 
 - **Policy Enforcement System** (NEW - Feb 20, 2026):
   - **Automated Enforcement Scheduler**: Runs every 6 hours to check compliance
