@@ -59,6 +59,7 @@ const AlertsDashboard = ({ user, api }) => {
     { id: 'notifications', path: '/government/notifications', label: 'Notifications', icon: Bell },
     { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
+    { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
     { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
   ];
 
