@@ -94,6 +94,10 @@ const GovernmentPolicies = ({ user, api }) => {
     }
   };
 
+  useEffect(() => {
+    fetchAllData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handlePolicyChange = (category, field, value) => {
     setPolicies(prev => ({
       ...prev,
