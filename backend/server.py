@@ -2131,6 +2131,515 @@ async def run_compliance_check(user: dict = Depends(require_auth(["admin"]))):
     }
 
 
+# ============== POLICY ENFORCEMENT SYSTEM ==============
+
+# Global enforcement scheduler state
+enforcement_scheduler_running = False
+enforcement_scheduler_task = None
+
+class EnforcementAction(BaseModel):
+    """Record of an enforcement action taken"""
+    action_id: str = Field(default_factory=lambda: f"enf_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    action_type: str  # warning, late_fee, suspension, reinstatement, repossession_flag
+    details: str
+    amount: Optional[float] = None  # For late fee amounts
+    days_overdue: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+async def calculate_fee_due_date(profile: dict) -> Optional[datetime]:
+    """Calculate when fees are due for a user"""
+    # Fee is due annually from license issue date or last payment date
+    fee_paid_until = profile.get("fee_paid_until")
+    
+    if fee_paid_until:
+        if isinstance(fee_paid_until, str):
+            return datetime.fromisoformat(fee_paid_until.replace("Z", "+00:00"))
+        return fee_paid_until
+    
+    # If never paid, due from license issue date + 1 year or created_at
+    license_issued = profile.get("license_issued") or profile.get("created_at")
+    if license_issued:
+        if isinstance(license_issued, str):
+            issued = datetime.fromisoformat(license_issued.replace("Z", "+00:00"))
+        else:
+            issued = license_issued
+        return issued + timedelta(days=365)
+    
+    return None
+
+
+async def apply_late_fee(profile: dict, policies: dict, days_overdue: int) -> Optional[dict]:
+    """Calculate and apply late fee to a user's account"""
+    fee_settings = policies.get("fees", {})
+    penalty_percent = fee_settings.get("late_fee_penalty_percent", 10.0)
+    license_fee = fee_settings.get("member_annual_license_fee", 150.0)
+    
+    # Calculate late fee based on months overdue
+    months_overdue = max(1, days_overdue // 30)
+    late_fee = license_fee * (penalty_percent / 100) * months_overdue
+    
+    # Get existing late fees to avoid duplicate charges
+    existing_late_fee = profile.get("accumulated_late_fees", 0)
+    
+    # Only add late fee if it's higher than existing (progressive)
+    if late_fee > existing_late_fee:
+        new_late_fee = late_fee - existing_late_fee
+        await db.citizen_profiles.update_one(
+            {"user_id": profile["user_id"]},
+            {"$set": {
+                "accumulated_late_fees": late_fee,
+                "last_late_fee_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {
+            "user_id": profile["user_id"],
+            "new_late_fee": round(new_late_fee, 2),
+            "total_late_fees": round(late_fee, 2),
+            "months_overdue": months_overdue
+        }
+    return None
+
+
+async def run_policy_enforcement() -> dict:
+    """
+    Main enforcement function that:
+    1. Checks all users for overdue fees
+    2. Applies late fees after grace period
+    3. Sends warnings at configured intervals
+    4. Suspends licenses after final warning + suspension period
+    5. Blocks services for suspended users
+    """
+    policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    if not policies:
+        policies = PlatformPolicies().model_dump()
+    
+    escalation = policies.get("escalation", {})
+    fees = policies.get("fees", {})
+    
+    grace_days = escalation.get("grace_period_days", 30)
+    warning_intervals = escalation.get("warning_intervals", [3, 5, 10])
+    suspension_days = escalation.get("suspension_trigger_days", 15)
+    block_dealer = escalation.get("block_dealer_transactions", True)
+    block_govt = escalation.get("block_government_services", True)
+    flag_repossession = escalation.get("flag_firearm_repossession", True)
+    
+    currency_symbol = fees.get("currency_symbol", "$")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get all non-suspended citizen profiles
+    profiles = await db.citizen_profiles.find(
+        {"license_status": {"$ne": "revoked"}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    results = {
+        "processed": 0,
+        "in_grace_period": 0,
+        "warnings_sent": 0,
+        "late_fees_applied": 0,
+        "suspensions_issued": 0,
+        "reinstated": 0,
+        "repossession_flags": 0,
+        "actions": [],
+        "errors": []
+    }
+    
+    for profile in profiles:
+        results["processed"] += 1
+        user_id = profile.get("user_id")
+        
+        try:
+            # Calculate due date
+            due_date = await calculate_fee_due_date(profile)
+            if not due_date:
+                continue
+            
+            days_overdue = (now - due_date).days
+            
+            # Not yet due
+            if days_overdue <= 0:
+                if profile.get("fee_status") != "paid":
+                    await db.citizen_profiles.update_one(
+                        {"user_id": user_id},
+                        {"$set": {"fee_status": "pending"}}
+                    )
+                continue
+            
+            # Within grace period
+            if days_overdue <= grace_days:
+                results["in_grace_period"] += 1
+                # Send reminder if close to end of grace period
+                if days_overdue >= grace_days - 3:
+                    await db.citizen_profiles.update_one(
+                        {"user_id": user_id},
+                        {"$set": {"fee_status": "pending", "grace_period_ending": True}}
+                    )
+                continue
+            
+            # Past grace period - mark as overdue
+            days_past_grace = days_overdue - grace_days
+            
+            # Update fee status to overdue
+            await db.citizen_profiles.update_one(
+                {"user_id": user_id},
+                {"$set": {"fee_status": "overdue"}}
+            )
+            
+            # Apply late fee
+            late_fee_result = await apply_late_fee(profile, policies, days_overdue)
+            if late_fee_result:
+                results["late_fees_applied"] += 1
+                results["actions"].append({
+                    "action_type": "late_fee",
+                    "user_id": user_id,
+                    "details": f"Late fee applied: {currency_symbol}{late_fee_result['new_late_fee']} (total: {currency_symbol}{late_fee_result['total_late_fees']})",
+                    "amount": late_fee_result['new_late_fee']
+                })
+            
+            # Check for warning intervals
+            warning_sent = False
+            for interval in warning_intervals:
+                if days_past_grace == interval or (days_past_grace > interval and profile.get("last_warning_day", 0) < interval):
+                    # Send warning notification
+                    notification = {
+                        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                        "user_id": user_id,
+                        "type": "payment_warning",
+                        "title": f"Payment Warning - Day {interval}",
+                        "message": f"Your annual fees are {days_overdue} days overdue ({days_past_grace} days past grace period). "
+                                   f"Please pay immediately to avoid license suspension. "
+                                   f"Suspension will occur in {max(0, (warning_intervals[-1] + suspension_days) - days_past_grace)} days.",
+                        "created_at": now.isoformat(),
+                        "read": False,
+                        "priority": "urgent" if interval == warning_intervals[-1] else "high",
+                        "category": "compliance"
+                    }
+                    await db.notifications.insert_one(notification)
+                    
+                    # Update profile
+                    await db.citizen_profiles.update_one(
+                        {"user_id": user_id},
+                        {
+                            "$inc": {"warning_count": 1},
+                            "$set": {"last_warning_day": interval, "last_warning_at": now.isoformat()}
+                        }
+                    )
+                    
+                    results["warnings_sent"] += 1
+                    results["actions"].append({
+                        "action_type": "warning",
+                        "user_id": user_id,
+                        "details": f"Warning sent (Day {interval}): {days_overdue} days overdue",
+                        "days_overdue": days_overdue
+                    })
+                    warning_sent = True
+                    break  # Only send one warning per run
+            
+            # Check for suspension trigger
+            final_warning_day = warning_intervals[-1] if warning_intervals else 10
+            suspension_trigger = final_warning_day + suspension_days
+            
+            if days_past_grace >= suspension_trigger:
+                if profile.get("license_status") != "suspended":
+                    # Suspend license
+                    update_data = {
+                        "license_status": "suspended",
+                        "suspended_at": now.isoformat(),
+                        "suspension_reason": "Non-payment of annual fees",
+                        "services_blocked": True,
+                        "dealer_transactions_blocked": block_dealer,
+                        "government_services_blocked": block_govt
+                    }
+                    
+                    await db.citizen_profiles.update_one(
+                        {"user_id": user_id},
+                        {"$set": update_data}
+                    )
+                    
+                    # Send suspension notification
+                    suspension_notif = {
+                        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                        "user_id": user_id,
+                        "type": "license_suspended",
+                        "title": "License Suspended - Immediate Action Required",
+                        "message": f"Your firearm license has been SUSPENDED due to non-payment of annual fees ({days_overdue} days overdue). "
+                                   "All firearm-related services are now blocked. Pay immediately to reinstate your license.",
+                        "created_at": now.isoformat(),
+                        "read": False,
+                        "priority": "critical",
+                        "category": "compliance"
+                    }
+                    await db.notifications.insert_one(suspension_notif)
+                    
+                    results["suspensions_issued"] += 1
+                    results["actions"].append({
+                        "action_type": "suspension",
+                        "user_id": user_id,
+                        "details": f"License suspended: {days_overdue} days overdue, {days_past_grace} days past grace",
+                        "days_overdue": days_overdue
+                    })
+                    
+                    # Flag firearms for repossession if enabled
+                    if flag_repossession:
+                        firearms_result = await db.registered_firearms.update_many(
+                            {"user_id": user_id, "status": "active"},
+                            {"$set": {
+                                "repossession_flagged": True,
+                                "flagged_at": now.isoformat(),
+                                "flagged_reason": "Owner license suspended for non-payment"
+                            }}
+                        )
+                        if firearms_result.modified_count > 0:
+                            results["repossession_flags"] += firearms_result.modified_count
+                            results["actions"].append({
+                                "action_type": "repossession_flag",
+                                "user_id": user_id,
+                                "details": f"{firearms_result.modified_count} firearm(s) flagged for repossession"
+                            })
+            
+        except Exception as e:
+            results["errors"].append({
+                "user_id": user_id,
+                "error": str(e)
+            })
+    
+    # Log execution
+    execution_log = {
+        "execution_id": f"enf_exec_{uuid.uuid4().hex[:12]}",
+        "executed_at": now.isoformat(),
+        "results": results,
+        "policy_snapshot": {
+            "grace_period_days": grace_days,
+            "warning_intervals": warning_intervals,
+            "suspension_trigger_days": suspension_days
+        }
+    }
+    await db.enforcement_executions.insert_one(execution_log)
+    
+    return results
+
+
+async def enforcement_scheduler_loop():
+    """Background scheduler loop for policy enforcement"""
+    global enforcement_scheduler_running
+    while enforcement_scheduler_running:
+        try:
+            logging.info("Policy enforcement: Starting scheduled run...")
+            results = await run_policy_enforcement()
+            logging.info(f"Policy enforcement: Completed. Processed {results['processed']} users, "
+                        f"{results['warnings_sent']} warnings, {results['suspensions_issued']} suspensions")
+        except Exception as e:
+            logging.error(f"Policy enforcement scheduler error: {e}")
+        
+        # Run every 6 hours
+        await asyncio.sleep(21600)
+
+
+@api_router.post("/government/enforcement/run")
+async def run_enforcement_manual(user: dict = Depends(require_auth(["admin"]))):
+    """Manually run policy enforcement"""
+    results = await run_policy_enforcement()
+    return {
+        "message": "Policy enforcement completed",
+        "results": results
+    }
+
+
+@api_router.get("/government/enforcement/status")
+async def get_enforcement_status(user: dict = Depends(require_auth(["admin"]))):
+    """Get enforcement scheduler status and recent executions"""
+    global enforcement_scheduler_running
+    
+    # Get recent executions
+    recent = await db.enforcement_executions.find(
+        {}, {"_id": 0}
+    ).sort("executed_at", -1).limit(10).to_list(10)
+    
+    # Get current compliance counts
+    profiles = await db.citizen_profiles.find({}, {"_id": 0, "fee_status": 1, "license_status": 1}).to_list(10000)
+    
+    status_counts = {
+        "total": len(profiles),
+        "paid": len([p for p in profiles if p.get("fee_status") == "paid"]),
+        "pending": len([p for p in profiles if p.get("fee_status") == "pending"]),
+        "overdue": len([p for p in profiles if p.get("fee_status") == "overdue"]),
+        "suspended": len([p for p in profiles if p.get("license_status") == "suspended"])
+    }
+    
+    return {
+        "scheduler_running": enforcement_scheduler_running,
+        "check_interval": "6 hours",
+        "current_status": status_counts,
+        "recent_executions": [serialize_doc(e) for e in recent]
+    }
+
+
+@api_router.get("/government/enforcement/history")
+async def get_enforcement_history(
+    limit: int = 20,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get enforcement execution history"""
+    executions = await db.enforcement_executions.find(
+        {}, {"_id": 0}
+    ).sort("executed_at", -1).limit(limit).to_list(limit)
+    
+    return {"executions": [serialize_doc(e) for e in executions]}
+
+
+@api_router.get("/government/enforcement/user/{user_id}")
+async def get_user_enforcement_history(user_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Get enforcement actions for a specific user"""
+    # Get profile
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get notifications related to enforcement
+    notifications = await db.notifications.find(
+        {"user_id": user_id, "type": {"$in": ["payment_warning", "license_suspended", "late_fee"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    # Calculate current status
+    policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    if not policies:
+        policies = PlatformPolicies().model_dump()
+    
+    due_date = await calculate_fee_due_date(profile)
+    now = datetime.now(timezone.utc)
+    days_overdue = (now - due_date).days if due_date else 0
+    
+    return {
+        "user_id": user_id,
+        "profile": serialize_doc(profile),
+        "current_status": {
+            "fee_status": profile.get("fee_status", "pending"),
+            "license_status": profile.get("license_status", "active"),
+            "days_overdue": max(0, days_overdue),
+            "accumulated_late_fees": profile.get("accumulated_late_fees", 0),
+            "warning_count": profile.get("warning_count", 0),
+            "fee_due_date": due_date.isoformat() if due_date else None
+        },
+        "enforcement_notifications": [serialize_doc(n) for n in notifications]
+    }
+
+
+@api_router.post("/government/enforcement/scheduler/start")
+async def start_enforcement_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Start the enforcement scheduler"""
+    global enforcement_scheduler_running, enforcement_scheduler_task
+    
+    if enforcement_scheduler_running:
+        return {"message": "Enforcement scheduler already running", "status": "running"}
+    
+    enforcement_scheduler_running = True
+    enforcement_scheduler_task = asyncio.create_task(enforcement_scheduler_loop())
+    
+    return {"message": "Enforcement scheduler started", "status": "running"}
+
+
+@api_router.post("/government/enforcement/scheduler/stop")
+async def stop_enforcement_scheduler(user: dict = Depends(require_auth(["admin"]))):
+    """Stop the enforcement scheduler"""
+    global enforcement_scheduler_running, enforcement_scheduler_task
+    
+    if not enforcement_scheduler_running:
+        return {"message": "Enforcement scheduler not running", "status": "stopped"}
+    
+    enforcement_scheduler_running = False
+    if enforcement_scheduler_task:
+        enforcement_scheduler_task.cancel()
+        enforcement_scheduler_task = None
+    
+    return {"message": "Enforcement scheduler stopped", "status": "stopped"}
+
+
+@api_router.post("/government/enforcement/reinstate/{user_id}")
+async def reinstate_user_license(user_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Manually reinstate a suspended user's license (after payment)"""
+    profile = await db.citizen_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if profile.get("license_status") != "suspended":
+        raise HTTPException(status_code=400, detail="User is not suspended")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Reinstate license
+    await db.citizen_profiles.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "license_status": "active",
+            "fee_status": "paid",
+            "fee_paid_until": (now + timedelta(days=365)).isoformat(),
+            "reinstated_at": now.isoformat(),
+            "services_blocked": False,
+            "dealer_transactions_blocked": False,
+            "government_services_blocked": False,
+            "accumulated_late_fees": 0,
+            "warning_count": 0,
+            "last_warning_day": 0
+        }}
+    )
+    
+    # Remove repossession flags from firearms
+    await db.registered_firearms.update_many(
+        {"user_id": user_id, "repossession_flagged": True},
+        {"$set": {"repossession_flagged": False, "unflagged_at": now.isoformat()}}
+    )
+    
+    # Send reinstatement notification
+    notification = {
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": user_id,
+        "type": "license_reinstated",
+        "title": "License Reinstated",
+        "message": "Your firearm license has been reinstated. All services have been restored. Thank you for your payment.",
+        "created_at": now.isoformat(),
+        "read": False,
+        "priority": "high",
+        "category": "compliance"
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "message": "License reinstated successfully",
+        "user_id": user_id,
+        "new_status": "active",
+        "fee_paid_until": (now + timedelta(days=365)).isoformat()
+    }
+
+
+# ============== SERVICE BLOCKING MIDDLEWARE ==============
+
+async def check_user_service_access(user: dict, service_type: str = "general") -> bool:
+    """Check if user has access to services based on their compliance status"""
+    if user.get("role") == "admin":
+        return True  # Admins always have access
+    
+    profile = await db.citizen_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    
+    if not profile:
+        return True  # No profile means new user, allow access
+    
+    if profile.get("license_status") == "suspended":
+        if service_type == "dealer" and profile.get("dealer_transactions_blocked", False):
+            return False
+        if service_type == "government" and profile.get("government_services_blocked", False):
+            return False
+        if profile.get("services_blocked", False):
+            return False
+    
+    return True
+
+
 # Supported currencies for the platform
 SUPPORTED_CURRENCIES = [
     {"code": "USD", "symbol": "$", "name": "US Dollar"},
