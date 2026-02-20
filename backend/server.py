@@ -1754,6 +1754,408 @@ async def get_all_firearms(
     }
 
 
+# ============== POLICY MANAGEMENT ENDPOINTS ==============
+
+@api_router.get("/government/policies")
+async def get_platform_policies(user: dict = Depends(require_auth(["admin"]))):
+    """Get current platform policies"""
+    policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    
+    if not policies:
+        # Return default policies if none exist
+        default_policies = PlatformPolicies().model_dump()
+        default_policies["last_updated"] = datetime.now(timezone.utc).isoformat()
+        await db.platform_policies.insert_one(default_policies)
+        return serialize_doc(default_policies)
+    
+    return serialize_doc(policies)
+
+
+@api_router.put("/government/policies")
+async def update_platform_policies(policy_updates: dict, user: dict = Depends(require_auth(["admin"]))):
+    """Update platform policies"""
+    # Get current policies
+    current = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    
+    if not current:
+        current = PlatformPolicies().model_dump()
+    
+    # Deep merge updates
+    def deep_merge(base, updates):
+        for key, value in updates.items():
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                deep_merge(base[key], value)
+            else:
+                base[key] = value
+        return base
+    
+    updated_policies = deep_merge(current, policy_updates)
+    updated_policies["last_updated"] = datetime.now(timezone.utc).isoformat()
+    updated_policies["updated_by"] = user["user_id"]
+    updated_policies["preset_name"] = "custom"  # Mark as custom after manual edits
+    
+    await db.platform_policies.update_one(
+        {"policy_id": "default"},
+        {"$set": updated_policies},
+        upsert=True
+    )
+    
+    # Send notification to all users about policy changes if significant
+    if "fees" in policy_updates or "escalation" in policy_updates:
+        # Create a system notification for policy changes
+        notification = {
+            "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+            "type": "policy_update",
+            "title": "Policy Update Notice",
+            "message": "Platform policies have been updated. Please review the changes in your dashboard.",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+            "priority": "high"
+        }
+        # Broadcast to all users (simplified - in production would be batched)
+        users = await db.users.find({"role": {"$in": ["citizen", "dealer"]}}, {"user_id": 1}).to_list(10000)
+        for u in users[:100]:  # Limit for demo
+            notif_copy = notification.copy()
+            notif_copy["user_id"] = u["user_id"]
+            notif_copy["notification_id"] = f"notif_{uuid.uuid4().hex[:12]}"
+            await db.notifications.insert_one(notif_copy)
+    
+    return {"message": "Policies updated successfully", "policies": serialize_doc(updated_policies)}
+
+
+@api_router.post("/government/policies/apply-preset")
+async def apply_policy_preset(preset_data: dict, user: dict = Depends(require_auth(["admin"]))):
+    """Apply a policy preset (strict, standard, permissive)"""
+    preset_name = preset_data.get("preset_name", "standard")
+    
+    if preset_name not in POLICY_PRESETS:
+        raise HTTPException(status_code=400, detail=f"Invalid preset: {preset_name}. Valid options: strict, standard, permissive")
+    
+    # Get current policies as base
+    current = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    if not current:
+        current = PlatformPolicies().model_dump()
+    
+    # Apply preset values
+    preset = POLICY_PRESETS[preset_name]
+    for category, values in preset.items():
+        if category in current:
+            current[category].update(values)
+    
+    current["preset_name"] = preset_name
+    current["last_updated"] = datetime.now(timezone.utc).isoformat()
+    current["updated_by"] = user["user_id"]
+    
+    await db.platform_policies.update_one(
+        {"policy_id": "default"},
+        {"$set": current},
+        upsert=True
+    )
+    
+    return {"message": f"Applied {preset_name} preset successfully", "policies": serialize_doc(current)}
+
+
+@api_router.get("/government/policies/presets")
+async def get_policy_presets(user: dict = Depends(require_auth(["admin"]))):
+    """Get available policy presets"""
+    return {
+        "presets": POLICY_PRESETS,
+        "available": ["strict", "standard", "permissive"]
+    }
+
+
+# ============== ACCREDITED HOSPITALS ENDPOINTS ==============
+
+@api_router.get("/government/accredited-hospitals")
+async def get_accredited_hospitals(
+    status: str = None,
+    hospital_type: str = None,
+    state: str = None,
+    user: dict = Depends(require_auth(["admin", "citizen"]))
+):
+    """Get list of accredited hospitals for mental health assessments"""
+    query = {}
+    if status:
+        query["status"] = status
+    if hospital_type:
+        query["hospital_type"] = hospital_type
+    if state:
+        query["state"] = state
+    
+    hospitals = await db.accredited_hospitals.find(query, {"_id": 0}).sort("name", 1).to_list(500)
+    
+    # Stats
+    stats = {
+        "total": len(hospitals),
+        "by_type": {},
+        "by_status": {},
+        "by_state": {}
+    }
+    
+    for h in hospitals:
+        htype = h.get("hospital_type", "unknown")
+        stats["by_type"][htype] = stats["by_type"].get(htype, 0) + 1
+        
+        hstatus = h.get("status", "unknown")
+        stats["by_status"][hstatus] = stats["by_status"].get(hstatus, 0) + 1
+        
+        hstate = h.get("state", "unknown")
+        stats["by_state"][hstate] = stats["by_state"].get(hstate, 0) + 1
+    
+    return {"hospitals": [serialize_doc(h) for h in hospitals], "stats": stats}
+
+
+@api_router.post("/government/accredited-hospitals")
+async def add_accredited_hospital(hospital_data: dict, user: dict = Depends(require_auth(["admin"]))):
+    """Add a new accredited hospital"""
+    hospital = {
+        "hospital_id": f"hosp_{uuid.uuid4().hex[:12]}",
+        "name": hospital_data.get("name"),
+        "hospital_type": hospital_data.get("hospital_type", "national"),
+        "address": hospital_data.get("address"),
+        "city": hospital_data.get("city"),
+        "state": hospital_data.get("state"),
+        "country": hospital_data.get("country", "USA"),
+        "phone": hospital_data.get("phone"),
+        "email": hospital_data.get("email"),
+        "accreditation_number": hospital_data.get("accreditation_number"),
+        "accreditation_expiry": hospital_data.get("accreditation_expiry"),
+        "services": hospital_data.get("services", ["mental_health_assessment"]),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["user_id"]
+    }
+    
+    await db.accredited_hospitals.insert_one(hospital)
+    return {"message": "Hospital added successfully", "hospital_id": hospital["hospital_id"]}
+
+
+@api_router.put("/government/accredited-hospitals/{hospital_id}")
+async def update_accredited_hospital(hospital_id: str, updates: dict, user: dict = Depends(require_auth(["admin"]))):
+    """Update an accredited hospital"""
+    allowed_fields = ["name", "hospital_type", "address", "city", "state", "phone", "email", 
+                      "accreditation_number", "accreditation_expiry", "services", "status"]
+    
+    update_data = {k: v for k, v in updates.items() if k in allowed_fields}
+    update_data["last_updated"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = user["user_id"]
+    
+    result = await db.accredited_hospitals.update_one(
+        {"hospital_id": hospital_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Hospital not found")
+    
+    return {"message": "Hospital updated successfully"}
+
+
+@api_router.delete("/government/accredited-hospitals/{hospital_id}")
+async def delete_accredited_hospital(hospital_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete (deactivate) an accredited hospital"""
+    result = await db.accredited_hospitals.update_one(
+        {"hospital_id": hospital_id},
+        {"$set": {"status": "inactive", "deactivated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Hospital not found")
+    
+    return {"message": "Hospital deactivated successfully"}
+
+
+# ============== COMPLIANCE CHECKING & ESCALATION ==============
+
+@api_router.get("/government/compliance-status")
+async def get_compliance_status(user: dict = Depends(require_auth(["admin"]))):
+    """Get overall compliance status across all users"""
+    policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    if not policies:
+        policies = PlatformPolicies().model_dump()
+    
+    now = datetime.now(timezone.utc)
+    grace_days = policies.get("escalation", {}).get("grace_period_days", 30)
+    
+    # Get all profiles
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    compliance_summary = {
+        "total_members": len(profiles),
+        "compliant": 0,
+        "in_grace_period": 0,
+        "warning_issued": 0,
+        "suspended": 0,
+        "pending_repossession": 0
+    }
+    
+    overdue_users = []
+    
+    for profile in profiles:
+        fee_status = profile.get("fee_status", "pending")
+        license_status = profile.get("license_status", "active")
+        
+        if fee_status == "paid" and license_status == "active":
+            compliance_summary["compliant"] += 1
+        elif license_status == "suspended":
+            compliance_summary["suspended"] += 1
+        elif fee_status == "overdue":
+            compliance_summary["warning_issued"] += 1
+            overdue_users.append({
+                "user_id": profile.get("user_id"),
+                "license_number": profile.get("license_number"),
+                "fee_status": fee_status,
+                "days_overdue": 0  # Would calculate from fee_due_date
+            })
+        else:
+            compliance_summary["in_grace_period"] += 1
+    
+    return {
+        "summary": compliance_summary,
+        "policies": {
+            "grace_period_days": grace_days,
+            "warning_intervals": policies.get("escalation", {}).get("warning_intervals", [3, 5, 10]),
+            "suspension_trigger_days": policies.get("escalation", {}).get("suspension_trigger_days", 15)
+        },
+        "overdue_users": overdue_users[:50]  # Limit for response size
+    }
+
+
+@api_router.post("/government/run-compliance-check")
+async def run_compliance_check(user: dict = Depends(require_auth(["admin"]))):
+    """Run compliance check and issue warnings/suspensions based on policies"""
+    policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
+    if not policies:
+        policies = PlatformPolicies().model_dump()
+    
+    escalation = policies.get("escalation", {})
+    grace_days = escalation.get("grace_period_days", 30)
+    warning_intervals = escalation.get("warning_intervals", [3, 5, 10])
+    suspension_days = escalation.get("suspension_trigger_days", 15)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get profiles with fee issues
+    profiles = await db.citizen_profiles.find(
+        {"fee_status": {"$in": ["pending", "overdue"]}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    actions_taken = {
+        "warnings_sent": 0,
+        "suspensions_issued": 0,
+        "repossession_flags": 0
+    }
+    
+    for profile in profiles:
+        fee_due_date = profile.get("fee_due_date")
+        if not fee_due_date:
+            continue
+        
+        try:
+            due_date = datetime.fromisoformat(fee_due_date.replace("Z", "+00:00"))
+            days_overdue = (now - due_date).days
+            
+            if days_overdue <= 0:
+                continue  # Not yet due
+            
+            if days_overdue <= grace_days:
+                # Within grace period - no action
+                continue
+            
+            days_past_grace = days_overdue - grace_days
+            
+            # Check for warning intervals
+            for interval in warning_intervals:
+                if days_past_grace == interval:
+                    # Issue warning
+                    notification = {
+                        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                        "user_id": profile["user_id"],
+                        "type": "payment_warning",
+                        "title": f"Payment Warning (Day {interval})",
+                        "message": f"Your annual fees are {days_overdue} days overdue. Please pay immediately to avoid suspension.",
+                        "created_at": now.isoformat(),
+                        "read": False,
+                        "priority": "urgent"
+                    }
+                    await db.notifications.insert_one(notification)
+                    actions_taken["warnings_sent"] += 1
+                    
+                    # Update profile warning count
+                    await db.citizen_profiles.update_one(
+                        {"user_id": profile["user_id"]},
+                        {"$inc": {"warning_count": 1}, "$set": {"fee_status": "overdue"}}
+                    )
+            
+            # Check for suspension
+            if days_past_grace >= (warning_intervals[-1] + suspension_days):
+                if profile.get("license_status") != "suspended":
+                    await db.citizen_profiles.update_one(
+                        {"user_id": profile["user_id"]},
+                        {"$set": {
+                            "license_status": "suspended",
+                            "suspended_at": now.isoformat(),
+                            "suspension_reason": "Non-payment of annual fees"
+                        }}
+                    )
+                    actions_taken["suspensions_issued"] += 1
+                    
+                    # Send suspension notification
+                    suspension_notif = {
+                        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+                        "user_id": profile["user_id"],
+                        "type": "license_suspended",
+                        "title": "License Suspended",
+                        "message": "Your license has been suspended due to non-payment. All firearm services are now blocked. Pay immediately to reinstate.",
+                        "created_at": now.isoformat(),
+                        "read": False,
+                        "priority": "critical"
+                    }
+                    await db.notifications.insert_one(suspension_notif)
+                    
+                    # Flag firearms for repossession if enabled
+                    if escalation.get("flag_firearm_repossession", True):
+                        await db.registered_firearms.update_many(
+                            {"user_id": profile["user_id"], "status": "active"},
+                            {"$set": {"repossession_flagged": True, "flagged_at": now.isoformat()}}
+                        )
+                        actions_taken["repossession_flags"] += 1
+        except Exception as e:
+            continue
+    
+    return {
+        "message": "Compliance check completed",
+        "actions_taken": actions_taken,
+        "checked_at": now.isoformat()
+    }
+
+
+# Supported currencies for the platform
+SUPPORTED_CURRENCIES = [
+    {"code": "USD", "symbol": "$", "name": "US Dollar"},
+    {"code": "EUR", "symbol": "€", "name": "Euro"},
+    {"code": "GBP", "symbol": "£", "name": "British Pound"},
+    {"code": "CAD", "symbol": "C$", "name": "Canadian Dollar"},
+    {"code": "AUD", "symbol": "A$", "name": "Australian Dollar"},
+    {"code": "JPY", "symbol": "¥", "name": "Japanese Yen"},
+    {"code": "CHF", "symbol": "CHF", "name": "Swiss Franc"},
+    {"code": "INR", "symbol": "₹", "name": "Indian Rupee"},
+    {"code": "ZAR", "symbol": "R", "name": "South African Rand"},
+    {"code": "BRL", "symbol": "R$", "name": "Brazilian Real"},
+    {"code": "MXN", "symbol": "$", "name": "Mexican Peso"},
+    {"code": "SGD", "symbol": "S$", "name": "Singapore Dollar"},
+    {"code": "NZD", "symbol": "NZ$", "name": "New Zealand Dollar"},
+    {"code": "AED", "symbol": "د.إ", "name": "UAE Dirham"},
+    {"code": "SAR", "symbol": "﷼", "name": "Saudi Riyal"},
+]
+
+@api_router.get("/government/supported-currencies")
+async def get_supported_currencies(user: dict = Depends(require_auth(["admin"]))):
+    """Get list of supported currencies"""
+    return {"currencies": SUPPORTED_CURRENCIES}
+
+
 @api_router.get("/citizen/notifications")
 async def get_citizen_notifications(user: dict = Depends(require_auth(["citizen", "admin"]))):
     """Get citizen's notifications"""
