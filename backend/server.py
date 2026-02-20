@@ -1296,7 +1296,6 @@ def generate_challenge() -> Challenge:
 
 
 # Government endpoints for managing fees
-@api_router.get("/government/fees-overview")
 async def get_fees_overview(user: dict = Depends(require_auth(["admin"]))):
     """Get overview of all fees across the platform"""
     # Count profiles by fee status
@@ -1331,7 +1330,6 @@ async def get_fees_overview(user: dict = Depends(require_auth(["admin"]))):
     }
 
 
-@api_router.get("/government/firearms-registry")
 async def get_all_firearms(
     user_id: str = None,
     firearm_type: str = None,
@@ -1388,7 +1386,6 @@ async def get_all_firearms(
 
 # ============== POLICY MANAGEMENT ENDPOINTS ==============
 
-@api_router.get("/government/policies")
 async def get_platform_policies(user: dict = Depends(require_auth(["admin"]))):
     """Get current platform policies"""
     policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
@@ -1403,7 +1400,6 @@ async def get_platform_policies(user: dict = Depends(require_auth(["admin"]))):
     return serialize_doc(policies)
 
 
-@api_router.put("/government/policies")
 async def update_platform_policies(policy_updates: dict, user: dict = Depends(require_auth(["admin"]))):
     """Update platform policies"""
     # Get current policies
@@ -1455,7 +1451,6 @@ async def update_platform_policies(policy_updates: dict, user: dict = Depends(re
     return {"message": "Policies updated successfully", "policies": serialize_doc(updated_policies)}
 
 
-@api_router.post("/government/policies/apply-preset")
 async def apply_policy_preset(preset_data: dict, user: dict = Depends(require_auth(["admin"]))):
     """Apply a policy preset (strict, standard, permissive)"""
     preset_name = preset_data.get("preset_name", "standard")
@@ -1487,7 +1482,6 @@ async def apply_policy_preset(preset_data: dict, user: dict = Depends(require_au
     return {"message": f"Applied {preset_name} preset successfully", "policies": serialize_doc(current)}
 
 
-@api_router.get("/government/policies/presets")
 async def get_policy_presets(user: dict = Depends(require_auth(["admin"]))):
     """Get available policy presets"""
     return {
@@ -1498,7 +1492,6 @@ async def get_policy_presets(user: dict = Depends(require_auth(["admin"]))):
 
 # ============== ACCREDITED HOSPITALS ENDPOINTS ==============
 
-@api_router.get("/government/accredited-hospitals")
 async def get_accredited_hospitals(
     status: str = None,
     hospital_type: str = None,
@@ -1537,7 +1530,6 @@ async def get_accredited_hospitals(
     return {"hospitals": [serialize_doc(h) for h in hospitals], "stats": stats}
 
 
-@api_router.post("/government/accredited-hospitals")
 async def add_accredited_hospital(hospital_data: dict, user: dict = Depends(require_auth(["admin"]))):
     """Add a new accredited hospital"""
     hospital = {
@@ -1562,7 +1554,6 @@ async def add_accredited_hospital(hospital_data: dict, user: dict = Depends(requ
     return {"message": "Hospital added successfully", "hospital_id": hospital["hospital_id"]}
 
 
-@api_router.put("/government/accredited-hospitals/{hospital_id}")
 async def update_accredited_hospital(hospital_id: str, updates: dict, user: dict = Depends(require_auth(["admin"]))):
     """Update an accredited hospital"""
     allowed_fields = ["name", "hospital_type", "address", "city", "state", "phone", "email", 
@@ -1583,7 +1574,6 @@ async def update_accredited_hospital(hospital_id: str, updates: dict, user: dict
     return {"message": "Hospital updated successfully"}
 
 
-@api_router.delete("/government/accredited-hospitals/{hospital_id}")
 async def delete_accredited_hospital(hospital_id: str, user: dict = Depends(require_auth(["admin"]))):
     """Delete (deactivate) an accredited hospital"""
     result = await db.accredited_hospitals.update_one(
@@ -1599,7 +1589,6 @@ async def delete_accredited_hospital(hospital_id: str, user: dict = Depends(requ
 
 # ============== COMPLIANCE CHECKING & ESCALATION ==============
 
-@api_router.get("/government/compliance-status")
 async def get_compliance_status(user: dict = Depends(require_auth(["admin"]))):
     """Get overall compliance status across all users"""
     policies = await db.platform_policies.find_one({"policy_id": "default"}, {"_id": 0})
@@ -4389,7 +4378,6 @@ async def get_expiring_licenses(days: int = 30, user: dict = Depends(require_aut
 
 # ============== GOVERNMENT ANALYTICS & OVERSIGHT ==============
 
-@api_router.get("/government/analytics/revenue")
 async def get_revenue_analytics(user: dict = Depends(require_auth(["admin"]))):
     """Get comprehensive revenue analytics by type and region"""
     # Aggregate revenue by type
@@ -4437,7 +4425,6 @@ async def get_revenue_analytics(user: dict = Depends(require_auth(["admin"]))):
         ]
     }
 
-@api_router.get("/government/analytics/training")
 async def get_training_analytics(user: dict = Depends(require_auth(["admin"]))):
     """Get training compliance and participation analytics"""
     # Get all courses
@@ -4500,7 +4487,6 @@ async def get_training_analytics(user: dict = Depends(require_auth(["admin"]))):
         "course_stats": sorted(course_stats, key=lambda x: x["enrollments"], reverse=True)[:10]
     }
 
-@api_router.get("/government/analytics/dealers")
 async def get_dealer_analytics(user: dict = Depends(require_auth(["admin"]))):
     """Get dealer activity and compliance analytics"""
     dealers = await db.dealer_profiles.find({}, {"_id": 0}).to_list(1000)
@@ -4552,7 +4538,6 @@ async def get_dealer_analytics(user: dict = Depends(require_auth(["admin"]))):
         "total_ammunition_sales": sum(d["ammunition_sales"] for d in dealer_stats)
     }
 
-@api_router.get("/government/analytics/compliance")
 async def get_compliance_analytics(user: dict = Depends(require_auth(["admin"]))):
     """Get citizen compliance and ARI distribution analytics"""
     citizens = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
@@ -5732,13 +5717,11 @@ async def acknowledge_warning(warning_id: str, user: dict = Depends(require_auth
 
 # ============== COURSE MANAGEMENT ==============
 
-@api_router.get("/government/courses")
 async def get_all_courses(user: dict = Depends(require_auth(["admin"]))):
     """Get all training courses"""
     courses = await db.training_courses.find({}, {"_id": 0}).to_list(1000)
     return {"courses": [serialize_doc(c) for c in courses]}
 
-@api_router.post("/government/courses")
 async def create_course(request: Request, user: dict = Depends(require_auth(["admin"]))):
     """Create a new training course"""
     body = await request.json()
@@ -5779,7 +5762,6 @@ async def create_course(request: Request, user: dict = Depends(require_auth(["ad
     
     return {"message": "Course created", "course_id": course.course_id}
 
-@api_router.put("/government/courses/{course_id}")
 async def update_course(course_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
     """Update a training course"""
     body = await request.json()
@@ -5799,7 +5781,6 @@ async def update_course(course_id: str, request: Request, user: dict = Depends(r
     await create_audit_log("course_updated", user["user_id"], "admin", course_id, body)
     return {"message": "Course updated"}
 
-@api_router.delete("/government/courses/{course_id}")
 async def archive_course(course_id: str, user: dict = Depends(require_auth(["admin"]))):
     """Archive a training course"""
     result = await db.training_courses.update_one(
@@ -5815,7 +5796,6 @@ async def archive_course(course_id: str, user: dict = Depends(require_auth(["adm
 
 # ============== GOVERNMENT DASHBOARD SUMMARY ==============
 
-@api_router.get("/government/dashboard-summary")
 async def get_government_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
     """Get comprehensive dashboard summary for government oversight"""
     # Counts
@@ -7407,7 +7387,6 @@ async def create_flagged_transaction_review(transaction: dict, risk_factors: lis
 
 # ============== UPDATE GOVERNMENT DASHBOARD SUMMARY ==============
 
-@api_router.get("/government/dashboard-summary")
 async def get_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
     """Get government dashboard summary with real pending reviews count"""
     # Count pending reviews
@@ -7445,7 +7424,6 @@ async def get_dashboard_summary(user: dict = Depends(require_auth(["admin"]))):
 
 # ============== GOVERNMENT NOTIFICATION MANAGEMENT ==============
 
-@api_router.get("/government/notifications")
 async def get_all_notifications(
     limit: int = 50,
     skip: int = 0,
@@ -7465,7 +7443,6 @@ async def get_all_notifications(
         "total": total
     }
 
-@api_router.post("/government/notifications/send")
 async def send_notification(request: Request, user: dict = Depends(require_auth(["admin"]))):
     """Send a notification to users (manual)"""
     body = await request.json()
@@ -7717,7 +7694,6 @@ async def get_notification_stats(user: dict = Depends(require_auth(["admin"]))):
         "active_triggers": active_triggers
     }
 
-@api_router.get("/government/users-list")
 async def get_users_list(
     role: Optional[str] = None,
     limit: int = 100,
@@ -7742,7 +7718,6 @@ async def get_users_list(
     }
 
 
-@api_router.get("/government/citizen-profiles")
 async def get_all_citizen_profiles(
     limit: int = 200,
     user: dict = Depends(require_auth(["admin"]))
@@ -7752,7 +7727,6 @@ async def get_all_citizen_profiles(
     return {"profiles": [serialize_doc(p) for p in profiles]}
 
 
-@api_router.get("/government/user-profile/{user_id}")
 async def get_user_profile_admin(
     user_id: str,
     user: dict = Depends(require_auth(["admin"]))
@@ -7786,7 +7760,6 @@ async def get_user_profile_admin(
     }
 
 
-@api_router.get("/government/users-export")
 async def export_users_csv(
     role: str = None,
     format: str = "csv",
