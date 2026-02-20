@@ -3,7 +3,7 @@ import {
   Palette, Type, Award, PenTool, Upload, Save, Eye, 
   Check, RefreshCw, Loader2, Shield, Star, BadgeCheck,
   FileText, Settings2, LayoutDashboard, Activity, AlertTriangle, 
-  Target, Settings, Bell, Users
+  Target, Settings, Bell, Users, Handshake
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
   { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
   { id: 'policies', path: '/government/policies', label: 'Policies', icon: Shield },
+  { id: 'partners', path: '/government/partners', label: 'Partners', icon: Handshake },
   { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
 ];
 
