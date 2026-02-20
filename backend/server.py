@@ -104,6 +104,7 @@ from routes.flagging import router as flagging_router, evaluate_flagging_rules, 
 from routes.auth import router as auth_router
 from routes.members import router as members_router
 from routes.dealer import router as dealer_router
+from routes.government import router as government_router
 
 # Configure logging
 logging.basicConfig(
