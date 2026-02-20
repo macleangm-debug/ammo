@@ -281,13 +281,6 @@ const FirearmOwners = ({ user, api }) => {
     expired: "bg-gray-100 text-gray-800"
   };
 
-  const getLicenseStatus = (profile) => {
-    if (!profile?.license_expiry) return "pending";
-    const expiry = new Date(profile.license_expiry);
-    if (expiry < new Date()) return "expired";
-    return profile.status || "active";
-  };
-
   return (
     <DashboardLayout 
       user={user} 
