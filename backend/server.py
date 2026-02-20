@@ -3711,6 +3711,9 @@ async def initiate_transaction(txn_data: TransactionCreate, request: Request, us
             detail="This citizen is blocked from dealer transactions due to unpaid fees. License suspended."
         )
     
+    # Get dealer profile for flagging evaluation
+    dealer_profile = await db.dealer_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    
     # Calculate risk score
     risk_result = await calculate_risk_score(
         citizen_profile["user_id"],
@@ -3741,6 +3744,18 @@ async def initiate_transaction(txn_data: TransactionCreate, request: Request, us
     doc['created_at'] = doc['created_at'].isoformat()
     await db.transactions.insert_one(doc)
     
+    # === AUTO-FLAGGING EVALUATION ===
+    flagging_result = await evaluate_flagging_rules(doc, citizen_profile, dealer_profile)
+    flag_id = None
+    if flagging_result.get("flagged"):
+        flag_id = await flag_transaction(transaction.transaction_id, flagging_result)
+        # Update transaction status if auto-review was triggered
+        if flagging_result.get("auto_review_required"):
+            await db.transactions.update_one(
+                {"transaction_id": transaction.transaction_id},
+                {"$set": {"status": "review_required"}}
+            )
+    
     # Create notification for citizen
     notification = {
         "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
@@ -3765,16 +3780,24 @@ async def initiate_transaction(txn_data: TransactionCreate, request: Request, us
         user["user_id"],
         "dealer",
         transaction.transaction_id,
-        {"citizen_license": txn_data.citizen_license, "item_type": txn_data.item_type}
+        {"citizen_license": txn_data.citizen_license, "item_type": txn_data.item_type, "flagged": flagging_result.get("flagged", False)}
     )
     
-    return {
+    response = {
         "transaction_id": transaction.transaction_id,
-        "status": "pending",
+        "status": "review_required" if flagging_result.get("auto_review_required") else "pending",
         "risk_level": risk_result["risk_level"],
         "risk_score": risk_result["risk_score"],
         "message": "Verification request sent to citizen"
     }
+    
+    # Include flagging info for transparency
+    if flagging_result.get("flagged"):
+        response["flagged"] = True
+        response["flag_severity"] = flagging_result.get("highest_severity")
+        response["flag_id"] = flag_id
+    
+    return response
 
 @api_router.get("/dealer/transactions")
 async def get_dealer_transactions(user: dict = Depends(require_auth(["dealer", "admin"]))):
