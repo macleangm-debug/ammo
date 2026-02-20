@@ -303,26 +303,25 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 ### P0 - Completed (Feb 20, 2026)
 - [x] **Policy Enforcement System**: Automated enforcement scheduler with late fees, warnings, suspensions
 - [x] **Partner Integration APIs (10 total)**: All partner-ready APIs with Government portal page
-  - Smart Safe IoT, Insurance, Training Ranges, Background Check
-  - Mental Health Clinics, Gunsmith/Repair, Ammunition Retailers
-  - Law Enforcement Databases, Payment Processors, GPS/Location Services
-- [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules, admin UI, test transaction feature
+- [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules
 - [x] **Backend Modularization Complete** (Feb 20, 2026):
-  - **server.py reduced from 12,319 → 9,726 lines** (2,593 lines removed, ~21% reduction)
-  - Created modular router structure: /app/backend/routes/
-  - **Router files (2,317 total lines)**:
+  - **server.py reduced from 12,319 → 9,701 lines** (2,618 lines removed, ~21% reduction)
+  - Created comprehensive router structure: /app/backend/routes/
+  - **Router files (3,221 total lines)**:
     - auth.py (205 lines) - 5 auth endpoints
     - partners.py (497 lines) - 13 partner API endpoints
     - flagging.py (514 lines) - 8 flagging endpoints + rule engine
     - members.py (588 lines) - 28 citizen/member endpoints
     - dealer.py (497 lines) - 20 dealer/inventory endpoints
-  - Removed duplicate endpoints from server.py while keeping unique ones
-  - All routers integrated and tested
+    - government.py (902 lines) - 40+ government admin endpoints
+- [x] **Dashboard Connected to Live Data** (Feb 20, 2026):
+  - Dashboard summary, compliance, revenue, training stats all use real DB data
+  - Added: /government/revenue-stats, /government/training-stats, /government/dealer-stats, /government/compliance-overview
 - [x] **Firearm Owners Page Bug Fix**: Fixed status filter crash
 
-### P1 - High Priority  
-- [ ] Create government.py router (91 endpoints - largest remaining group)
-- [ ] Connect dashboard analytics to live backend data
+### P1 - Remaining
+- [ ] Continue extracting remaining 64 government endpoints to government.py
+- [ ] Charts data (License Registrations, Revenue Collection) still use mock data
 
 ### P2 - Medium Priority  
 - [ ] Connect dashboard charts to real data (currently hardcoded)
