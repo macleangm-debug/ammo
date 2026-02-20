@@ -62,6 +62,9 @@ const GovernmentPolicies = ({ user, api }) => {
     name: "", hospital_type: "national", address: "", city: "", state: "",
     country: "USA", phone: "", email: "", accreditation_number: "", accreditation_expiry: ""
   });
+  const [enforcementStatus, setEnforcementStatus] = useState(null);
+  const [enforcementHistory, setEnforcementHistory] = useState([]);
+  const [runningEnforcement, setRunningEnforcement] = useState(false);
 
   useEffect(() => {
     fetchAllData();
