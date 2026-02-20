@@ -6,11 +6,13 @@ from .partners import router as partners_router
 from .flagging import router as flagging_router
 from .members import router as members_router
 from .dealer import router as dealer_router
+from .government import router as government_router
 
 __all__ = [
     'auth_router',
     'partners_router', 
     'flagging_router',
     'members_router',
-    'dealer_router'
+    'dealer_router',
+    'government_router'
 ]
