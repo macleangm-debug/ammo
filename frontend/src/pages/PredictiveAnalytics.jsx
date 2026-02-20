@@ -5,7 +5,7 @@ import {
   Brain, Zap, Target, Shield, RefreshCw, Play, Settings,
   ChevronRight, ArrowUp, ArrowDown, Minus, Clock, CheckCircle,
   AlertCircle, BarChart3, PieChart, Home, Bell, XCircle,
-  Plus, Edit, Trash2, Eye
+  Plus, Edit, Trash2, Eye, LayoutDashboard, FileText, Palette
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
