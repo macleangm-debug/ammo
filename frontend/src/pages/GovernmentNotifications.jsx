@@ -104,9 +104,8 @@ const GovernmentNotifications = ({ user, api }) => {
     { id: 'templates', path: '/government/templates', label: 'Templates', icon: FileText },
     { id: 'cert-config', path: '/government/certificate-config', label: 'Cert Config', icon: Palette },
     { id: 'notifications', path: '/government/notifications', label: 'Notifications', icon: Bell },
-    { id: 'analytics', path: '/government/analytics', label: 'Analytics', icon: Activity },
+    { id: 'predictive', path: '/government/predictive', label: 'Analytics', icon: Activity },
     { id: 'alerts', path: '/government/alerts-dashboard', label: 'Alerts', icon: AlertTriangle },
-    { id: 'predictive', path: '/government/predictive', label: 'Predictive', icon: Target },
     { id: 'settings', path: '/government/settings', label: 'Settings', icon: Settings },
   ];
 
