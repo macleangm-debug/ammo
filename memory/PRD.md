@@ -338,8 +338,31 @@ All member portal pages now have consistent sidebar:
 
 Government portal pages:
 - Dashboard (`/government`)
+- **Owners** (`/government/owners`) - Firearm Owners Registry (Added Feb 20, 2026)
 - Reviews (`/government/reviews`) - Pending reviews management
+- Templates (`/government/templates`) - Certificate & document templates
+- Cert Config (`/government/certificate-config`) - Certificate design configuration
 - Notifications (`/government/notifications`) - Manual & automated notifications
+- Analytics (`/government/predictive`) - Predictive analytics
 - Alerts (`/government/alerts-dashboard`)
-- Predictive (`/government/predictive`)
 - Settings (`/government/settings`)
+
+### Recent Updates (Feb 20, 2026)
+- **Firearm Owners Registry Page** (`/government/owners`):
+  - Lists all registered citizens and dealers
+  - Summary cards: Citizens count, Dealers count, Active Licenses, Pending
+  - Search by name, email, or user ID
+  - Filter by role (Citizens/Dealers) and license status
+  - User detail dialog with Profile, License, and History tabs
+  - Backend APIs: `/api/government/citizen-profiles`, `/api/government/user-profile/{user_id}`
+
+- **Navigation Fixes**:
+  - Fixed Analytics link redirecting to home page (was pointing to non-existent `/government/analytics`)
+  - Now correctly points to `/government/predictive`
+  - Added "Owners" link to all government portal navigation sidebars
+
+- **Input Lag Fix in Pending Reviews**:
+  - Optimized with `useMemo`, `useCallback`, and `memo`
+  - Extracted NoteInput and DecisionInput into memoized subcomponents
+  - Input responsiveness verified: no lag in search, note input, or decision textarea
+
