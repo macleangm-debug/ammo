@@ -2124,20 +2124,3 @@ async def delete_document_template(template_id: str, user: dict = Depends(requir
     
     return {"message": "Template deleted"}
 
-
-@router.post("/document-templates/{template_id}/preview")
-async def preview_document_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
-    """Generate a preview of a document template"""
-    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
-    
-    # Return template data for frontend to render preview
-    return {
-        "template": serialize_doc(template),
-        "preview_data": {
-            "recipient_name": "John Doe (Preview)",
-            "generated_at": datetime.now(timezone.utc).isoformat()
-        }
-    }
-
