@@ -2013,3 +2013,131 @@ async def update_notification_template(template_id: str, request: Request, user:
     template = await db.notification_templates.find_one({"template_id": template_id}, {"_id": 0})
     return serialize_doc(template)
 
+
+
+# ============== MISSING ENDPOINTS (from server.py migration) ==============
+
+@router.delete("/notification-triggers/{trigger_id}")
+async def delete_notification_trigger(trigger_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a notification trigger"""
+    result = await db.notification_triggers.delete_one({"trigger_id": trigger_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Trigger not found")
+    
+    return {"message": "Trigger deleted successfully"}
+
+
+@router.post("/notification-templates")
+async def create_notification_template(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a reusable notification template"""
+    body = await request.json()
+    
+    template = {
+        "template_id": f"TPL_{uuid.uuid4().hex[:12]}",
+        "name": body.get("name"),
+        "title": body.get("title"),
+        "message": body.get("message"),
+        "type": body.get("type", "announcement"),
+        "category": body.get("category", "general"),
+        "priority": body.get("priority", "normal"),
+        "action_url": body.get("action_url"),
+        "action_label": body.get("action_label"),
+        "created_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.notification_templates.insert_one(template)
+    return {"template_id": template["template_id"], "message": "Template created successfully"}
+
+
+@router.delete("/notification-templates/{template_id}")
+async def delete_notification_template(template_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a notification template"""
+    result = await db.notification_templates.delete_one({"template_id": template_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted successfully"}
+
+
+@router.post("/thresholds")
+async def create_threshold(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new alert threshold"""
+    body = await request.json()
+    
+    threshold = {
+        "threshold_id": f"THR_{uuid.uuid4().hex[:12]}",
+        "metric": body.get("metric"),
+        "operator": body.get("operator", ">="),
+        "value": body.get("value"),
+        "severity": body.get("severity", "medium"),
+        "action": body.get("action"),
+        "is_active": body.get("is_active", True),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["user_id"]
+    }
+    
+    await db.alert_thresholds.insert_one(threshold)
+    await create_audit_log("threshold_created", user["user_id"], "admin", details=threshold)
+    return {"message": "Threshold created", "threshold_id": threshold["threshold_id"]}
+
+
+@router.delete("/thresholds/{threshold_id}")
+async def delete_threshold(threshold_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a threshold"""
+    result = await db.alert_thresholds.delete_one({"threshold_id": threshold_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Threshold not found")
+    
+    await create_audit_log("threshold_deleted", user["user_id"], "admin", details={"threshold_id": threshold_id})
+    return {"message": "Threshold deleted"}
+
+
+@router.post("/alerts/thresholds")
+async def create_alert_threshold(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new alert threshold"""
+    body = await request.json()
+    
+    threshold = {
+        "threshold_id": f"THR_{uuid.uuid4().hex[:12]}",
+        "metric": body.get("metric"),
+        "operator": body.get("operator", ">="),
+        "value": body.get("value"),
+        "severity": body.get("severity", "medium"),
+        "action": body.get("action"),
+        "is_active": body.get("is_active", True),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.alert_thresholds.insert_one(threshold)
+    return {"message": "Alert threshold created", "threshold_id": threshold["threshold_id"]}
+
+
+@router.delete("/document-templates/{template_id}")
+async def delete_document_template(template_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a document template"""
+    result = await db.document_templates.delete_one({"template_id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted"}
+
+
+@router.post("/document-templates/{template_id}/preview")
+async def preview_document_template(template_id: str, request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Generate a preview of a document template"""
+    template = await db.document_templates.find_one({"template_id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Return template data for frontend to render preview
+    return {
+        "template": serialize_doc(template),
+        "preview_data": {
+            "recipient_name": "John Doe (Preview)",
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+    }
+
