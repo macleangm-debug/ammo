@@ -304,23 +304,25 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - [x] **Policy Enforcement System**: Automated enforcement scheduler with late fees, warnings, suspensions
 - [x] **Partner Integration APIs (10 total)**: All partner-ready APIs with Government portal page
 - [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules
-- [x] **Backend Modularization Complete** (Feb 20, 2026):
-  - **server.py reduced from 12,319 → 9,701 lines** (2,618 lines removed, ~21% reduction)
+- [x] **Backend Modularization** (Feb 20-21, 2026):
+  - **server.py reduced from 12,319 → 9,275 lines** (~3,044 lines removed, ~25% reduction)
+  - Removed ~420 lines of duplicate government endpoints (Feb 21, 2026)
   - Created comprehensive router structure: /app/backend/routes/
-  - **Router files (3,221 total lines)**:
+  - **Router files (3,600+ total lines)**:
     - auth.py (205 lines) - 5 auth endpoints
     - partners.py (497 lines) - 13 partner API endpoints
     - flagging.py (514 lines) - 8 flagging endpoints + rule engine
     - members.py (588 lines) - 28 citizen/member endpoints
     - dealer.py (497 lines) - 20 dealer/inventory endpoints
-    - government.py (902 lines) - 40+ government admin endpoints
+    - government.py (2,127 lines) - 90+ government admin endpoints
+  - Added missing endpoints to government.py: notification-triggers DELETE, notification-templates POST/DELETE, thresholds POST/DELETE, alerts/thresholds POST, document-templates DELETE
 - [x] **Dashboard Connected to Live Data** (Feb 20, 2026):
   - Dashboard summary, compliance, revenue, training stats all use real DB data
   - Added: /government/revenue-stats, /government/training-stats, /government/dealer-stats, /government/compliance-overview
 - [x] **Firearm Owners Page Bug Fix**: Fixed status filter crash
 
 ### P1 - Remaining
-- [ ] Continue extracting remaining 64 government endpoints to government.py
+- [ ] Continue extracting remaining ~44 government endpoints to government.py (partial progress made)
 - [ ] Charts data (License Registrations, Revenue Collection) still use mock data
 
 ### P2 - Medium Priority  
