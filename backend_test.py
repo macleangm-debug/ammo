@@ -14,7 +14,7 @@ class AMNONewFeaturesTest:
     3. PDF certificate generation and download
     """
     
-    def __init__(self, base_url="https://policy-admin.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://ammo-refactor.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.session = requests.Session()
         self.admin_token = None
