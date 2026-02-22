@@ -64,6 +64,11 @@ const GovernmentDashboard = ({ user, api }) => {
   const [complianceData, setComplianceData] = useState(null);
   const [alertsData, setAlertsData] = useState(null);
   
+  // Chart data states (LIVE DATA)
+  const [licenseChartData, setLicenseChartData] = useState(null);
+  const [revenueChartData, setRevenueChartData] = useState(null);
+  const [regionalChartData, setRegionalChartData] = useState(null);
+  
   // Dialog states
   const [alertDialog, setAlertDialog] = useState(null);
   const [interventionNotes, setInterventionNotes] = useState("");
