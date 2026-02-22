@@ -105,6 +105,7 @@ from routes.auth import router as auth_router
 from routes.members import router as members_router
 from routes.dealer import router as dealer_router
 from routes.government import router as government_router
+from routes.reports import router as reports_router
 
 # Configure logging
 logging.basicConfig(
