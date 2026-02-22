@@ -216,7 +216,7 @@ def generate_csv_report(data: list, columns: list):
 async def get_compliance_summary_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Compliance Summary Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -292,7 +292,7 @@ async def get_compliance_summary_report(
 async def get_revenue_collection_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Revenue Collection Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -365,7 +365,7 @@ async def get_revenue_collection_report(
 async def get_license_activity_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate License Activity Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -426,7 +426,7 @@ async def get_license_activity_report(
 async def get_dealer_oversight_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Dealer Oversight Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -490,7 +490,7 @@ async def get_dealer_oversight_report(
 @router.get("/government/regional-performance")
 async def get_regional_performance_report(
     format: str = "json",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Regional Performance Report"""
     regions = ["Northeast", "Southeast", "Midwest", "Southwest", "West"]
@@ -543,7 +543,7 @@ async def get_regional_performance_report(
 async def get_enforcement_actions_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Enforcement Actions Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -603,7 +603,7 @@ async def get_enforcement_actions_report(
 async def get_audit_trail_report(
     format: str = "json",
     period: str = "7d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Audit Trail Report"""
     days = int(period.replace("d", "")) if "d" in period else 7
@@ -657,7 +657,7 @@ async def get_audit_trail_report(
 async def get_flagged_transactions_report(
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Flagged Transactions Report"""
     days = int(period.replace("d", "")) if "d" in period else 30
@@ -715,7 +715,7 @@ async def get_flagged_transactions_report(
 @router.get("/law-enforcement/stolen-firearms")
 async def get_stolen_firearms_report(
     format: str = "json",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Stolen Firearms Report"""
     stolen = await db.stolen_firearms.find({}, {"_id": 0}).sort("reported_at", -1).to_list(1000)
@@ -761,7 +761,7 @@ async def get_stolen_firearms_report(
 @router.get("/law-enforcement/high-risk-individuals")
 async def get_high_risk_individuals_report(
     format: str = "json",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate High-Risk Individuals Report"""
     # Get profiles with multiple violations or risk factors
@@ -823,7 +823,7 @@ async def get_high_risk_individuals_report(
 @router.get("/law-enforcement/suspended-licenses")
 async def get_suspended_licenses_report(
     format: str = "json",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Suspended Licenses Report"""
     suspended = await db.citizen_profiles.find(
@@ -865,7 +865,7 @@ async def get_suspended_licenses_report(
 async def get_transaction_lookup_report(
     user_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["admin"]))
+    user: dict = Depends(require_role(["admin"]))
 ):
     """Generate Transaction History Report for specific individual"""
     # Get user profile
@@ -922,7 +922,7 @@ async def get_transaction_lookup_report(
 @router.get("/citizen/license-certificate/{user_id}")
 async def get_license_certificate(
     user_id: str,
-    user: dict = Depends(require_auth(["citizen", "admin"]))
+    user: dict = Depends(require_role(["citizen", "admin"]))
 ):
     """Generate Official License Certificate PDF"""
     # Verify access (citizens can only access their own)
@@ -987,7 +987,7 @@ async def get_license_certificate(
 async def get_firearm_registration_report(
     user_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["citizen", "admin"]))
+    user: dict = Depends(require_role(["citizen", "admin"]))
 ):
     """Generate Firearm Registration Report"""
     if user.get("role") == "citizen" and user.get("user_id") != user_id:
@@ -1032,7 +1032,7 @@ async def get_firearm_registration_report(
 async def get_training_transcript(
     user_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["citizen", "admin"]))
+    user: dict = Depends(require_role(["citizen", "admin"]))
 ):
     """Generate Training Transcript"""
     if user.get("role") == "citizen" and user.get("user_id") != user_id:
@@ -1083,7 +1083,7 @@ async def get_training_transcript(
 async def get_payment_history_report(
     user_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["citizen", "admin"]))
+    user: dict = Depends(require_role(["citizen", "admin"]))
 ):
     """Generate Payment History Report"""
     if user.get("role") == "citizen" and user.get("user_id") != user_id:
@@ -1143,7 +1143,7 @@ async def get_payment_history_report(
 async def get_compliance_status_report(
     user_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["citizen", "admin"]))
+    user: dict = Depends(require_role(["citizen", "admin"]))
 ):
     """Generate Personal Compliance Status Report"""
     if user.get("role") == "citizen" and user.get("user_id") != user_id:
@@ -1196,7 +1196,7 @@ async def get_dealer_sales_summary(
     dealer_id: str,
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["dealer", "admin"]))
+    user: dict = Depends(require_role(["dealer", "admin"]))
 ):
     """Generate Dealer Sales Summary Report"""
     if user.get("role") == "dealer" and user.get("user_id") != dealer_id:
@@ -1254,7 +1254,7 @@ async def get_dealer_sales_summary(
 async def get_dealer_inventory_report(
     dealer_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["dealer", "admin"]))
+    user: dict = Depends(require_role(["dealer", "admin"]))
 ):
     """Generate Dealer Inventory Report"""
     if user.get("role") == "dealer" and user.get("user_id") != dealer_id:
@@ -1305,7 +1305,7 @@ async def get_dealer_verification_log(
     dealer_id: str,
     format: str = "json",
     period: str = "30d",
-    user: dict = Depends(require_auth(["dealer", "admin"]))
+    user: dict = Depends(require_role(["dealer", "admin"]))
 ):
     """Generate Customer Verification Log Report"""
     if user.get("role") == "dealer" and user.get("user_id") != dealer_id:
@@ -1362,7 +1362,7 @@ async def get_dealer_verification_log(
 async def get_dealer_compliance_audit(
     dealer_id: str,
     format: str = "json",
-    user: dict = Depends(require_auth(["dealer", "admin"]))
+    user: dict = Depends(require_role(["dealer", "admin"]))
 ):
     """Generate Dealer Compliance Audit Report"""
     if user.get("role") == "dealer" and user.get("user_id") != dealer_id:
@@ -1417,7 +1417,7 @@ async def get_dealer_compliance_audit(
 # ============== REPORT CATALOG ==============
 
 @router.get("/catalog")
-async def get_report_catalog(user: dict = Depends(require_auth(["citizen", "dealer", "admin"]))):
+async def get_report_catalog(user: dict = Depends(require_role(["citizen", "dealer", "admin"]))):
     """Get list of all available reports based on user role"""
     role = user.get("role", "citizen")
     user_id = user.get("user_id", "")
