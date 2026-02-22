@@ -304,29 +304,32 @@ Build a comprehensive platform for responsible firearm ownership tracking with:
 - [x] **Policy Enforcement System**: Automated enforcement scheduler with late fees, warnings, suspensions
 - [x] **Partner Integration APIs (10 total)**: All partner-ready APIs with Government portal page
 - [x] **Flagged Transaction Auto-Detection**: Complete rule engine with 8 configurable rules
-- [x] **Backend Modularization** (Feb 20-21, 2026):
-  - **server.py reduced from 12,319 → 9,275 lines** (~3,044 lines removed, ~25% reduction)
-  - Removed ~420 lines of duplicate government endpoints (Feb 21, 2026)
+- [x] **Backend Modularization** (Feb 20-22, 2026):
+  - **server.py reduced from 12,319 → 9,097 lines** (~3,222 lines removed, ~26% reduction)
+  - Removed duplicate government endpoints in multiple phases
   - Created comprehensive router structure: /app/backend/routes/
-  - **Router files (3,600+ total lines)**:
+  - **Router files (4,000+ total lines)**:
     - auth.py (205 lines) - 5 auth endpoints
     - partners.py (497 lines) - 13 partner API endpoints
     - flagging.py (514 lines) - 8 flagging endpoints + rule engine
     - members.py (588 lines) - 28 citizen/member endpoints
     - dealer.py (497 lines) - 20 dealer/inventory endpoints
-    - government.py (2,127 lines) - 90+ government admin endpoints
-  - Added missing endpoints to government.py: notification-triggers DELETE, notification-templates POST/DELETE, thresholds POST/DELETE, alerts/thresholds POST, document-templates DELETE
-- [x] **Dashboard Connected to Live Data** (Feb 20, 2026):
+    - government.py (2,300+ lines) - 100+ government admin endpoints including chart data APIs
+- [x] **Dashboard Connected to Live Data** (Feb 20-22, 2026):
   - Dashboard summary, compliance, revenue, training stats all use real DB data
   - Added: /government/revenue-stats, /government/training-stats, /government/dealer-stats, /government/compliance-overview
+  - **NEW: Chart data endpoints** (Feb 22, 2026):
+    - /government/chart-data/license-registrations - Live license registration trends
+    - /government/chart-data/revenue - Live revenue collection by month
+    - /government/chart-data/regional-compliance - Live regional compliance breakdown
+  - Frontend updated to fetch and display live chart data (with fallback to mock if data is sparse)
 - [x] **Firearm Owners Page Bug Fix**: Fixed status filter crash
 
 ### P1 - Remaining
-- [ ] Continue extracting remaining ~44 government endpoints to government.py (partial progress made)
-- [ ] Charts data (License Registrations, Revenue Collection) still use mock data
+- [ ] Continue extracting remaining ~37 government endpoints from server.py
+- [ ] Final cleanup of server.py - remove unused helper functions
 
 ### P2 - Medium Priority  
-- [ ] Connect dashboard charts to real data (currently hardcoded)
 - [ ] Community Mentor Matching
 - [ ] SMS Notifications (currently mocked)
 - [ ] Email notifications for review status changes
