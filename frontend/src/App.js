@@ -17,6 +17,7 @@ import DealerPortal from "./pages/DealerPortal";
 import DealerInventory from "./pages/DealerInventory";
 import GovernmentDashboard from "./pages/GovernmentDashboard";
 import GovernmentAnalytics from "./pages/GovernmentAnalytics";
+import GovernmentReports from "./pages/GovernmentReports";
 import AlertsDashboard from "./pages/AlertsDashboard";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import PendingReviews from "./pages/PendingReviews";
