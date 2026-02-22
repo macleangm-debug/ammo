@@ -106,13 +106,20 @@ const GovernmentDashboard = ({ user, api }) => {
 
   const fetchAllData = async () => {
     try {
-      const [summaryRes, revenueRes, trainingRes, dealerRes, complianceRes, alertsRes] = await Promise.all([
+      const [
+        summaryRes, revenueRes, trainingRes, dealerRes, complianceRes, alertsRes,
+        licenseChartRes, revenueChartRes, regionalChartRes
+      ] = await Promise.all([
         api.get("/government/dashboard-summary").catch(() => ({ data: {} })),
         api.get("/government/revenue-stats").catch(() => ({ data: {} })),
         api.get("/government/training-stats").catch(() => ({ data: {} })),
         api.get("/government/dealer-stats").catch(() => ({ data: {} })),
         api.get("/government/compliance-overview").catch(() => ({ data: {} })),
-        api.get("/government/alerts").catch(() => ({ data: { alerts: [] } }))
+        api.get("/government/alerts").catch(() => ({ data: { alerts: [] } })),
+        // Chart data endpoints
+        api.get("/government/chart-data/license-registrations").catch(() => ({ data: { data: [] } })),
+        api.get("/government/chart-data/revenue").catch(() => ({ data: { data: [] } })),
+        api.get("/government/chart-data/regional-compliance").catch(() => ({ data: { data: [] } }))
       ]);
 
       setDashboardSummary(summaryRes.data);
@@ -121,6 +128,11 @@ const GovernmentDashboard = ({ user, api }) => {
       setDealerData(dealerRes.data);
       setComplianceData(complianceRes.data);
       setAlertsData(alertsRes.data);
+      
+      // Set chart data
+      setLicenseChartData(licenseChartRes.data);
+      setRevenueChartData(revenueChartRes.data);
+      setRegionalChartData(regionalChartRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
