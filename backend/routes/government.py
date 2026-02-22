@@ -711,6 +711,192 @@ async def get_notification_stats(user: dict = Depends(require_auth(["admin"]))):
 
 # ============== STATS ENDPOINTS FOR DASHBOARD ==============
 
+@router.get("/chart-data/license-registrations")
+async def get_license_registration_chart_data(user: dict = Depends(require_auth(["admin"]))):
+    """Get license registration data for charts"""
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    now = datetime.now(timezone.utc)
+    
+    # Get all licenses and applications
+    licenses = await db.licenses.find({}, {"_id": 0}).to_list(10000)
+    applications = await db.license_applications.find({}, {"_id": 0}).to_list(10000)
+    
+    # Initialize monthly data
+    monthly_data = {m: {"newLicenses": 0, "renewals": 0, "revocations": 0} for m in months[:now.month]}
+    
+    # Count new licenses by month
+    for lic in licenses:
+        try:
+            date_str = lic.get("issued_date") or lic.get("created_at", "")
+            if date_str:
+                date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                if date.year == now.year:
+                    month_key = months[date.month - 1]
+                    if lic.get("type") == "renewal":
+                        monthly_data[month_key]["renewals"] += 1
+                    else:
+                        monthly_data[month_key]["newLicenses"] += 1
+        except:
+            pass
+    
+    # Count revocations
+    for app in applications:
+        if app.get("status") == "revoked":
+            try:
+                date_str = app.get("reviewed_at") or app.get("updated_at", "")
+                if date_str:
+                    date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                    if date.year == now.year:
+                        month_key = months[date.month - 1]
+                        monthly_data[month_key]["revocations"] += 1
+            except:
+                pass
+    
+    # Format for chart
+    chart_data = [
+        {"month": m, **monthly_data[m]} 
+        for m in months[:now.month]
+    ]
+    
+    return {
+        "data": chart_data,
+        "summary": {
+            "total_new": sum(d["newLicenses"] for d in chart_data),
+            "total_renewals": sum(d["renewals"] for d in chart_data),
+            "total_revocations": sum(d["revocations"] for d in chart_data)
+        }
+    }
+
+
+@router.get("/chart-data/revenue")
+async def get_revenue_chart_data(user: dict = Depends(require_auth(["admin"]))):
+    """Get revenue data for charts"""
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    now = datetime.now(timezone.utc)
+    
+    # Get all payments
+    payments = await db.payments.find({"status": "completed"}, {"_id": 0}).to_list(10000)
+    fees = await db.fee_payments.find({}, {"_id": 0}).to_list(10000)
+    
+    # Initialize monthly data
+    monthly_revenue = {m: 0 for m in months[:now.month]}
+    
+    # Aggregate payment revenue
+    for p in payments:
+        try:
+            date_str = p.get("payment_date") or p.get("created_at", "")
+            if date_str:
+                date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                if date.year == now.year:
+                    month_key = months[date.month - 1]
+                    monthly_revenue[month_key] += p.get("amount", 0)
+        except:
+            pass
+    
+    # Aggregate fee revenue
+    for f in fees:
+        try:
+            date_str = f.get("paid_at") or f.get("created_at", "")
+            if date_str:
+                date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                if date.year == now.year:
+                    month_key = months[date.month - 1]
+                    monthly_revenue[month_key] += f.get("amount", 0)
+        except:
+            pass
+    
+    # Format for chart
+    chart_data = [
+        {"month": m, "revenue": monthly_revenue[m]} 
+        for m in months[:now.month]
+    ]
+    
+    return {
+        "data": chart_data,
+        "total_revenue": sum(monthly_revenue.values()),
+        "avg_monthly": round(sum(monthly_revenue.values()) / len(chart_data), 2) if chart_data else 0
+    }
+
+
+@router.get("/chart-data/regional-compliance")
+async def get_regional_compliance_chart_data(user: dict = Depends(require_auth(["admin"]))):
+    """Get regional compliance data for charts"""
+    # Get all profiles with region info
+    profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    
+    # Define regions (you can customize based on actual data)
+    regions = {
+        "Northeast": {"total": 0, "compliant": 0},
+        "Southeast": {"total": 0, "compliant": 0},
+        "Midwest": {"total": 0, "compliant": 0},
+        "Southwest": {"total": 0, "compliant": 0},
+        "West": {"total": 0, "compliant": 0}
+    }
+    
+    now = datetime.now(timezone.utc)
+    
+    for p in profiles:
+        # Determine region (you can map based on state/address)
+        region = p.get("region") or "Northeast"  # Default to Northeast if not specified
+        
+        if region not in regions:
+            region = "Northeast"
+        
+        regions[region]["total"] += 1
+        
+        # Check compliance
+        status = p.get("license_status", "active")
+        is_compliant = True
+        
+        if status == "suspended":
+            is_compliant = False
+        elif p.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(p["license_expiry"].replace("Z", "+00:00"))
+                if expiry < now:
+                    is_compliant = False
+            except:
+                pass
+        
+        if is_compliant:
+            regions[region]["compliant"] += 1
+    
+    # Calculate compliance rate per region
+    colors = {
+        "Northeast": "#40c057",
+        "Southeast": "#40c057", 
+        "Midwest": "#fab005",
+        "Southwest": "#fab005",
+        "West": "#40c057"
+    }
+    
+    chart_data = []
+    for region, data in regions.items():
+        rate = round((data["compliant"] / data["total"] * 100) if data["total"] > 0 else 100, 0)
+        # Color based on rate
+        if rate >= 90:
+            color = "#40c057"  # green
+        elif rate >= 80:
+            color = "#fab005"  # yellow
+        else:
+            color = "#fa5252"  # red
+            
+        chart_data.append({
+            "name": region,
+            "compliant": rate,
+            "color": color
+        })
+    
+    return {
+        "data": chart_data,
+        "overall_compliance": round(
+            sum(r["compliant"] for r in regions.values()) / 
+            sum(r["total"] for r in regions.values()) * 100
+            if sum(r["total"] for r in regions.values()) > 0 else 0, 1
+        )
+    }
+
+
 @router.get("/revenue-stats")
 async def get_revenue_stats(user: dict = Depends(require_auth(["admin"]))):
     """Get revenue statistics for dashboard"""
