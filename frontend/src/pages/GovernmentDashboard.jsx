@@ -166,15 +166,18 @@ const GovernmentDashboard = ({ user, api }) => {
     }
   };
 
-  // Generate analytics data
+  // Use LIVE data from API for charts, with fallback to mock data if API returns empty
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
   
-  const registrationsByMonth = months.map((month, idx) => ({
-    month,
-    newLicenses: Math.floor(Math.random() * 500) + 200 + idx * 30,
-    renewals: Math.floor(Math.random() * 300) + 150,
-    revocations: Math.floor(Math.random() * 30) + 5
-  }));
+  // License registrations - use live data or generate mock if empty
+  const registrationsByMonth = licenseChartData?.data?.length > 0 
+    ? licenseChartData.data 
+    : months.map((month, idx) => ({
+        month,
+        newLicenses: Math.floor(Math.random() * 500) + 200 + idx * 30,
+        renewals: Math.floor(Math.random() * 300) + 150,
+        revocations: Math.floor(Math.random() * 30) + 5
+      }));
 
   const complianceByMonth = months.map((month, idx) => ({
     month,
@@ -182,10 +185,13 @@ const GovernmentDashboard = ({ user, api }) => {
     violations: Math.floor(Math.random() * 50) + 10
   }));
 
-  const revenueByMonth = months.map((month, idx) => ({
-    month,
-    revenue: Math.floor(Math.random() * 50000) + 30000 + idx * 5000
-  }));
+  // Revenue by month - use live data or generate mock if empty
+  const revenueByMonth = revenueChartData?.data?.length > 0
+    ? revenueChartData.data
+    : months.map((month, idx) => ({
+        month,
+        revenue: Math.floor(Math.random() * 50000) + 30000 + idx * 5000
+      }));
 
   // Category breakdown
   const categoryData = [
@@ -195,9 +201,11 @@ const GovernmentDashboard = ({ user, api }) => {
     { name: 'Training', value: 28000, color: COLORS.purple }
   ];
 
-  // Regional compliance
-  const regionalData = [
-    { name: 'Northeast', compliant: 94, color: COLORS.success },
+  // Regional compliance - use live data or fallback
+  const regionalData = regionalChartData?.data?.length > 0
+    ? regionalChartData.data
+    : [
+        { name: 'Northeast', compliant: 94, color: COLORS.success },
     { name: 'Southeast', compliant: 91, color: COLORS.success },
     { name: 'Midwest', compliant: 88, color: COLORS.warning },
     { name: 'Southwest', compliant: 85, color: COLORS.warning },
