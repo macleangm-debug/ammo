@@ -49,37 +49,39 @@ def serialize_doc(doc: dict) -> dict:
 
 # Auth dependency - inline to avoid circular import
 async def get_current_user(
-    cookie: Optional[str] = Header(None, alias="cookie"),
-    authorization: Optional[str] = Header(None)
+    request: Request
 ) -> dict:
     """Get current user from session or token"""
-    session_token = None
-    
-    # Check cookie
-    if cookie:
-        for part in cookie.split(";"):
-            if "session_token=" in part:
-                session_token = part.split("session_token=")[1].strip()
-                break
+    session_token = request.cookies.get("session_token")
+    if not session_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_token = auth_header.split(" ")[1]
     
     if not session_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    # Find session
-    session = await db.sessions.find_one({"session_token": session_token}, {"_id": 0})
+    # Find session in user_sessions collection
+    session = await db.user_sessions.find_one({"session_token": session_token}, {"_id": 0})
     if not session:
         raise HTTPException(status_code=401, detail="Invalid session")
     
     # Check expiry
-    if session.get("expires_at"):
-        try:
-            expiry = datetime.fromisoformat(session["expires_at"].replace("Z", "+00:00"))
-            if expiry < datetime.now(timezone.utc):
-                raise HTTPException(status_code=401, detail="Session expired")
-        except:
-            pass
+    expires_at = session.get("expires_at")
+    if expires_at:
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=401, detail="Session expired")
     
-    return session.get("user", session)
+    # Get user from users collection
+    user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return user
 
 
 def require_role(allowed_roles: list):
