@@ -288,6 +288,15 @@ function AppRouter() {
       />
       
       <Route
+        path="/government/analytics"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            {({ user, api }) => <GovernmentAnalytics user={user} api={api} />}
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
         path="/government/reviews"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
