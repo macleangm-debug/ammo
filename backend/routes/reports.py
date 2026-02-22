@@ -9,19 +9,52 @@ from typing import Optional
 import uuid
 import io
 import csv
+import os
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
 
-# Import shared utilities from server
-import sys
-sys.path.append('/app/backend')
-from server import db, require_auth, serialize_doc, create_audit_log
+# Database connection
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+DB_NAME = os.environ.get("DB_NAME", "ammo_db")
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+# Import auth dependency - use lazy import to avoid circular
+def get_require_auth():
+    from server import require_auth
+    return require_auth
+
+def require_auth(roles):
+    """Wrapper for require_auth to avoid circular imports"""
+    from server import require_auth as _require_auth
+    return _require_auth(roles)
+
+def serialize_doc(doc: dict) -> dict:
+    """Serialize MongoDB document for JSON response"""
+    if doc is None:
+        return None
+    result = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            result[key] = str(value)
+        elif isinstance(value, datetime):
+            result[key] = value.isoformat()
+        elif isinstance(value, dict):
+            result[key] = serialize_doc(value)
+        elif isinstance(value, list):
+            result[key] = [serialize_doc(item) if isinstance(item, dict) else item for item in value]
+        else:
+            result[key] = value
+    return result
 
 
 # ============== HELPER FUNCTIONS ==============
