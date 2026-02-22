@@ -206,11 +206,11 @@ const GovernmentDashboard = ({ user, api }) => {
     ? regionalChartData.data
     : [
         { name: 'Northeast', compliant: 94, color: COLORS.success },
-    { name: 'Southeast', compliant: 91, color: COLORS.success },
-    { name: 'Midwest', compliant: 88, color: COLORS.warning },
-    { name: 'Southwest', compliant: 85, color: COLORS.warning },
-    { name: 'West', compliant: 92, color: COLORS.success }
-  ];
+        { name: 'Southeast', compliant: 91, color: COLORS.success },
+        { name: 'Midwest', compliant: 88, color: COLORS.warning },
+        { name: 'Southwest', compliant: 85, color: COLORS.warning },
+        { name: 'West', compliant: 92, color: COLORS.success }
+      ];
 
   // Alert severity distribution
   const alertSeverity = [
