@@ -3,7 +3,7 @@ Reports Routes
 Comprehensive report generation for all AMMO stakeholders
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Header
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 import uuid
@@ -28,16 +28,6 @@ db = client[DB_NAME]
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-# Import auth dependency - use lazy import to avoid circular
-def get_require_auth():
-    from server import require_auth
-    return require_auth
-
-def require_auth(roles):
-    """Wrapper for require_auth to avoid circular imports"""
-    from server import require_auth as _require_auth
-    return _require_auth(roles)
-
 def serialize_doc(doc: dict) -> dict:
     """Serialize MongoDB document for JSON response"""
     if doc is None:
@@ -55,6 +45,51 @@ def serialize_doc(doc: dict) -> dict:
         else:
             result[key] = value
     return result
+
+
+# Auth dependency - inline to avoid circular import
+async def get_current_user(
+    cookie: Optional[str] = Header(None, alias="cookie"),
+    authorization: Optional[str] = Header(None)
+) -> dict:
+    """Get current user from session or token"""
+    session_token = None
+    
+    # Check cookie
+    if cookie:
+        for part in cookie.split(";"):
+            if "session_token=" in part:
+                session_token = part.split("session_token=")[1].strip()
+                break
+    
+    if not session_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Find session
+    session = await db.sessions.find_one({"session_token": session_token}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    # Check expiry
+    if session.get("expires_at"):
+        try:
+            expiry = datetime.fromisoformat(session["expires_at"].replace("Z", "+00:00"))
+            if expiry < datetime.now(timezone.utc):
+                raise HTTPException(status_code=401, detail="Session expired")
+        except:
+            pass
+    
+    return session.get("user", session)
+
+
+def require_role(allowed_roles: list):
+    """Dependency factory for role-based access control"""
+    async def role_checker(user: dict = Depends(get_current_user)):
+        user_role = user.get("role", "")
+        if user_role not in allowed_roles:
+            raise HTTPException(status_code=403, detail=f"Access denied. Required roles: {allowed_roles}")
+        return user
+    return role_checker
 
 
 # ============== HELPER FUNCTIONS ==============
