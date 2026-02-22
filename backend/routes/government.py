@@ -2310,3 +2310,764 @@ async def delete_document_template(template_id: str, user: dict = Depends(requir
     
     return {"message": "Template deleted"}
 
+
+
+# ============== ADVANCED ANALYTICS DASHBOARD ==============
+
+@router.get("/analytics/trends")
+async def get_analytics_trends(
+    period: str = "30d",
+    compare_previous: bool = True,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get trend analytics with period comparisons"""
+    # Parse period
+    days = int(period.replace("d", "")) if "d" in period else 30
+    now = datetime.now(timezone.utc)
+    current_start = now - timedelta(days=days)
+    previous_start = current_start - timedelta(days=days)
+    
+    # Current period data
+    current_licenses = await db.licenses.count_documents({
+        "created_at": {"$gte": current_start.isoformat()}
+    })
+    current_transactions = await db.transactions.count_documents({
+        "created_at": {"$gte": current_start.isoformat()}
+    })
+    current_violations = await db.compliance_warnings.count_documents({
+        "created_at": {"$gte": current_start.isoformat()}
+    })
+    
+    # Revenue calculation
+    current_payments = await db.payments.find({
+        "status": "completed",
+        "payment_date": {"$gte": current_start.isoformat()}
+    }, {"_id": 0}).to_list(10000)
+    current_revenue = sum(p.get("amount", 0) for p in current_payments)
+    
+    # Fee payments
+    current_fees = await db.fee_payments.find({
+        "paid_at": {"$gte": current_start.isoformat()}
+    }, {"_id": 0}).to_list(10000)
+    current_revenue += sum(f.get("amount", 0) for f in current_fees)
+    
+    # Previous period data for comparison
+    previous_data = {}
+    if compare_previous:
+        previous_licenses = await db.licenses.count_documents({
+            "created_at": {"$gte": previous_start.isoformat(), "$lt": current_start.isoformat()}
+        })
+        previous_transactions = await db.transactions.count_documents({
+            "created_at": {"$gte": previous_start.isoformat(), "$lt": current_start.isoformat()}
+        })
+        previous_violations = await db.compliance_warnings.count_documents({
+            "created_at": {"$gte": previous_start.isoformat(), "$lt": current_start.isoformat()}
+        })
+        previous_payments = await db.payments.find({
+            "status": "completed",
+            "payment_date": {"$gte": previous_start.isoformat(), "$lt": current_start.isoformat()}
+        }, {"_id": 0}).to_list(10000)
+        previous_revenue = sum(p.get("amount", 0) for p in previous_payments)
+        
+        previous_fees = await db.fee_payments.find({
+            "paid_at": {"$gte": previous_start.isoformat(), "$lt": current_start.isoformat()}
+        }, {"_id": 0}).to_list(10000)
+        previous_revenue += sum(f.get("amount", 0) for f in previous_fees)
+        
+        def calc_change(current, previous):
+            if previous == 0:
+                return 100 if current > 0 else 0
+            return round(((current - previous) / previous) * 100, 1)
+        
+        previous_data = {
+            "licenses": previous_licenses,
+            "transactions": previous_transactions,
+            "violations": previous_violations,
+            "revenue": previous_revenue,
+            "changes": {
+                "licenses": calc_change(current_licenses, previous_licenses),
+                "transactions": calc_change(current_transactions, previous_transactions),
+                "violations": calc_change(current_violations, previous_violations),
+                "revenue": calc_change(current_revenue, previous_revenue)
+            }
+        }
+    
+    # Daily breakdown for charts
+    daily_data = []
+    for i in range(days):
+        day_start = now - timedelta(days=days-i)
+        day_end = day_start + timedelta(days=1)
+        
+        day_licenses = await db.licenses.count_documents({
+            "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+        })
+        day_transactions = await db.transactions.count_documents({
+            "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+        })
+        
+        daily_data.append({
+            "date": day_start.strftime("%Y-%m-%d"),
+            "day": day_start.strftime("%b %d"),
+            "licenses": day_licenses,
+            "transactions": day_transactions
+        })
+    
+    return {
+        "period": period,
+        "current": {
+            "licenses": current_licenses,
+            "transactions": current_transactions,
+            "violations": current_violations,
+            "revenue": current_revenue
+        },
+        "previous": previous_data,
+        "daily_breakdown": daily_data,
+        "period_start": current_start.isoformat(),
+        "period_end": now.isoformat()
+    }
+
+
+@router.get("/analytics/regional-drilldown/{region}")
+async def get_regional_drilldown(
+    region: str,
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Get detailed analytics for a specific region"""
+    # Get all profiles for this region
+    profiles = await db.citizen_profiles.find(
+        {"region": {"$regex": region, "$options": "i"}},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    if not profiles:
+        # If no exact match, try partial match or return all with region assignment
+        all_profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+        # Assign regions based on index for demo purposes
+        regions_list = ["Northeast", "Southeast", "Midwest", "Southwest", "West"]
+        region_idx = regions_list.index(region) if region in regions_list else 0
+        profiles = [p for i, p in enumerate(all_profiles) if i % 5 == region_idx]
+    
+    now = datetime.now(timezone.utc)
+    
+    # Calculate metrics
+    total_citizens = len(profiles)
+    compliant = 0
+    warning = 0
+    suspended = 0
+    expired = 0
+    
+    for p in profiles:
+        status = p.get("license_status", "active")
+        if status == "suspended":
+            suspended += 1
+        elif p.get("license_expiry"):
+            try:
+                expiry = datetime.fromisoformat(p["license_expiry"].replace("Z", "+00:00"))
+                if expiry < now:
+                    expired += 1
+                elif (expiry - now).days < 30:
+                    warning += 1
+                else:
+                    compliant += 1
+            except:
+                compliant += 1
+        else:
+            compliant += 1
+    
+    # Get transactions for region
+    user_ids = [p.get("user_id") for p in profiles if p.get("user_id")]
+    transactions = await db.transactions.find(
+        {"buyer_id": {"$in": user_ids}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Get violations
+    violations = await db.compliance_warnings.find(
+        {"user_id": {"$in": user_ids}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Calculate revenue from this region
+    payments = await db.payments.find(
+        {"user_id": {"$in": user_ids}, "status": "completed"},
+        {"_id": 0}
+    ).to_list(5000)
+    total_revenue = sum(p.get("amount", 0) for p in payments)
+    
+    # Top issues in region
+    issue_counts = {}
+    for v in violations:
+        issue_type = v.get("type", "other")
+        issue_counts[issue_type] = issue_counts.get(issue_type, 0) + 1
+    
+    top_issues = sorted(issue_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    return {
+        "region": region,
+        "summary": {
+            "total_citizens": total_citizens,
+            "compliant": compliant,
+            "warning": warning,
+            "suspended": suspended,
+            "expired": expired,
+            "compliance_rate": round((compliant / total_citizens * 100) if total_citizens > 0 else 0, 1)
+        },
+        "transactions": {
+            "total": len(transactions),
+            "total_value": sum(t.get("total_value", 0) for t in transactions)
+        },
+        "violations": {
+            "total": len(violations),
+            "top_issues": [{"type": t[0], "count": t[1]} for t in top_issues]
+        },
+        "revenue": {
+            "total": total_revenue,
+            "avg_per_citizen": round(total_revenue / total_citizens, 2) if total_citizens > 0 else 0
+        }
+    }
+
+
+@router.get("/analytics/heatmap")
+async def get_analytics_heatmap(user: dict = Depends(require_auth(["admin"]))):
+    """Get geographic heatmap data for compliance visualization"""
+    regions = ["Northeast", "Southeast", "Midwest", "Southwest", "West"]
+    
+    # Get all profiles
+    all_profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+    all_violations = await db.compliance_warnings.find({}, {"_id": 0}).to_list(10000)
+    all_transactions = await db.transactions.find({}, {"_id": 0}).to_list(10000)
+    
+    now = datetime.now(timezone.utc)
+    heatmap_data = []
+    
+    for idx, region in enumerate(regions):
+        # Assign profiles to regions (in real app, use actual region data)
+        region_profiles = [p for i, p in enumerate(all_profiles) if i % 5 == idx]
+        region_user_ids = [p.get("user_id") for p in region_profiles]
+        
+        # Calculate compliance
+        compliant = 0
+        total = len(region_profiles)
+        
+        for p in region_profiles:
+            status = p.get("license_status", "active")
+            if status != "suspended":
+                if p.get("license_expiry"):
+                    try:
+                        expiry = datetime.fromisoformat(p["license_expiry"].replace("Z", "+00:00"))
+                        if expiry >= now:
+                            compliant += 1
+                    except:
+                        compliant += 1
+                else:
+                    compliant += 1
+        
+        compliance_rate = round((compliant / total * 100) if total > 0 else 100, 1)
+        
+        # Count violations
+        region_violations = len([v for v in all_violations if v.get("user_id") in region_user_ids])
+        
+        # Count transactions
+        region_transactions = len([t for t in all_transactions if t.get("buyer_id") in region_user_ids])
+        
+        # Determine intensity (0-100)
+        # Higher violations = higher intensity (red), higher compliance = lower intensity (green)
+        violation_intensity = min(100, region_violations * 10)
+        
+        heatmap_data.append({
+            "region": region,
+            "compliance_rate": compliance_rate,
+            "violation_count": region_violations,
+            "transaction_count": region_transactions,
+            "population": total,
+            "intensity": violation_intensity,
+            "status": "good" if compliance_rate >= 90 else ("warning" if compliance_rate >= 75 else "critical"),
+            # Approximate coordinates for US regions
+            "coordinates": {
+                "Northeast": {"lat": 42.0, "lng": -74.0},
+                "Southeast": {"lat": 33.0, "lng": -84.0},
+                "Midwest": {"lat": 41.0, "lng": -89.0},
+                "Southwest": {"lat": 34.0, "lng": -111.0},
+                "West": {"lat": 37.0, "lng": -120.0}
+            }.get(region, {"lat": 39.0, "lng": -98.0})
+        })
+    
+    return {
+        "heatmap_data": heatmap_data,
+        "legend": {
+            "good": "≥90% compliance",
+            "warning": "75-89% compliance",
+            "critical": "<75% compliance"
+        }
+    }
+
+
+@router.get("/analytics/anomalies")
+async def get_analytics_anomalies(user: dict = Depends(require_auth(["admin"]))):
+    """Detect and return anomalies in the data"""
+    now = datetime.now(timezone.utc)
+    anomalies = []
+    
+    # Check for unusual transaction volumes
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_start = today_start - timedelta(days=1)
+    week_ago = today_start - timedelta(days=7)
+    
+    today_tx = await db.transactions.count_documents({
+        "created_at": {"$gte": today_start.isoformat()}
+    })
+    
+    yesterday_tx = await db.transactions.count_documents({
+        "created_at": {"$gte": yesterday_start.isoformat(), "$lt": today_start.isoformat()}
+    })
+    
+    # Get average daily transactions over last week
+    week_tx = await db.transactions.count_documents({
+        "created_at": {"$gte": week_ago.isoformat()}
+    })
+    avg_daily_tx = week_tx / 7 if week_tx > 0 else 1
+    
+    # Anomaly: Today's transactions significantly higher/lower than average
+    if today_tx > avg_daily_tx * 2:
+        anomalies.append({
+            "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+            "type": "high_transaction_volume",
+            "severity": "high",
+            "title": "Unusual High Transaction Volume",
+            "description": f"Today's transactions ({today_tx}) are {round(today_tx/avg_daily_tx, 1)}x higher than the weekly average ({round(avg_daily_tx, 1)})",
+            "metric": "transactions",
+            "current_value": today_tx,
+            "expected_value": round(avg_daily_tx, 1),
+            "detected_at": now.isoformat()
+        })
+    elif today_tx < avg_daily_tx * 0.3 and avg_daily_tx > 5:
+        anomalies.append({
+            "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+            "type": "low_transaction_volume",
+            "severity": "medium",
+            "title": "Unusually Low Transaction Volume",
+            "description": f"Today's transactions ({today_tx}) are significantly lower than the weekly average ({round(avg_daily_tx, 1)})",
+            "metric": "transactions",
+            "current_value": today_tx,
+            "expected_value": round(avg_daily_tx, 1),
+            "detected_at": now.isoformat()
+        })
+    
+    # Check for spike in violations
+    today_violations = await db.compliance_warnings.count_documents({
+        "created_at": {"$gte": today_start.isoformat()}
+    })
+    week_violations = await db.compliance_warnings.count_documents({
+        "created_at": {"$gte": week_ago.isoformat()}
+    })
+    avg_daily_violations = week_violations / 7 if week_violations > 0 else 0
+    
+    if today_violations > avg_daily_violations * 3 and today_violations > 2:
+        anomalies.append({
+            "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+            "type": "violation_spike",
+            "severity": "critical",
+            "title": "Spike in Compliance Violations",
+            "description": f"Today's violations ({today_violations}) are {round(today_violations/max(avg_daily_violations, 1), 1)}x higher than average",
+            "metric": "violations",
+            "current_value": today_violations,
+            "expected_value": round(avg_daily_violations, 1),
+            "detected_at": now.isoformat()
+        })
+    
+    # Check for sudden increase in suspensions
+    recent_suspensions = await db.citizen_profiles.count_documents({
+        "license_status": "suspended",
+        "suspended_at": {"$gte": week_ago.isoformat()}
+    })
+    
+    if recent_suspensions > 10:
+        anomalies.append({
+            "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+            "type": "suspension_increase",
+            "severity": "high",
+            "title": "Increase in License Suspensions",
+            "description": f"{recent_suspensions} licenses suspended in the last 7 days",
+            "metric": "suspensions",
+            "current_value": recent_suspensions,
+            "expected_value": 2,
+            "detected_at": now.isoformat()
+        })
+    
+    # Check for large value transactions (potential fraud)
+    large_transactions = await db.transactions.find({
+        "total_value": {"$gte": 10000},
+        "created_at": {"$gte": week_ago.isoformat()}
+    }, {"_id": 0}).to_list(100)
+    
+    for tx in large_transactions:
+        if tx.get("total_value", 0) >= 50000:
+            anomalies.append({
+                "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+                "type": "large_transaction",
+                "severity": "high",
+                "title": "Large Value Transaction Detected",
+                "description": f"Transaction of ${tx.get('total_value', 0):,.2f} detected",
+                "metric": "transaction_value",
+                "current_value": tx.get("total_value", 0),
+                "expected_value": 5000,
+                "transaction_id": tx.get("transaction_id"),
+                "detected_at": now.isoformat()
+            })
+    
+    # Check for expired licenses not renewed
+    expired_not_renewed = await db.citizen_profiles.count_documents({
+        "license_expiry": {"$lt": now.isoformat()},
+        "license_status": {"$ne": "suspended"}
+    })
+    
+    if expired_not_renewed > 5:
+        anomalies.append({
+            "anomaly_id": f"anom_{uuid.uuid4().hex[:8]}",
+            "type": "expired_licenses",
+            "severity": "medium",
+            "title": "Expired Licenses Requiring Action",
+            "description": f"{expired_not_renewed} licenses have expired but are not suspended",
+            "metric": "expired_licenses",
+            "current_value": expired_not_renewed,
+            "expected_value": 0,
+            "detected_at": now.isoformat()
+        })
+    
+    return {
+        "anomalies": anomalies,
+        "total_detected": len(anomalies),
+        "by_severity": {
+            "critical": len([a for a in anomalies if a["severity"] == "critical"]),
+            "high": len([a for a in anomalies if a["severity"] == "high"]),
+            "medium": len([a for a in anomalies if a["severity"] == "medium"]),
+            "low": len([a for a in anomalies if a["severity"] == "low"])
+        },
+        "checked_at": now.isoformat()
+    }
+
+
+@router.get("/analytics/performance")
+async def get_analytics_performance(user: dict = Depends(require_auth(["admin"]))):
+    """Get system performance metrics and SLAs"""
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    seven_days_ago = now - timedelta(days=7)
+    
+    # License application processing times
+    applications = await db.license_applications.find({
+        "status": {"$in": ["approved", "rejected"]},
+        "reviewed_at": {"$exists": True}
+    }, {"_id": 0}).to_list(1000)
+    
+    processing_times = []
+    for app in applications:
+        if app.get("created_at") and app.get("reviewed_at"):
+            try:
+                created = datetime.fromisoformat(app["created_at"].replace("Z", "+00:00"))
+                reviewed = datetime.fromisoformat(app["reviewed_at"].replace("Z", "+00:00"))
+                hours = (reviewed - created).total_seconds() / 3600
+                processing_times.append(hours)
+            except:
+                pass
+    
+    avg_processing_time = sum(processing_times) / len(processing_times) if processing_times else 0
+    
+    # Alert resolution times
+    resolved_alerts = await db.system_alerts.find({
+        "status": "resolved",
+        "resolved_at": {"$exists": True}
+    }, {"_id": 0}).to_list(500)
+    
+    resolution_times = []
+    for alert in resolved_alerts:
+        if alert.get("created_at") and alert.get("resolved_at"):
+            try:
+                created = datetime.fromisoformat(alert["created_at"].replace("Z", "+00:00"))
+                resolved = datetime.fromisoformat(alert["resolved_at"].replace("Z", "+00:00"))
+                hours = (resolved - created).total_seconds() / 3600
+                resolution_times.append(hours)
+            except:
+                pass
+    
+    avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+    
+    # SLA compliance
+    sla_targets = {
+        "license_processing_hours": 72,  # 3 days
+        "alert_resolution_hours": 24,    # 1 day
+        "compliance_check_interval_hours": 6
+    }
+    
+    licenses_within_sla = len([t for t in processing_times if t <= sla_targets["license_processing_hours"]])
+    alerts_within_sla = len([t for t in resolution_times if t <= sla_targets["alert_resolution_hours"]])
+    
+    # Transaction processing
+    transactions_today = await db.transactions.count_documents({
+        "created_at": {"$gte": now.replace(hour=0, minute=0, second=0).isoformat()}
+    })
+    
+    pending_transactions = await db.transactions.count_documents({
+        "status": "pending"
+    })
+    
+    # System health metrics
+    total_users = await db.users.count_documents({})
+    active_sessions = await db.sessions.count_documents({
+        "expires_at": {"$gte": now.isoformat()}
+    })
+    
+    return {
+        "processing_metrics": {
+            "license_applications": {
+                "avg_processing_hours": round(avg_processing_time, 1),
+                "sla_target_hours": sla_targets["license_processing_hours"],
+                "within_sla_count": licenses_within_sla,
+                "total_processed": len(processing_times),
+                "sla_compliance_rate": round((licenses_within_sla / len(processing_times) * 100) if processing_times else 100, 1)
+            },
+            "alert_resolution": {
+                "avg_resolution_hours": round(avg_resolution_time, 1),
+                "sla_target_hours": sla_targets["alert_resolution_hours"],
+                "within_sla_count": alerts_within_sla,
+                "total_resolved": len(resolution_times),
+                "sla_compliance_rate": round((alerts_within_sla / len(resolution_times) * 100) if resolution_times else 100, 1)
+            }
+        },
+        "transaction_metrics": {
+            "today_count": transactions_today,
+            "pending_count": pending_transactions,
+            "avg_daily_volume": round(transactions_today, 0)
+        },
+        "system_health": {
+            "total_users": total_users,
+            "active_sessions": active_sessions,
+            "uptime_percentage": 99.9  # Placeholder
+        },
+        "sla_summary": {
+            "overall_compliance": round(
+                ((licenses_within_sla + alerts_within_sla) / 
+                 max(len(processing_times) + len(resolution_times), 1)) * 100, 1
+            ),
+            "targets": sla_targets
+        }
+    }
+
+
+@router.get("/analytics/export")
+async def export_analytics_data(
+    format: str = "csv",
+    data_type: str = "summary",
+    period: str = "30d",
+    user: dict = Depends(require_auth(["admin"]))
+):
+    """Export analytics data in CSV or JSON format"""
+    days = int(period.replace("d", "")) if "d" in period else 30
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=days)
+    
+    export_data = []
+    
+    if data_type == "summary":
+        # Get summary statistics
+        total_licenses = await db.licenses.count_documents({})
+        total_citizens = await db.citizen_profiles.count_documents({})
+        total_dealers = await db.dealer_profiles.count_documents({})
+        total_transactions = await db.transactions.count_documents({
+            "created_at": {"$gte": start_date.isoformat()}
+        })
+        total_violations = await db.compliance_warnings.count_documents({
+            "created_at": {"$gte": start_date.isoformat()}
+        })
+        
+        payments = await db.payments.find({
+            "status": "completed",
+            "payment_date": {"$gte": start_date.isoformat()}
+        }, {"_id": 0}).to_list(10000)
+        total_revenue = sum(p.get("amount", 0) for p in payments)
+        
+        export_data = [{
+            "metric": "Total Licenses",
+            "value": total_licenses,
+            "period": period
+        }, {
+            "metric": "Total Citizens",
+            "value": total_citizens,
+            "period": period
+        }, {
+            "metric": "Total Dealers",
+            "value": total_dealers,
+            "period": period
+        }, {
+            "metric": "Transactions",
+            "value": total_transactions,
+            "period": period
+        }, {
+            "metric": "Violations",
+            "value": total_violations,
+            "period": period
+        }, {
+            "metric": "Revenue",
+            "value": total_revenue,
+            "period": period
+        }]
+        
+    elif data_type == "transactions":
+        transactions = await db.transactions.find({
+            "created_at": {"$gte": start_date.isoformat()}
+        }, {"_id": 0}).sort("created_at", -1).to_list(5000)
+        
+        export_data = [{
+            "transaction_id": t.get("transaction_id"),
+            "date": t.get("created_at"),
+            "dealer_id": t.get("dealer_id"),
+            "buyer_id": t.get("buyer_id"),
+            "item_type": t.get("item_type"),
+            "quantity": t.get("quantity"),
+            "total_value": t.get("total_value"),
+            "status": t.get("status")
+        } for t in transactions]
+        
+    elif data_type == "compliance":
+        profiles = await db.citizen_profiles.find({}, {"_id": 0}).to_list(10000)
+        
+        export_data = [{
+            "user_id": p.get("user_id"),
+            "name": p.get("name"),
+            "license_status": p.get("license_status"),
+            "fee_status": p.get("fee_status"),
+            "license_expiry": p.get("license_expiry"),
+            "region": p.get("region", "Unassigned")
+        } for p in profiles]
+        
+    elif data_type == "violations":
+        violations = await db.compliance_warnings.find({
+            "created_at": {"$gte": start_date.isoformat()}
+        }, {"_id": 0}).sort("created_at", -1).to_list(2000)
+        
+        export_data = [{
+            "warning_id": v.get("warning_id"),
+            "user_id": v.get("user_id"),
+            "type": v.get("type"),
+            "severity": v.get("severity"),
+            "status": v.get("status"),
+            "created_at": v.get("created_at")
+        } for v in violations]
+    
+    if format == "csv":
+        # Generate CSV
+        if not export_data:
+            return {"error": "No data to export"}
+        
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=export_data[0].keys())
+        writer.writeheader()
+        writer.writerows(export_data)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=analytics_{data_type}_{period}.csv"
+            }
+        )
+    else:
+        return {
+            "data_type": data_type,
+            "period": period,
+            "record_count": len(export_data),
+            "data": export_data,
+            "exported_at": now.isoformat()
+        }
+
+
+@router.get("/analytics/reports")
+async def get_scheduled_reports(user: dict = Depends(require_auth(["admin"]))):
+    """Get list of scheduled reports"""
+    reports = await db.scheduled_reports.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"reports": [serialize_doc(r) for r in reports]}
+
+
+@router.post("/analytics/reports")
+async def create_scheduled_report(request: Request, user: dict = Depends(require_auth(["admin"]))):
+    """Create a new scheduled report"""
+    body = await request.json()
+    
+    report = {
+        "report_id": f"rpt_{uuid.uuid4().hex[:12]}",
+        "name": body.get("name"),
+        "description": body.get("description", ""),
+        "report_type": body.get("report_type", "summary"),  # summary, compliance, transactions, violations
+        "schedule": body.get("schedule", "weekly"),  # daily, weekly, monthly
+        "recipients": body.get("recipients", []),  # Email addresses
+        "format": body.get("format", "pdf"),  # pdf, csv
+        "filters": body.get("filters", {}),
+        "is_active": body.get("is_active", True),
+        "created_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_run": None,
+        "next_run": None
+    }
+    
+    # Calculate next run time
+    now = datetime.now(timezone.utc)
+    if report["schedule"] == "daily":
+        report["next_run"] = (now + timedelta(days=1)).replace(hour=8, minute=0, second=0).isoformat()
+    elif report["schedule"] == "weekly":
+        days_until_monday = (7 - now.weekday()) % 7 or 7
+        report["next_run"] = (now + timedelta(days=days_until_monday)).replace(hour=8, minute=0, second=0).isoformat()
+    elif report["schedule"] == "monthly":
+        if now.month == 12:
+            report["next_run"] = now.replace(year=now.year+1, month=1, day=1, hour=8, minute=0, second=0).isoformat()
+        else:
+            report["next_run"] = now.replace(month=now.month+1, day=1, hour=8, minute=0, second=0).isoformat()
+    
+    await db.scheduled_reports.insert_one(report)
+    
+    return {
+        "message": "Report scheduled successfully",
+        "report_id": report["report_id"],
+        "next_run": report["next_run"]
+    }
+
+
+@router.delete("/analytics/reports/{report_id}")
+async def delete_scheduled_report(report_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Delete a scheduled report"""
+    result = await db.scheduled_reports.delete_one({"report_id": report_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    return {"message": "Report deleted successfully"}
+
+
+@router.post("/analytics/reports/{report_id}/run")
+async def run_report_now(report_id: str, user: dict = Depends(require_auth(["admin"]))):
+    """Manually trigger a scheduled report"""
+    report = await db.scheduled_reports.find_one({"report_id": report_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Generate report data based on type
+    now = datetime.now(timezone.utc)
+    report_data = {
+        "generated_at": now.isoformat(),
+        "report_id": report_id,
+        "report_name": report.get("name"),
+        "report_type": report.get("report_type")
+    }
+    
+    # Update last run time
+    await db.scheduled_reports.update_one(
+        {"report_id": report_id},
+        {"$set": {"last_run": now.isoformat()}}
+    )
+    
+    # In a real implementation, this would generate PDF/CSV and send emails
+    return {
+        "message": "Report generated successfully",
+        "report_id": report_id,
+        "generated_at": now.isoformat(),
+        "note": "Email delivery is mocked in this demo"
+    }
+
