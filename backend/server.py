@@ -7449,6 +7449,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(members_router, prefix="/api")
 app.include_router(dealer_router, prefix="/api")
 app.include_router(government_router, prefix="/api")
+app.include_router(reports_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
