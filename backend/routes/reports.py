@@ -86,7 +86,8 @@ async def get_current_user(
 
 def require_role(allowed_roles: list):
     """Dependency factory for role-based access control"""
-    async def role_checker(user: dict = Depends(get_current_user)):
+    async def role_checker(request: Request):
+        user = await get_current_user(request)
         user_role = user.get("role", "")
         if user_role not in allowed_roles:
             raise HTTPException(status_code=403, detail=f"Access denied. Required roles: {allowed_roles}")
